@@ -1,18 +1,18 @@
 # Generating Projects
 
-First clone this repository. Create a new directory where you would like your project to live. For example I'll create a directory called `MyCoolProject`. Open a command prompt in this directory and execute:
+First we will clone this repository. Create a new directory where you would like your project to live. For example I'll create a directory called `MyCoolProject`. Open a command prompt in this directory and execute:
 
 ```bat
 git clone https://github.com/ambrosiogabe/opengl-template-cpp ./
 ```
 
-Then type in:
+Then we will pull all our dependencies and create the file structure for our project. Type in:
 
 ```bat
 build.bat create MyCoolProject
 ```
 
-where `MyCoolProject` is the name of your project. Then run:
+where `MyCoolProject` is the name of your project. Finally we will build the actual project files using premake. Type in:
 
 ```bat
 build.bat vs2019
