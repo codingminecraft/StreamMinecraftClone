@@ -1,12 +1,18 @@
 # Generating Projects
 
-To generate a new OpenGL project open up a command prompt window in this directory, then simply type in:
+First clone this repository. Create a new directory where you would like your project to live. For example I'll create a directory called `MyCoolProject`. Open a command prompt in this directory and execute:
 
 ```bat
-build.bat create myProject
+git clone https://github.com/ambrosiogabe/opengl-template-cpp ./
 ```
 
-where `myProject` is the name of your project. Then run:
+Then type in:
+
+```bat
+build.bat create MyCoolProject
+```
+
+where `MyCoolProject` is the name of your project. Then run:
 
 ```bat
 build.bat vs2019
