@@ -1,0 +1,3 @@
+[submodule "Minecraft/vendor/glm"]
+	path = Minecraft/vendor/glm
+	url = https://github.com/g-truc/glm
