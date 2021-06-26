@@ -16,32 +16,32 @@ namespace Minecraft
 	namespace CMath
 	{
 		// Float Comparison functions, using custom epsilon
-		bool Compare(float x, float y, float epsilon = std::numeric_limits<float>::min());
-		bool Compare(const glm::vec3& vec1, const glm::vec3& vec2, float epsilon = std::numeric_limits<float>::min());
-		bool Compare(const glm::vec2& vec1, const glm::vec2& vec2, float epsilon = std::numeric_limits<float>::min());
-		bool Compare(const glm::vec4& vec1, const glm::vec4& vec2, float epsilon = std::numeric_limits<float>::min());
+		bool compare(float x, float y, float epsilon = std::numeric_limits<float>::min());
+		bool compare(const glm::vec3& vec1, const glm::vec3& vec2, float epsilon = std::numeric_limits<float>::min());
+		bool compare(const glm::vec2& vec1, const glm::vec2& vec2, float epsilon = std::numeric_limits<float>::min());
+		bool compare(const glm::vec4& vec1, const glm::vec4& vec2, float epsilon = std::numeric_limits<float>::min());
 
 		// Vector conversions
-		glm::vec2 Vector2From3(const glm::vec3& vec);
-		glm::vec3 Vector3From2(const glm::vec2& vec);
+		glm::vec2 vector2From3(const glm::vec3& vec);
+		glm::vec3 vector3From2(const glm::vec2& vec);
 
 		// Math functions
-		void Rotate(glm::vec2& vec, float angleDeg, const glm::vec2& origin);
-		void Rotate(glm::vec3& vec, float angleDeg, const glm::vec3& origin);
+		void rotate(glm::vec2& vec, float angleDeg, const glm::vec2& origin);
+		void rotate(glm::vec3& vec, float angleDeg, const glm::vec3& origin);
 
-		float ToRadians(float degrees);
-		float ToDegrees(float radians);
+		float toRadians(float degrees);
+		float toDegrees(float radians);
 
 		// Map Ranges
-		float MapRange(float val, float inMin, float inMax, float outMin, float outMax);
+		float mapRange(float val, float inMin, float inMax, float outMin, float outMax);
 
 		// Max, Min impls
-		int Max(int a, int b);
-		int Min(int a, int b);
-		float Saturate(float val);
+		int max(int a, int b);
+		int min(int a, int b);
+		float saturate(float val);
 
 		// Hash Strings
-		uint32 HashString(const char* str);
+		uint32 hashString(const char* str);
 	}
 }
 

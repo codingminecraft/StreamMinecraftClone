@@ -153,7 +153,7 @@ namespace Minecraft
 					GLint varLocation = glGetUniformLocation(program, charBuffer);
 					mAllShaderVariables.push_back({
 						std::string(charBuffer),
-						CMath::HashString(charBuffer),
+						CMath::hashString(charBuffer),
 						varLocation,
 						program
 					});
@@ -255,7 +255,7 @@ namespace Minecraft
 		// Private functions
 		static GLint GetVariableLocation(const Shader& shader, const char* varName)
 		{
-			uint32 hash = CMath::HashString(varName);
+			uint32 hash = CMath::hashString(varName);
 
 			for (int i = shader.startIndex; i < mAllShaderVariables.size(); i++)
 			{

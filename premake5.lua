@@ -36,7 +36,7 @@ project "Minecraft"
         "Minecraft/vendor/glad/include/glad/glad.h",
         "Minecraft/vendor/glad/include/glad/KHR/khrplatform.h",
 		"Minecraft/vendor/glad/src/glad.c",
-        "Minecraft/vendor/cppUtils/cppUtils/CppUtils.h",
+        "Minecraft/vendor/cppUtils/SingleInclude/CppUtils/CppUtils.h",
         "Minecraft/vendor/glm/glm/**.hpp",
 		"Minecraft/vendor/glm/glm/**.inl",
         "Minecraft/vendor/stb/stb_image.h"
@@ -46,7 +46,7 @@ project "Minecraft"
         "Minecraft/include",
         "Minecraft/vendor/GLFW/include",
         "Minecraft/vendor/glad/include",
-        "Minecraft/vendor/cppUtils/",
+        "Minecraft/vendor/CppUtils/SingleInclude/",
         "Minecraft/vendor/glm/",
         "Minecraft/vendor/stb/"
     }

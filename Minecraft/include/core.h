@@ -8,15 +8,22 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <cppUtils/SingleInclude.h>
+#include <CppUtils/CppUtils.h>
 using namespace CppUtils;
 
 #include <filesystem>
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <cstdio>
 
-#include "glad/glad.h"
+// GLFW/glad
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
+// stb
+#include <stb/stb_image.h>
+#include <stb/stb_write.h>
 
 #endif
