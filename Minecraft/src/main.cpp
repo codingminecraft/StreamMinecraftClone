@@ -16,6 +16,7 @@
 
 int main()
 {
+	Memory::init();
 	int error = Minecraft::World::playGame();
 	if (!error)
 	{

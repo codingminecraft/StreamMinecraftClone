@@ -17,6 +17,7 @@ namespace Minecraft
 
 		size_t vertexSizeBytes;
 		size_t elementSizeBytes;
+		uint32 numElements;
 	};
 
 	struct Chunk

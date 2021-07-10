@@ -40,7 +40,7 @@ namespace Minecraft
 
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
-			keyPressed[key] = action == GLFW_PRESS;
+			keyPressed[key] = action == GLFW_REPEAT || action == GLFW_PRESS;
 		}
 
 		bool isKeyPressed(int key)

@@ -7,15 +7,17 @@
 #include "renderer/Camera.h"
 #include "world/Input.h"
 
-static float vertices[] = {
+static Minecraft::Vertex vertices[] = {
 	// first triangle
-	 0.5f,  0.5f, 0.0f,      0.7f, 0.1f, 0.1f, 1.0f,     1.0f, 0.0f,// top right
-	 0.5f, -0.5f, 0.0f,      0.1f, 0.7f, 0.2f, 1.0f,     1.0f, 1.0f,// bottom right
-	-0.5f,  0.5f, 0.0f,      0.1f, 0.2f, 0.8f, 1.0f,     0.0f, 0.0f,// top left 
-	// second triangle	     
-	 0.5f, -0.5f, 0.0f,      0.1f, 0.7f, 0.2f, 1.0f,     1.0f, 1.0f,// bottom right
-	-0.5f, -0.5f, 0.0f,      0.7f, 0.8f, 0.1f, 1.0f,     0.0f, 1.0f,// bottom left
-	-0.5f,  0.5f, 0.0f,      0.1f, 0.2f, 0.8f, 1.0f,     0.0f, 0.0f // top left
+	{{0.5f,  0.5f, 0.0f},      {1.0f, 0.0f}},// top right
+	{{0.5f, -0.5f, 0.0f},      {1.0f, 1.0f}},// bottom right
+	{{-0.5f, -0.5f, 0.0f},     {0.0f, 1.0f}},// bottom left
+	{{-0.5f,  0.5f, 0.0f},     {0.0f, 0.0f}} // top left 
+};
+
+static uint32 elements[] = {
+	0, 1, 2,
+	0, 2, 3
 };
 
 namespace Minecraft
@@ -54,7 +56,8 @@ namespace Minecraft
 			Logger::Info("GLAD initialized.");
 			Logger::Info("Hello OpenGL %d.%d", GLVersion.major, GLVersion.minor);
 
-			TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block");
+			// TODO: Use this, since it works
+			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block");
 			Shader shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 
 			Texture texture;
@@ -76,13 +79,15 @@ namespace Minecraft
 
 			// 2. copy our vertices array in a buffer for OpenGL to use
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, data.vertexSizeBytes, data.vertices, GL_DYNAMIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, data.vertexSizeBytes, data.vertices, GL_STATIC_DRAW);
+			//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 
 			uint32 ebo;
 			glGenBuffers(1, &ebo);
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(data.elementSizeBytes), data.elements, GL_DYNAMIC_DRAW);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.elementSizeBytes, data.elements, GL_STATIC_DRAW);
+			//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_DYNAMIC_DRAW);
 			
 			// 3. then set our vertex attributes pointers
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
@@ -100,10 +105,11 @@ namespace Minecraft
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 
 			glViewport(0, 0, windowWidth, windowHeight);
+			glEnable(GL_DEPTH_TEST);
 			while (!glfwWindowShouldClose(window) && isRunning)
 			{
 				glClearColor(250.0f / 255.0f, 119.0f / 255.0f, 110.0f / 255.0f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glm::mat4 projection = camera.calculateProjectionMatrix();
 				glm::mat4 view = camera.calculateViewMatrix();
@@ -150,7 +156,8 @@ namespace Minecraft
 					camera.position += localRight * playerSpeed;
 				}
 
-				glDrawArrays(GL_TRIANGLES, 0, 6);
+				glBindVertexArray(vao);
+				glDrawElements(GL_TRIANGLES, data.numElements, GL_UNSIGNED_INT, nullptr);
 
 				glfwSwapBuffers(window);
 
