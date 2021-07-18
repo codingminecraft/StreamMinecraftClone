@@ -1,4 +1,6 @@
 // Implementations
+// TODO: Remove all includes in headers
+// TODO: Only allowed to include <stdint> and <stdbool> in headers
 #define GABE_CPP_UTILS_IMPL
 #include <CppUtils/CppUtils.h>
 #undef GABE_CPP_UTILS_IMPL
@@ -10,18 +12,19 @@
 #undef STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <CppUtils/CppUtils.h>
-
-#include "world/World.h"
 #include "utils/ErrorCodes.h"
+#include "world/World.h"
 
 int main()
 {
 	Memory::init();
+
 	int error = Minecraft::World::playGame();
 	if (!error)
 	{
 		return 0;
 	}
+
 
 	switch (error)
 	{

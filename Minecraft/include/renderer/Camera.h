@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MINECRAFT_CAMERA_H
+#define MINECRAFT_CAMERA_H
 
 #include "core.h"
 
@@ -18,3 +19,5 @@ namespace Minecraft
 		glm::mat4 calculateProjectionMatrix() const;
 	};
 }
+
+#endif

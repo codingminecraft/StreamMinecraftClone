@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MINECRAFT_INPUT_H
+#define MINECRAFT_INPUT_H
 
 #include "core.h"
 
@@ -19,3 +20,5 @@ namespace Minecraft
 		bool isKeyPressed(int key);
 	}
 }
+
+#endif

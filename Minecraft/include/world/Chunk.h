@@ -1,6 +1,9 @@
-#pragma once
-
+#ifndef MINECRAFT_CHUNK_H
+#define MINECRAFT_CHUNK_H
 #include "core.h"
+
+#include <unordered_map>
+#include <string>
 
 namespace Minecraft
 {
@@ -26,9 +29,6 @@ namespace Minecraft
 
 		ChunkRenderData generate();
 	};
-
-	namespace BlockMap
-	{
-		
-	}
 }
+
+#endif 

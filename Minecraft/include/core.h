@@ -11,12 +11,16 @@
 #include <CppUtils/CppUtils.h>
 using namespace CppUtils;
 
+// Standard
 #include <filesystem>
 #include <cstring>
 #include <iostream>
 #include <fstream>
 #include <array>
 #include <cstdio>
+#include <vector>
+#include <unordered_map>
+#include <string>
 
 // GLFW/glad
 #include <glad/glad.h>
@@ -25,5 +29,8 @@ using namespace CppUtils;
 // stb
 #include <stb/stb_image.h>
 #include <stb/stb_write.h>
+
+// Yaml
+#include <yaml-cpp/yaml.h>
 
 #endif

@@ -18,8 +18,8 @@ project "Minecraft"
     cppdialect "C++17"
     staticruntime "on"
 
-    targetdir("bin/" .. outputdir .. "/{prj.name}")
-    objdir("bin-int/" .. outputdir .. "/{prj.name}")
+    targetdir("bin/" .. outputdir .. "/%{prj.name}")
+    objdir("bin-int/" .. outputdir .. "/%{prj.name}")
 
     files {
         "Minecraft/src/**.cpp",
@@ -39,7 +39,10 @@ project "Minecraft"
         "Minecraft/vendor/cppUtils/SingleInclude/CppUtils/CppUtils.h",
         "Minecraft/vendor/glm/glm/**.hpp",
 		"Minecraft/vendor/glm/glm/**.inl",
-        "Minecraft/vendor/stb/stb_image.h"
+        "Minecraft/vendor/stb/stb_image.h",
+        "Minecraft/vendor/yamlCpp/src/**.h",
+		"Minecraft/vendor/yamlCpp/src/**.cpp",
+		"Minecraft/vendor/yamlCpp/include/**.h"
     }
 
     includedirs {
@@ -48,7 +51,8 @@ project "Minecraft"
         "Minecraft/vendor/glad/include",
         "Minecraft/vendor/CppUtils/SingleInclude/",
         "Minecraft/vendor/glm/",
-        "Minecraft/vendor/stb/"
+        "Minecraft/vendor/stb/",
+        "Minecraft/vendor/yamlCpp/include"
     }
 
     filter "system:windows"

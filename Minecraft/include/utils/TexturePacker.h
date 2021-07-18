@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MINECRAFT_TEXTURE_PACKER_H
+#define MINECRAFT_TEXTURE_PACKER_H
 #include "core.h"
 
 namespace Minecraft
@@ -10,6 +11,8 @@ namespace Minecraft
 
 	namespace TexturePacker
 	{
-		void packTextures(const char* filepath);
+		void packTextures(const char* filepath, const char* configFilepath);
 	}
 }
+
+#endif

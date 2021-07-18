@@ -4,3 +4,6 @@
 [submodule "Minecraft/vendor/cppUtils"]
 	path = Minecraft/vendor/cppUtils
 	url = https://github.com/ambrosiogabe/CppUtils
+[submodule "Minecraft/vendor/yamlCpp"]
+	path = Minecraft/vendor/yamlCpp
+	url = https://github.com/jbeder/yaml-cpp

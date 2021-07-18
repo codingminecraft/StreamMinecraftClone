@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MINECRAFT_ERROR_CODES_H
+#define MINECRAFT_ERROR_CODES_H
 
 namespace Minecraft
 {
@@ -9,3 +10,5 @@ namespace Minecraft
 		const int GLAD_INITIALIZATION_FAILED = 2;
 	}
 }
+
+#endif
