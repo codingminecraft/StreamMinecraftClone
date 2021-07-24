@@ -41,6 +41,19 @@ namespace Minecraft
 		glfwSetKeyCallback((GLFWwindow*)res->windowPtr, Input::keyCallback);
 		glfwSetFramebufferSizeCallback((GLFWwindow*)res->windowPtr, resizeCallback);
 
+
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+		int monitorX, monitorY;
+		glfwGetMonitorPos(monitor, &monitorX, &monitorY);
+
+		int windowWidth, windowHeight;
+		glfwGetWindowSize((GLFWwindow*)res->windowPtr, &windowWidth, &windowHeight);
+
+		glfwSetWindowPos((GLFWwindow*)res->windowPtr,
+			monitorX + (mode->width - windowWidth) / 2,
+			monitorY + (mode->height - windowHeight) / 2);
+
 		// TODO: Move this to renderer initialization
 		// Load OpenGL functions using Glad
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))

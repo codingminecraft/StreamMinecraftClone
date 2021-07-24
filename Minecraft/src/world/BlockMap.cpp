@@ -5,6 +5,8 @@ namespace Minecraft
 {
 	namespace BlockMap
 	{
+		extern int NULL_BLOCK = 0;
+
 		static std::unordered_map<std::string, int> nameToIdMap;
 		static std::vector<BlockFormat> blockFormats;
 		static std::unordered_map<std::string, TextureFormat> textureFormatMap;
@@ -17,18 +19,25 @@ namespace Minecraft
 		const BlockFormat& getBlock(const std::string& name)
 		{
 			int blockId = nameToIdMap[name];
-			return blockFormats[blockId - 1];
+			return blockFormats[blockId];
 		}
 
 		const BlockFormat& getBlock(int blockId)
 		{
-			return blockFormats[blockId - 1];
+			return blockFormats.at(blockId);
 		}
 
 		void loadBlocks(const char* textureFormatConfig, const char* blockFormatConfig)
 		{
 			YAML::Node textureFormat = YamlExtended::readFile(textureFormatConfig);
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
+
+			blockFormats.push_back({
+				"",
+				"",
+				"",
+				true
+			});
 
 			for (auto block : blockFormat)
 			{

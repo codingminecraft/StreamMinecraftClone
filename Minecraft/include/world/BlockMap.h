@@ -9,6 +9,7 @@ namespace Minecraft
 		std::string sideTexture;
 		std::string topTexture;
 		std::string bottomTexture;
+		bool isTransparent;
 	};
 
 	struct TextureFormat
@@ -18,6 +19,8 @@ namespace Minecraft
 
 	namespace BlockMap
 	{
+		extern int NULL_BLOCK;
+
 		const TextureFormat& getTextureFormat(const std::string& textureName);
 		const BlockFormat& getBlock(const std::string& name);
 		const BlockFormat& getBlock(int blockId);

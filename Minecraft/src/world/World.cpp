@@ -46,7 +46,7 @@ namespace Minecraft
 			renderState = setupRenderState(data, shader, worldTexture);
 
 			// Setup camera
-			camera.position = glm::vec3(0, 0, 1.0f);
+			camera.position = glm::vec3(0, 100.0f, 1.0f);
 			camera.fov = 45.0f;
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 			PlayerController::init(&camera);
