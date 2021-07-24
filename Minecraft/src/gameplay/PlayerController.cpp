@@ -1,5 +1,5 @@
 #include "gameplay/PlayerController.h"
-#include "world/Input.h"
+#include "core/Input.h"
 #include "renderer/Camera.h"
 
 namespace Minecraft

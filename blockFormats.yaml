@@ -8,3 +8,13 @@ sand:
   side: sand
   top: sand
   bottom: sand
+dirt:
+  id: 3
+  side: dirt
+  top: dirt
+  bottom: dirt
+green_concrete:
+  id: 4
+  side: green_concrete_powder
+  top: green_concrete_powder
+  bottom: green_concrete_powder

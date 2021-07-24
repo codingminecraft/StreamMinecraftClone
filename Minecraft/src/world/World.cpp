@@ -2,10 +2,10 @@
 #include "world/World.h"
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
-#include "utils/TexturePacker.h"
-#include "utils/ErrorCodes.h"
 #include "renderer/Camera.h"
-#include "world/Input.h"
+#include "utils/TexturePacker.h"
+#include "core/Input.h"
+#include "core/Application.h"
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
 
@@ -20,125 +20,63 @@ namespace Minecraft
 	namespace World
 	{
 		// Internal declarations
-		static int setupGlfw();
-		static int setupGlad();
 		static Texture loadWorldTexture();
 		static RenderState setupRenderState(const ChunkRenderData& data, const Shader& shader, const Texture& worldTexture);
 		static void render(const RenderState& renderState, const ChunkRenderData& data);
 
-		// Settings
-		static const int windowWidth = 1920;
-		static const int windowHeight = 1080;
-		static const glm::vec4 clearColor = glm::vec4(153.0f/255.0f, 204.0f/255.0f, 1.0f, 1.0f);
-		static const char* windowTitle = "OpenGL Template";
-
 		// Members
 		static GLFWwindow* window;
+		static Chunk chunk;
+		static ChunkRenderData data;
+		static RenderState renderState;
+		static Camera camera;
+		static Shader shader;
+		static Texture worldTexture;
 
-		int playGame()
+		void init()
 		{
-			// Initiaize GLFW/Glad
-			bool isRunning = true;
-
-			int glfwResult = setupGlfw();
-			if (glfwResult != ErrorCodes::SUCCESS)
-			{
-				return glfwResult;
-			}
-
-			int gladResult = setupGlad();
-			if (gladResult != ErrorCodes::SUCCESS)
-			{
-				return gladResult;
-			}
-
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
-			Texture worldTexture = loadWorldTexture();
-			Shader shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
+			worldTexture = loadWorldTexture();
+			shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 
 			// Create a chunk
-			Chunk chunk;
-			ChunkRenderData data = chunk.generate();
-			RenderState renderState = setupRenderState(data, shader, worldTexture);
+			data = chunk.generate();
+			renderState = setupRenderState(data, shader, worldTexture);
 
 			// Setup camera
-			Camera camera;
 			camera.position = glm::vec3(0, 0, 1.0f);
 			camera.fov = 45.0f;
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 			PlayerController::init(&camera);
+		}
 
-			// Run game loop
-			while (!glfwWindowShouldClose(window) && isRunning)
+		void update(float dt)
+		{
+			glm::mat4 projection = camera.calculateProjectionMatrix();
+			glm::mat4 view = camera.calculateViewMatrix();
+			NShader::uploadMat4(shader, "uProjection", projection);
+			NShader::uploadMat4(shader, "uView", view);
+
+			PlayerController::update(0.0f);
+
+			if (Input::isKeyPressed(GLFW_KEY_F1))
 			{
-				glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				glm::mat4 projection = camera.calculateProjectionMatrix();
-				glm::mat4 view = camera.calculateViewMatrix();
-				NShader::uploadMat4(shader, "uProjection", projection);
-				NShader::uploadMat4(shader, "uView", view);
-
-				PlayerController::update(0.0f);
-				if (Input::isKeyPressed(GLFW_KEY_ESCAPE))
-				{
-					isRunning = false;
-				}
-
-				render(renderState, data);
-
-				glfwSwapBuffers(window);
-
-				Input::endFrame();
-				glfwPollEvents();
+				Application::lockCursor(false);
+			} 
+			else if (Input::isKeyPressed(GLFW_KEY_F2))
+			{
+				Application::lockCursor(true);
 			}
 
-			// Clean up
-			glfwTerminate();
-			return ErrorCodes::SUCCESS;
+			render(renderState, data);
 		}
 
 		static void render(const RenderState& renderState, const ChunkRenderData& data)
 		{
 			glBindVertexArray(renderState.vao);
 			glDrawElements(GL_TRIANGLES, data.numElements, GL_UNSIGNED_INT, nullptr);
-		}
-
-		static int setupGlad()
-		{
-			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-			{
-				return ErrorCodes::GLAD_INITIALIZATION_FAILED;
-			}
-			Logger::Info("GLAD initialized.");
-			Logger::Info("Hello OpenGL %d.%d", GLVersion.major, GLVersion.minor);
-
-			return ErrorCodes::SUCCESS;
-		}
-
-		static int setupGlfw()
-		{
-			glfwInit();
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-			window = glfwCreateWindow(windowWidth, windowHeight, windowTitle, nullptr, nullptr);
-			if (window == nullptr)
-			{
-				glfwTerminate();
-				return ErrorCodes::GLFW_WINDOW_CREATION_FAILED;
-			}
-			glfwMakeContextCurrent(window);
-			Logger::Info("GLFW window created");
-
-			glfwSetCursorPosCallback(window, Input::mouseCallback);
-			glfwSetKeyCallback(window, Input::keyCallback);
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-			return ErrorCodes::SUCCESS;
 		}
 
 		static Texture loadWorldTexture()
@@ -183,18 +121,11 @@ namespace Minecraft
 			NShader::uploadInt(shader, "uTexture", worldTexture.graphicsId);
 			glUseProgram(shader.programId);
 
-			// 2. Set GL state
-			glEnable(GL_DEPTH_TEST);
-			glEnable(GL_CULL_FACE);
-
-			// 3. Resize viewport 
-			// TODO: Hook this up to a callback
-			glViewport(0, 0, windowWidth, windowHeight);
-
 			return {
 				vao,
 				vbo
 			};
 		}
+
 	}
 }

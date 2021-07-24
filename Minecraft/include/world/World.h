@@ -6,7 +6,9 @@ namespace Minecraft
 {
 	namespace World
 	{
-		int playGame();
+		void init();
+
+		void update(float dt);
 	}
 }
 

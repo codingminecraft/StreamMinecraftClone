@@ -12,30 +12,14 @@
 #undef STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <CppUtils/CppUtils.h>
-#include "utils/ErrorCodes.h"
-#include "world/World.h"
+#include "core/Application.h"
 
 int main()
 {
-	Memory::init();
+	CppUtils::Memory::init();
 
-	int error = Minecraft::World::playGame();
-	if (!error)
-	{
-		return 0;
-	}
+	Minecraft::Application::run();
 
-
-	switch (error)
-	{
-	case Minecraft::ErrorCodes::GLFW_WINDOW_CREATION_FAILED:
-		CppUtils::Logger::Error("Failed to create window with GLFW.");
-		break;
-	case Minecraft::ErrorCodes::GLAD_INITIALIZATION_FAILED:
-		CppUtils::Logger::Error("Failed to initialize GLAD.");
-		break;
-	}
-	CppUtils::Logger::Error("Game crashed unexpectedly. TODO Print error report here.");
-	return -1;
+	return 0;
 }
 

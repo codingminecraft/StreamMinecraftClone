@@ -26,7 +26,7 @@ namespace Minecraft
 			glm::radians(fov),
 			1920.0f / 1080.0f,
 			0.1f,
-			100.0f
+			2000.0f
 		);
 	};
 }

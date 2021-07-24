@@ -27,9 +27,13 @@ namespace Minecraft
 					{
 						chunkData[arrayExpansion] = 2;
 					}
+					else if (y < 255)
+					{
+						chunkData[arrayExpansion] = 3;
+					}
 					else
 					{
-						chunkData[arrayExpansion] = 1;
+						chunkData[arrayExpansion] = 4;
 					}
 				}
 			}
