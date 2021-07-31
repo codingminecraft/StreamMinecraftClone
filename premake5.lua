@@ -42,7 +42,9 @@ project "Minecraft"
         "Minecraft/vendor/stb/stb_image.h",
         "Minecraft/vendor/yamlCpp/src/**.h",
 		"Minecraft/vendor/yamlCpp/src/**.cpp",
-		"Minecraft/vendor/yamlCpp/include/**.h"
+		"Minecraft/vendor/yamlCpp/include/**.h",
+        "Minecraft/vendor/simplex/src/**.h",
+        "Minecraft/vendor/simplex/src/**.cpp"
     }
 
     includedirs {
@@ -52,7 +54,8 @@ project "Minecraft"
         "Minecraft/vendor/CppUtils/SingleInclude/",
         "Minecraft/vendor/glm/",
         "Minecraft/vendor/stb/",
-        "Minecraft/vendor/yamlCpp/include"
+        "Minecraft/vendor/yamlCpp/include",
+        "Minecraft/vendor/simplex/src"
     }
 
     filter "system:windows"

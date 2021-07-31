@@ -1,6 +1,7 @@
 #include "world/Chunk.h"
 #include "utils/YamlExtended.h"
 #include "world/BlockMap.h"
+#include "utils/CMath.h"
 
 #include <vector>
 #include <unordered_map>
@@ -21,16 +22,17 @@ namespace Minecraft
 		BACK
 	};
 
+	static void uploadToGPU(Chunk& chunk);
+
 	static int to1DArray(int x, int y, int z)
 	{
-		//return z * (CHUNK_DEPTH * CHUNK_HEIGHT) + (y + CHUNK_HEIGHT * x);
 		return (x * CHUNK_DEPTH) + (y * CHUNK_HEIGHT) + z;
 	}
 
-	static int getBlock(int16* data, int x, int y, int z)
+	static const Block& getBlock(Block* data, int x, int y, int z)
 	{
 		int index = to1DArray(x, y, z);
-		return x >= 16 || x < 0 || z >= 16 || z < 0 || y >= 256 || y < 0?
+		return x >= 16 || x < 0 || z >= 16 || z < 0 || y >= 256 || y < 0 ?
 			BlockMap::NULL_BLOCK :
 			data[index];
 	}
@@ -47,29 +49,78 @@ namespace Minecraft
 		int elementCursor,
 		const TextureFormat& texture);
 
-	ChunkRenderData Chunk::generate()
+
+	bool operator==(const Block& a, const Block& b)
 	{
-		chunkData = (int16*)AllocMem(sizeof(int16) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
-		Memory::zeroMem(chunkData, sizeof(int16) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		return a.id == b.id;
+	}
+
+	void Chunk::generate(int chunkX, int chunkZ, int32 seed)
+	{
+		const int worldChunkX = chunkX * 16;
+		const int worldChunkZ = chunkZ * 16;
+
+		worldPosition = { chunkX, chunkZ };
+
+		chunkData = (Block*)AllocMem(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		Memory::zeroMem(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		const SimplexNoise generator = SimplexNoise();
 		for (int y = 0; y < CHUNK_HEIGHT; y++)
 		{
-			for (int x = 0; x <	CHUNK_DEPTH; x++)
+			for (int x = 0; x < CHUNK_DEPTH; x++)
 			{
 				for (int z = 0; z < CHUNK_WIDTH; z++)
 				{
 					// 24 Vertices per cube
+					const float incrementSize = 1000.0f;
 					const int arrayExpansion = to1DArray(x, y, z);
-					if (y < 10)
+					float maxHeightFloat =
+						CMath::mapRange(
+							generator.fractal(
+								7,
+								(x + worldChunkX + seed) / incrementSize,
+								(z + worldChunkZ + seed) / incrementSize
+							), 
+							-1.0f, 
+							1.0f, 
+							0.0f, 
+							1.0f
+						) * 255.0f;
+					int16 maxHeight = (int16)maxHeightFloat;
+
+					float stoneHeightFloat =
+						CMath::mapRange(
+							generator.fractal(
+								7,
+								(x + worldChunkX + seed) / incrementSize,
+								(z + worldChunkZ + seed) / incrementSize
+							),
+							-1.0f,
+							1.0f,
+							0.0f,
+							1.0f
+						) * 255.0f;
+					int16 stoneHeight = (int16)(stoneHeightFloat * maxHeightFloat) / (127.0f);
+
+					if (y == 0)
 					{
-						chunkData[arrayExpansion] = 2;
+						// Bedrock
+						chunkData[arrayExpansion].id = 6;
 					}
-					else if (y < 255)
+					else if (y < stoneHeight)
 					{
-						chunkData[arrayExpansion] = 3;
+						// Stone
+						chunkData[arrayExpansion].id = 5;
 					}
-					else
+					else if (y < maxHeight)
 					{
-						chunkData[arrayExpansion] = 4;
+						// Dirt
+						chunkData[arrayExpansion].id = 3;
+					}
+					else if (y == maxHeight)
+					{
+						// Green Concrete 
+						chunkData[arrayExpansion].id = 4;
 					}
 				}
 			}
@@ -89,7 +140,13 @@ namespace Minecraft
 				for (int z = 0; z < CHUNK_WIDTH; z++)
 				{
 					// 24 Vertices per cube
-					const int blockId = getBlock(chunkData, x, y, z);
+					const Block& block = getBlock(chunkData, x, y, z);
+					int blockId = block.id;
+
+					if (block == BlockMap::NULL_BLOCK)
+					{
+						continue;
+					}
 
 					const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
 					const TextureFormat& side = BlockMap::getTextureFormat(blockFormat.sideTexture);
@@ -98,9 +155,9 @@ namespace Minecraft
 
 					Vertex verts[8];
 					verts[0].position = glm::vec3(
-						(float)x - 0.5f,
+						(float)x - 0.5f + worldChunkX,
 						(float)y + 0.5f,
-						(float)z + 0.5f
+						(float)z + 0.5f + worldChunkZ
 					);
 					verts[1].position = verts[0].position + glm::vec3(1, 0, 0);
 					verts[2].position = verts[1].position - glm::vec3(0, 0, 1);
@@ -113,36 +170,11 @@ namespace Minecraft
 
 					if (elementCursor >= UINT32_MAX - 24)
 					{
-						Logger::Info("UH OH");
+						Logger::Assert(false, "UH OH");
 					}
-					//for (int i = 0; i < 6; i++)
-					//{
-					//	elements[elementIndexCursor + (i * 6) + 0] = elementCursor + 0 + (i * 4);
-					//	elements[elementIndexCursor + (i * 6) + 1] = elementCursor + 1 + (i * 4);
-					//	elements[elementIndexCursor + (i * 6) + 2] = elementCursor + 2 + (i * 4);
-
-					//	elements[elementIndexCursor + (i * 6) + 3] = elementCursor + 0 + (i * 4);
-					//	elements[elementIndexCursor + (i * 6) + 4] = elementCursor + 2 + (i * 4);
-					//	elements[elementIndexCursor + (i * 6) + 5] = elementCursor + 3 + (i * 4);
-					//}
-					//elementIndexCursor += 36;
-					//elementCursor += 24;
-
-					//const int uvIndex = arrayExpansion * 24;
-					//for (int i = 0; i < 6; i++)
-					//{
-					//	const TextureFormat& textureFormat =
-					//		i == 0 ? top :
-					//		i > 0 && i < 5 ? side :
-					//		bottom;
-					//	vertexData[uvIndex + (i * 4)].uv = textureFormat.uvs[0];
-					//	vertexData[uvIndex + (i * 4) + 1].uv = textureFormat.uvs[1];
-					//	vertexData[uvIndex + (i * 4) + 2].uv = textureFormat.uvs[2];
-					//	vertexData[uvIndex + (i * 4) + 3].uv = textureFormat.uvs[3];
-					//}
 
 					// Top Face
-					const int topBlockId = getBlock(chunkData, x, y + 1, z);
+					const int topBlockId = getBlock(chunkData, x, y + 1, z).id;
 					const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
 					if (!topBlockId || topBlock.isTransparent)
 					{
@@ -154,7 +186,7 @@ namespace Minecraft
 					}
 
 					// Bottom Face
-					const int bottomBlockId = getBlock(chunkData, x, y - 1, z);
+					const int bottomBlockId = getBlock(chunkData, x, y - 1, z).id;
 					const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
 					if (!bottomBlockId || bottomBlock.isTransparent)
 					{
@@ -166,7 +198,7 @@ namespace Minecraft
 					}
 
 					// Right Face
-					const int rightBlockId = getBlock(chunkData, x, y, z + 1);
+					const int rightBlockId = getBlock(chunkData, x, y, z + 1).id;
 					const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
 					if (!rightBlockId || rightBlock.isTransparent)
 					{
@@ -178,7 +210,7 @@ namespace Minecraft
 					}
 
 					// Left Face
-					const int leftBlockId = getBlock(chunkData, x, y, z - 1);
+					const int leftBlockId = getBlock(chunkData, x, y, z - 1).id;
 					const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
 					if (!leftBlockId || leftBlock.isTransparent)
 					{
@@ -190,7 +222,7 @@ namespace Minecraft
 					}
 
 					// Forward Face
-					const int forwardBlockId = getBlock(chunkData, x + 1, y, z);
+					const int forwardBlockId = getBlock(chunkData, x + 1, y, z).id;
 					const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
 					if (!forwardBlockId || forwardBlock.isTransparent)
 					{
@@ -202,7 +234,7 @@ namespace Minecraft
 					}
 
 					// Back Face
-					const int backBlockId = getBlock(chunkData, x - 1, y, z);
+					const int backBlockId = getBlock(chunkData, x - 1, y, z).id;
 					const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
 					if (!backBlockId || backBlock.isTransparent)
 					{
@@ -216,13 +248,47 @@ namespace Minecraft
 			}
 		}
 
-		ChunkRenderData ret;
-		ret.elements = elements;
-		ret.vertices = vertexData;
-		ret.vertexSizeBytes = sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24;
-		ret.elementSizeBytes = sizeof(uint32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
-		ret.numElements = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
-		return ret;
+		renderData.elements = elements;
+		renderData.vertices = vertexData;
+		renderData.vertexSizeBytes = sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24;
+		renderData.elementSizeBytes = sizeof(uint32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
+		renderData.numElements = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
+
+		uploadToGPU(*this);
+	}
+
+	void Chunk::render()
+	{
+		glBindVertexArray(renderData.renderState.vao);
+		glDrawElements(GL_TRIANGLES, renderData.numElements, GL_UNSIGNED_INT, nullptr);
+	}
+
+	static void uploadToGPU(Chunk& chunk)
+	{
+		ChunkRenderData& renderData = chunk.renderData;
+
+		// 1. Buffer the data
+		glCreateVertexArrays(1, &renderData.renderState.vao);
+		glBindVertexArray(renderData.renderState.vao);
+
+		glGenBuffers(1, &renderData.renderState.vbo);
+
+		// 1a. copy our vertices array in a buffer for OpenGL to use
+		glBindBuffer(GL_ARRAY_BUFFER, renderData.renderState.vbo);
+		glBufferData(GL_ARRAY_BUFFER, renderData.vertexSizeBytes, renderData.vertices, GL_STATIC_DRAW);
+
+		uint32 ebo;
+		glGenBuffers(1, &ebo);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderData.elementSizeBytes, renderData.elements, GL_STATIC_DRAW);
+
+		// 1b. then set our vertex attributes pointers
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
+		glEnableVertexAttribArray(1);
 	}
 
 	static void loadBlock(

@@ -5,7 +5,12 @@ namespace Minecraft
 {
 	namespace BlockMap
 	{
-		extern int NULL_BLOCK = 0;
+		extern Block NULL_BLOCK = {
+			0,
+			0,
+			0,
+			0
+		};
 
 		static std::unordered_map<std::string, int> nameToIdMap;
 		static std::vector<BlockFormat> blockFormats;
@@ -45,10 +50,10 @@ namespace Minecraft
 				std::string side = block.second["side"].as<std::string>();
 				std::string top = block.second["top"].as<std::string>();
 				std::string bottom = block.second["bottom"].as<std::string>();
-				Logger::Info("Id: %d", id);
-				Logger::Info("Side: %s", side.c_str());
-				Logger::Info("Top: %s", top.c_str());
-				Logger::Info("Bottom: %s", bottom.c_str());
+				//Logger::Info("Id: %d", id);
+				//Logger::Info("Side: %s", side.c_str());
+				//Logger::Info("Top: %s", top.c_str());
+				//Logger::Info("Bottom: %s", bottom.c_str());
 
 				nameToIdMap[block.first.as<std::string>()] = id;
 				blockFormats.push_back({

@@ -18,3 +18,13 @@ green_concrete:
   side: green_concrete_powder
   top: green_concrete_powder
   bottom: green_concrete_powder
+stone:
+  id: 5
+  side: stone
+  top: stone
+  bottom: stone
+bedrock:
+  id: 6
+  side: bedrock
+  top: bedrock
+  bottom: bedrock

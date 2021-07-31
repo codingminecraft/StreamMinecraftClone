@@ -1,6 +1,7 @@
 #ifndef MINECRAFT_BLOCK_MAP_H
 #define MINECRAFT_BLOCK_MAP_H
 #include "core.h"
+#include "Chunk.h"
 
 namespace Minecraft
 {
@@ -19,7 +20,7 @@ namespace Minecraft
 
 	namespace BlockMap
 	{
-		extern int NULL_BLOCK;
+		extern Block NULL_BLOCK;
 
 		const TextureFormat& getTextureFormat(const std::string& textureName);
 		const BlockFormat& getBlock(const std::string& name);

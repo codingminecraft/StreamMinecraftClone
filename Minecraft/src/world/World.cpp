@@ -9,44 +9,50 @@
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
 
+#include <random>
+
 namespace Minecraft
 {
-	struct RenderState
-	{
-		uint32 vao;
-		uint32 vbo;
-	};
-
 	namespace World
 	{
 		// Internal declarations
-		static Texture loadWorldTexture();
-		static RenderState setupRenderState(const ChunkRenderData& data, const Shader& shader, const Texture& worldTexture);
-		static void render(const RenderState& renderState, const ChunkRenderData& data);
+		static void loadWorldTexture();
 
 		// Members
-		static GLFWwindow* window;
-		static Chunk chunk;
-		static ChunkRenderData data;
 		static RenderState renderState;
 		static Camera camera;
 		static Shader shader;
 		static Texture worldTexture;
+		static const int numChunks = 64;
+		static Chunk loadedChunks[numChunks];
+
+		static int32 seed = 0;
 
 		void init()
 		{
+			srand((unsigned long)time(NULL));
+			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
+			Logger::Info("World seed: %d", seed);
+
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
-			worldTexture = loadWorldTexture();
 			shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
+			loadWorldTexture();
 
 			// Create a chunk
-			data = chunk.generate();
-			renderState = setupRenderState(data, shader, worldTexture);
+			int chunkIndex = 0;
+			for (int z = -4; z < 4; z++)
+			{
+				for (int x = -4; x < 4; x++)
+				{
+					loadedChunks[chunkIndex].generate(x, z, seed);
+					chunkIndex++;
+				}
+			}
 
 			// Setup camera
-			camera.position = glm::vec3(0, 100.0f, 1.0f);
+			camera.position = glm::vec3(0, 257.0f, 1.0f);
 			camera.fov = 45.0f;
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 			PlayerController::init(&camera);
@@ -70,62 +76,23 @@ namespace Minecraft
 				Application::lockCursor(true);
 			}
 
-			render(renderState, data);
+			for (int i = 0; i < numChunks; i++)
+			{
+				loadedChunks[i].render();
+			}
 		}
 
-		static void render(const RenderState& renderState, const ChunkRenderData& data)
+		static void loadWorldTexture()
 		{
-			glBindVertexArray(renderState.vao);
-			glDrawElements(GL_TRIANGLES, data.numElements, GL_UNSIGNED_INT, nullptr);
-		}
+			worldTexture.internalFormat = ByteFormat::RGBA;
+			worldTexture.externalFormat = ByteFormat::RGBA8;
+			worldTexture.magFilter = FilterMode::Nearest;
+			worldTexture.minFilter = FilterMode::Nearest;
+			TextureUtil::Generate(worldTexture, "C:/dev/C++/MinecraftClone/test.png");
 
-		static Texture loadWorldTexture()
-		{
-			Texture texture;
-			texture.internalFormat = ByteFormat::RGBA;
-			texture.externalFormat = ByteFormat::RGBA8;
-			texture.magFilter = FilterMode::Nearest;
-			texture.minFilter = FilterMode::Nearest;
-			TextureUtil::Generate(texture, "C:/dev/C++/MinecraftClone/test.png");
-
-			return texture;
-		}
-
-		static RenderState setupRenderState(const ChunkRenderData& data, const Shader& shader, const Texture& worldTexture)
-		{
-			// 1. Buffer the data
-			uint32 vao;
-			glCreateVertexArrays(1, &vao);
-			glBindVertexArray(vao);
-
-			uint32 vbo;
-			glGenBuffers(1, &vbo);
-
-			// 1a. copy our vertices array in a buffer for OpenGL to use
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, data.vertexSizeBytes, data.vertices, GL_STATIC_DRAW);
-
-			uint32 ebo;
-			glGenBuffers(1, &ebo);
-
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.elementSizeBytes, data.elements, GL_STATIC_DRAW);
-
-			// 1b. then set our vertex attributes pointers
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-			glEnableVertexAttribArray(0);
-
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
-			glEnableVertexAttribArray(1);
-
+			// Upload the world texture
 			NShader::uploadInt(shader, "uTexture", worldTexture.graphicsId);
 			glUseProgram(shader.programId);
-
-			return {
-				vao,
-				vbo
-			};
 		}
-
 	}
 }

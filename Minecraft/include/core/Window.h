@@ -31,6 +31,8 @@ namespace Minecraft
 
 		void setVSync(bool on);
 
+		void setTitle(const char* title);
+
 		static void cleanup();
 
 		static Window* create(int width, int height, const char* title);

@@ -77,6 +77,11 @@ namespace Minecraft
 		delete window;
 	}
 
+	void Window::setTitle(const char* title)
+	{
+		glfwSetWindowTitle((GLFWwindow*)windowPtr, title);
+	}
+
 	void Window::setCursorMode(CursorMode cursorMode)
 	{
 		int glfwCursorMode =

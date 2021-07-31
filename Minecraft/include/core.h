@@ -33,4 +33,7 @@ using namespace CppUtils;
 // Yaml
 #include <yaml-cpp/yaml.h>
 
+// Simplex 
+#include <SimplexNoise.h>
+
 #endif
