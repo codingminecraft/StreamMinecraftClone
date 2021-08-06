@@ -10,3 +10,6 @@ bin-int/**
 **.vcxproj
 **.filters
 **.user
+
+world/**
+test.png

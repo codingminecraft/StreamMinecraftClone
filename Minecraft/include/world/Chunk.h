@@ -2,15 +2,13 @@
 #define MINECRAFT_CHUNK_H
 #include "core.h"
 
-#include <unordered_map>
-#include <string>
-
 namespace Minecraft
 {
 	struct Vertex
 	{
 		glm::vec3 position;
 		glm::vec2 uv;
+		uint32 face;
 	};
 
 	struct RenderState
@@ -56,7 +54,15 @@ namespace Minecraft
 
 		void generate(int chunkX, int chunkZ, int32 seed);
 
+		void generateRenderData();
+
 		void render();
+
+		void serialize(const std::string& worldSavePath);
+
+		void deserialize(const std::string& worldSavePath, int chunkX, int chunkZ);
+
+		static void info();
 	};
 }
 

@@ -1,9 +1,10 @@
 #ifndef MINECRAFT_WINDOW_H
 #define MINECRAFT_WINDOW_H
+#include "core.h"
 
 namespace Minecraft
 {
-	enum CursorMode
+	enum class CursorMode : uint8
 	{
 		Hidden,
 		Locked,

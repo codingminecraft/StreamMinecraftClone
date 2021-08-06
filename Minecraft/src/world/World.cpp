@@ -8,6 +8,7 @@
 #include "core/Application.h"
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
+#include "core/File.h"
 
 #include <random>
 
@@ -41,12 +42,18 @@ namespace Minecraft
 			loadWorldTexture();
 
 			// Create a chunk
+			File::createDirIfNotExists("world");
 			int chunkIndex = 0;
-			for (int z = -4; z < 4; z++)
+			Chunk::info();
+			for (int z = -2; z < 2; z++)
 			{
-				for (int x = -4; x < 4; x++)
+				for (int x = -2; x < 2; x++)
 				{
+					Logger::Info("Generating chunk %d", chunkIndex);
 					loadedChunks[chunkIndex].generate(x, z, seed);
+					//loadedChunks[chunkIndex].deserialize("world", x, z);
+					loadedChunks[chunkIndex].generateRenderData();
+					loadedChunks[chunkIndex].serialize("world");
 					chunkIndex++;
 				}
 			}
@@ -64,6 +71,7 @@ namespace Minecraft
 			glm::mat4 view = camera.calculateViewMatrix();
 			NShader::uploadMat4(shader, "uProjection", projection);
 			NShader::uploadMat4(shader, "uView", view);
+			NShader::uploadVec3(shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
 
 			PlayerController::update(0.0f);
 

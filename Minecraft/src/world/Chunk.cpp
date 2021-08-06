@@ -3,23 +3,20 @@
 #include "world/BlockMap.h"
 #include "utils/CMath.h"
 
-#include <vector>
-#include <unordered_map>
-
 namespace Minecraft
 {
 	static const int CHUNK_WIDTH = 16;
 	static const int CHUNK_HEIGHT = 256;
 	static const int CHUNK_DEPTH = 16;
 
-	enum class CUBE_FACE : int32
+	enum class CUBE_FACE : uint32
 	{
-		TOP,
-		SIDE,
-		BOTTOM,
-		RIGHT,
-		LEFT,
-		BACK
+		LEFT = 0,
+		RIGHT = 1,
+		BOTTOM = 2,
+		TOP = 3,
+		BACK = 4,
+		FRONT = 5
 	};
 
 	static void uploadToGPU(Chunk& chunk);
@@ -47,12 +44,20 @@ namespace Minecraft
 		int32* elements,
 		int elementIndexCursor,
 		int elementCursor,
-		const TextureFormat& texture);
+		const TextureFormat& texture,
+		CUBE_FACE face);
 
 
 	bool operator==(const Block& a, const Block& b)
 	{
 		return a.id == b.id;
+	}
+
+	void Chunk::info()
+	{
+		Logger::Info("%d size of chunk", sizeof(Block) * CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT);
+		Logger::Info("%d size of vertex data", sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
+		Logger::Info("%d size of element data", sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
 	}
 
 	void Chunk::generate(int chunkX, int chunkZ, int32 seed)
@@ -125,6 +130,12 @@ namespace Minecraft
 				}
 			}
 		}
+	}
+
+	void Chunk::generateRenderData() 
+	{
+		const int worldChunkX = worldPosition.x * 16;
+		const int worldChunkZ = worldPosition.y * 16;
 
 		Vertex* vertexData = (Vertex*)AllocMem(sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
 		int32* elements = (int32*)AllocMem(sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
@@ -179,7 +190,7 @@ namespace Minecraft
 					if (!topBlockId || topBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[0], verts[1], verts[2], verts[3], vertexCursor,
-							elements, elementIndexCursor, elementCursor, top);
+							elements, elementIndexCursor, elementCursor, top, CUBE_FACE::TOP);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -191,7 +202,7 @@ namespace Minecraft
 					if (!bottomBlockId || bottomBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[7], verts[6], verts[5], verts[4], vertexCursor,
-							elements, elementIndexCursor, elementCursor, bottom);
+							elements, elementIndexCursor, elementCursor, bottom, CUBE_FACE::BOTTOM);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -203,7 +214,7 @@ namespace Minecraft
 					if (!rightBlockId || rightBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[0], verts[4], verts[5], verts[1], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side);
+							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::RIGHT);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -215,7 +226,7 @@ namespace Minecraft
 					if (!leftBlockId || leftBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[2], verts[6], verts[7], verts[3], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side);
+							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::LEFT);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -227,7 +238,7 @@ namespace Minecraft
 					if (!forwardBlockId || forwardBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[1], verts[5], verts[6], verts[2], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side);
+							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::FRONT);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -239,7 +250,7 @@ namespace Minecraft
 					if (!backBlockId || backBlock.isTransparent)
 					{
 						loadBlock(vertexData, verts[3], verts[7], verts[4], verts[0], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side);
+							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::BACK);
 						vertexCursor += 4;
 						elementIndexCursor += 6;
 						elementCursor += 4;
@@ -261,6 +272,37 @@ namespace Minecraft
 	{
 		glBindVertexArray(renderData.renderState.vao);
 		glDrawElements(GL_TRIANGLES, renderData.numElements, GL_UNSIGNED_INT, nullptr);
+	}
+
+	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
+	{
+		return worldSavePath + "/" +
+			std::to_string(x) + "_" + std::to_string(z) + ".bin";
+	}
+
+	void Chunk::serialize(const std::string& worldSavePath)
+	{
+		std::string filepath = getFormattedFilepath(worldPosition.x, worldPosition.y, worldSavePath);
+		FILE* fp = fopen(filepath.c_str(), "wb");
+		fwrite(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		fwrite(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
+		fclose(fp);
+	}
+
+	void Chunk::deserialize(const std::string& worldSavePath, int chunkX, int chunkZ)
+	{
+		std::string filepath = getFormattedFilepath(chunkX, chunkZ, worldSavePath);
+		FILE* fp = fopen(filepath.c_str(), "rb");
+		if (!fp)
+		{
+			Logger::Error("Could not open file '%s'", filepath.c_str());
+			return;
+		}
+
+		fread(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		chunkData = (Block*)AllocMem(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		fread(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
+		fclose(fp);
 	}
 
 	static void uploadToGPU(Chunk& chunk)
@@ -289,6 +331,9 @@ namespace Minecraft
 
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
 		glEnableVertexAttribArray(1);
+
+		glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, face)));
+		glEnableVertexAttribArray(2);
 	}
 
 	static void loadBlock(
@@ -301,7 +346,8 @@ namespace Minecraft
 		int32* elements,
 		int elementIndexCursor,
 		int elementCursor,
-		const TextureFormat& texture)
+		const TextureFormat& texture,
+		CUBE_FACE face)
 	{
 		vertexData[vertexCursor + 0].position = vert1.position;
 		vertexData[vertexCursor + 1].position = vert2.position;
@@ -320,5 +366,10 @@ namespace Minecraft
 		vertexData[vertexCursor + 1].uv = texture.uvs[1];
 		vertexData[vertexCursor + 2].uv = texture.uvs[2];
 		vertexData[vertexCursor + 3].uv = texture.uvs[3];
+
+		vertexData[vertexCursor + 0].face = (uint32)face;
+		vertexData[vertexCursor + 1].face = (uint32)face;
+		vertexData[vertexCursor + 2].face = (uint32)face;
+		vertexData[vertexCursor + 3].face = (uint32)face;
 	}
 }
