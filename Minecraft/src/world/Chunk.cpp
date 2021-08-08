@@ -9,6 +9,10 @@ namespace Minecraft
 	static const int CHUNK_HEIGHT = 256;
 	static const int CHUNK_DEPTH = 16;
 
+	static const int POSITION_INDEX_BITMASK = 0x1FFFF;
+	static const int TEX_ID_BITMASK = 0x1FFE0000;
+	static const int FACE_BITMASK = 0xE0000000;
+
 	enum class CUBE_FACE : uint32
 	{
 		LEFT = 0,
@@ -36,14 +40,11 @@ namespace Minecraft
 
 	static void loadBlock(
 		Vertex* vertexData,
-		const Vertex& vert1,
-		const Vertex& vert2,
-		const Vertex& vert3,
-		const Vertex& vert4,
+		const glm::ivec3& vert1,
+		const glm::ivec3& vert2,
+		const glm::ivec3& vert3,
+		const glm::ivec3& vert4,
 		int vertexCursor,
-		int32* elements,
-		int elementIndexCursor,
-		int elementCursor,
 		const TextureFormat& texture,
 		CUBE_FACE face);
 
@@ -138,10 +139,7 @@ namespace Minecraft
 		const int worldChunkZ = worldPosition.y * 16;
 
 		Vertex* vertexData = (Vertex*)AllocMem(sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
-		int32* elements = (int32*)AllocMem(sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
 		int vertexCursor = 0;
-		int elementCursor = 0;
-		int elementIndexCursor = 0;
 		int uvCursor = 0;
 
 		for (int y = 0; y < CHUNK_HEIGHT; y++)
@@ -164,36 +162,29 @@ namespace Minecraft
 					const TextureFormat& top = BlockMap::getTextureFormat(blockFormat.topTexture);
 					const TextureFormat& bottom = BlockMap::getTextureFormat(blockFormat.bottomTexture);
 
-					Vertex verts[8];
-					verts[0].position = glm::vec3(
-						(float)x - 0.5f + worldChunkX,
-						(float)y + 0.5f,
-						(float)z + 0.5f + worldChunkZ
+					glm::ivec3 verts[8];
+					verts[0] = glm::ivec3(
+						x,
+						y,
+						z
 					);
-					verts[1].position = verts[0].position + glm::vec3(1, 0, 0);
-					verts[2].position = verts[1].position - glm::vec3(0, 0, 1);
-					verts[3].position = verts[0].position - glm::vec3(0, 0, 1);
+					verts[1] = verts[0] + glm::ivec3(0, 0, 1);
+					verts[2] = verts[1] + glm::ivec3(1, 0, 0);
+					verts[3] = verts[0] + glm::ivec3(1, 0, 0);
 
-					verts[4].position = verts[0].position - glm::vec3(0, 1, 0);
-					verts[5].position = verts[1].position - glm::vec3(0, 1, 0);
-					verts[6].position = verts[2].position - glm::vec3(0, 1, 0);
-					verts[7].position = verts[3].position - glm::vec3(0, 1, 0);
-
-					if (elementCursor >= UINT32_MAX - 24)
-					{
-						Logger::Assert(false, "UH OH");
-					}
+					verts[4] = verts[0] + glm::ivec3(0, 1, 0);
+					verts[5] = verts[1] + glm::ivec3(0, 1, 0);
+					verts[6] = verts[2] + glm::ivec3(0, 1, 0);
+					verts[7] = verts[3] + glm::ivec3(0, 1, 0);
 
 					// Top Face
 					const int topBlockId = getBlock(chunkData, x, y + 1, z).id;
 					const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
 					if (!topBlockId || topBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[0], verts[1], verts[2], verts[3], vertexCursor,
-							elements, elementIndexCursor, elementCursor, top, CUBE_FACE::TOP);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[5], verts[6], verts[7], verts[4], vertexCursor, 
+							top, CUBE_FACE::TOP);
+						vertexCursor += 6;
 					}
 
 					// Bottom Face
@@ -201,11 +192,9 @@ namespace Minecraft
 					const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
 					if (!bottomBlockId || bottomBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[7], verts[6], verts[5], verts[4], vertexCursor,
-							elements, elementIndexCursor, elementCursor, bottom, CUBE_FACE::BOTTOM);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[0], verts[3], verts[2], verts[1], vertexCursor, 
+							bottom, CUBE_FACE::BOTTOM);
+						vertexCursor += 6;
 					}
 
 					// Right Face
@@ -213,11 +202,9 @@ namespace Minecraft
 					const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
 					if (!rightBlockId || rightBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[0], verts[4], verts[5], verts[1], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::RIGHT);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[2], verts[6], verts[5], verts[1], vertexCursor,
+							side, CUBE_FACE::RIGHT);
+						vertexCursor += 6;
 					}
 
 					// Left Face
@@ -225,11 +212,9 @@ namespace Minecraft
 					const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
 					if (!leftBlockId || leftBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[2], verts[6], verts[7], verts[3], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::LEFT);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[0], verts[4], verts[7], verts[3], vertexCursor,
+							side, CUBE_FACE::LEFT);
+						vertexCursor += 6;
 					}
 
 					// Forward Face
@@ -237,11 +222,9 @@ namespace Minecraft
 					const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
 					if (!forwardBlockId || forwardBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[1], verts[5], verts[6], verts[2], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::FRONT);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[7], verts[6], verts[2], verts[3], vertexCursor,
+							side, CUBE_FACE::FRONT);
+						vertexCursor += 6;
 					}
 
 					// Back Face
@@ -249,21 +232,17 @@ namespace Minecraft
 					const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
 					if (!backBlockId || backBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[3], verts[7], verts[4], verts[0], vertexCursor,
-							elements, elementIndexCursor, elementCursor, side, CUBE_FACE::BACK);
-						vertexCursor += 4;
-						elementIndexCursor += 6;
-						elementCursor += 4;
+						loadBlock(vertexData, verts[0], verts[1], verts[5], verts[4], vertexCursor,
+							side, CUBE_FACE::BACK);
+						vertexCursor += 6;
 					}
 				}
 			}
 		}
 
-		renderData.elements = elements;
 		renderData.vertices = vertexData;
 		renderData.vertexSizeBytes = sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24;
-		renderData.elementSizeBytes = sizeof(uint32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
-		renderData.numElements = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36;
+		renderData.numVertices = vertexCursor;
 
 		uploadToGPU(*this);
 	}
@@ -271,7 +250,7 @@ namespace Minecraft
 	void Chunk::render()
 	{
 		glBindVertexArray(renderData.renderState.vao);
-		glDrawElements(GL_TRIANGLES, renderData.numElements, GL_UNSIGNED_INT, nullptr);
+		glDrawArrays(GL_TRIANGLES, 0, renderData.numVertices);
 	}
 
 	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
@@ -319,57 +298,105 @@ namespace Minecraft
 		glBindBuffer(GL_ARRAY_BUFFER, renderData.renderState.vbo);
 		glBufferData(GL_ARRAY_BUFFER, renderData.vertexSizeBytes, renderData.vertices, GL_STATIC_DRAW);
 
-		uint32 ebo;
-		glGenBuffers(1, &ebo);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderData.elementSizeBytes, renderData.elements, GL_STATIC_DRAW);
-
 		// 1b. then set our vertex attributes pointers
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data));
 		glEnableVertexAttribArray(0);
 
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
 		glEnableVertexAttribArray(1);
+	}
 
-		glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, face)));
-		glEnableVertexAttribArray(2);
+	static const int BASE_17_DEPTH = 17;
+	static const int BASE_17_WIDTH = 17;
+	static const int BASE_17_HEIGHT = 289;
+	static int toCompressedVec3(int x, int y, int z)
+	{
+		return (x * BASE_17_DEPTH) + (y * BASE_17_HEIGHT) + z;
+	}
+
+	static glm::ivec3 toCoordinates(int index)
+	{
+		const int z = index % BASE_17_WIDTH;
+		const int x = (index % BASE_17_HEIGHT) / BASE_17_DEPTH;
+		const int y = (index - (x * BASE_17_DEPTH) - z) / BASE_17_HEIGHT;
+		return {
+			x, y, z
+		};
+	}
+
+	static uint32 compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face)
+	{
+		// Bits  0-16 position index
+		// Bits 17-28 texId
+		// Bits 29-31 normalDir face value
+		uint32 data = 0;
+
+		int positionIndex = toCompressedVec3(vertex.x, vertex.y, vertex.z);
+		data |= ((positionIndex << 0) & POSITION_INDEX_BITMASK);
+		data |= ((texture.id << 17) & TEX_ID_BITMASK);
+		data |= ((uint32)face << 29) & FACE_BITMASK;
+
+		return data;
+	}
+
+	static glm::ivec3 extractPosition(uint32 data)
+	{
+		int positionIndex = data & POSITION_INDEX_BITMASK;
+		return toCoordinates(positionIndex);
+	}
+
+	static uint16 extractTexId(uint32 data)
+	{
+		return (data & TEX_ID_BITMASK) >> 17;
+	}
+
+	static CUBE_FACE extractFace(uint32 data)
+	{
+		return (CUBE_FACE)((data & FACE_BITMASK) >> 29);
 	}
 
 	static void loadBlock(
 		Vertex* vertexData,
-		const Vertex& vert1,
-		const Vertex& vert2,
-		const Vertex& vert3,
-		const Vertex& vert4,
+		const glm::ivec3& vert1,
+		const glm::ivec3& vert2,
+		const glm::ivec3& vert3,
+		const glm::ivec3& vert4,
 		int vertexCursor,
-		int32* elements,
-		int elementIndexCursor,
-		int elementCursor,
 		const TextureFormat& texture,
 		CUBE_FACE face)
 	{
-		vertexData[vertexCursor + 0].position = vert1.position;
-		vertexData[vertexCursor + 1].position = vert2.position;
-		vertexData[vertexCursor + 2].position = vert3.position;
-		vertexData[vertexCursor + 3].position = vert4.position;
+		vertexData[vertexCursor + 0].data = compress(vert1, texture, face);
+		vertexData[vertexCursor + 1].data = compress(vert2, texture, face);
+		vertexData[vertexCursor + 2].data = compress(vert3, texture, face);
 
-		elements[elementIndexCursor + 0] = elementCursor + 0;
-		elements[elementIndexCursor + 1] = elementCursor + 1;
-		elements[elementIndexCursor + 2] = elementCursor + 2;
-
-		elements[elementIndexCursor + 3] = elementCursor + 0;
-		elements[elementIndexCursor + 4] = elementCursor + 2;
-		elements[elementIndexCursor + 5] = elementCursor + 3;
+		vertexData[vertexCursor + 3].data = compress(vert1, texture, face);
+		vertexData[vertexCursor + 4].data = compress(vert3, texture, face);
+		vertexData[vertexCursor + 5].data = compress(vert4, texture, face);
 
 		vertexData[vertexCursor + 0].uv = texture.uvs[0];
 		vertexData[vertexCursor + 1].uv = texture.uvs[1];
 		vertexData[vertexCursor + 2].uv = texture.uvs[2];
-		vertexData[vertexCursor + 3].uv = texture.uvs[3];
+		vertexData[vertexCursor + 3].uv = texture.uvs[0];
+		vertexData[vertexCursor + 4].uv = texture.uvs[2];
+		vertexData[vertexCursor + 5].uv = texture.uvs[3];
 
-		vertexData[vertexCursor + 0].face = (uint32)face;
-		vertexData[vertexCursor + 1].face = (uint32)face;
-		vertexData[vertexCursor + 2].face = (uint32)face;
-		vertexData[vertexCursor + 3].face = (uint32)face;
+		// TODO: Remove this once you are confident you are getting the right values
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 0].data) == vert1, "Failed Position.");
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 1].data) == vert2, "Failed Position.");
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 2].data) == vert3, "Failed Position.");
+
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 3].data) == vert1, "Failed Position.");
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 4].data) == vert3, "Failed Position.");
+		Logger::Assert(extractPosition(vertexData[vertexCursor + 5].data) == vert4, "Failed Position.");
+
+		Logger::Assert(extractFace(vertexData[vertexCursor + 0].data) == face, "Failed Face");
+		Logger::Assert(extractFace(vertexData[vertexCursor + 1].data) == face, "Failed Face");
+		Logger::Assert(extractFace(vertexData[vertexCursor + 2].data) == face, "Failed Face");
+		Logger::Assert(extractFace(vertexData[vertexCursor + 3].data) == face, "Failed Face");
+
+		Logger::Assert(extractTexId(vertexData[vertexCursor + 0].data) == texture.id, "Failed Texture Id");
+		Logger::Assert(extractTexId(vertexData[vertexCursor + 1].data) == texture.id, "Failed Texture Id");
+		Logger::Assert(extractTexId(vertexData[vertexCursor + 2].data) == texture.id, "Failed Texture Id");
+		Logger::Assert(extractTexId(vertexData[vertexCursor + 3].data) == texture.id, "Failed Texture Id");
 	}
 }

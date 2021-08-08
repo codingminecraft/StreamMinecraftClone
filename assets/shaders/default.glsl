@@ -1,8 +1,7 @@
 #type vertex
 #version 330 core
-layout (location = 0) in vec3 aPos;
+layout (location = 0) in uint aData;
 layout (location = 1) in vec2 aTexCoords;
-layout (location = 2) in uint aFace;
 
 out vec2 fTexCoords;
 flat out uint fFace;
@@ -10,13 +9,41 @@ out vec3 fFragPosition;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
+uniform ivec2 uChunkPos;
+
+#define POSITION_INDEX_BITMASK uint(0x1FFFF)
+#define FACE_BITMASK uint(0xE0000000)
+#define BASE_17_WIDTH uint(17)
+#define BASE_17_DEPTH uint(17)
+#define BASE_17_HEIGHT uint(289)
+
+void extractPosition(in uint data, out vec3 position)
+{
+	uint positionIndex = data & POSITION_INDEX_BITMASK;
+	uint z = positionIndex % BASE_17_WIDTH;
+	uint x = (positionIndex % BASE_17_HEIGHT) / BASE_17_DEPTH;
+	uint y = (positionIndex - (x * BASE_17_DEPTH) - z) / BASE_17_HEIGHT;
+	position = vec3(float(x), float(y), float(z));
+}
+
+void extractFace(in uint data, out uint face)
+{
+	face = ((data & FACE_BITMASK) >> 29);
+}
 
 void main()
 {
+	vec3 position;
+	extractPosition(aData, position);
+	extractFace(aData, fFace);
+
+	// Convert from local Chunk Coords to world Coords
+	position.x += float(uChunkPos.x) * 16.0;
+	position.z += float(uChunkPos.y) * 16.0;
+
 	fTexCoords = aTexCoords;
-	fFace = aFace;
-	gl_Position = uProjection * uView * vec4(aPos.x, aPos.y, aPos.z, 1.0);
-	fFragPosition = aPos;
+	fFragPosition = position;
+	gl_Position = uProjection * uView * vec4(position, 1.0);
 }
 
 #type fragment

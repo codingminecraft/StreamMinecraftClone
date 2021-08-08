@@ -15,7 +15,9 @@ namespace Minecraft
 
 	struct TextureFormat
 	{
+		// UV's are stored in bottom-right, top-right, top-left, bottom-left format
 		glm::vec2 uvs[4];
+		uint16 id;
 	};
 
 	namespace BlockMap

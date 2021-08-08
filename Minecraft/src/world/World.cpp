@@ -86,6 +86,7 @@ namespace Minecraft
 
 			for (int i = 0; i < numChunks; i++)
 			{
+				NShader::uploadIVec2(shader, "uChunkPos", loadedChunks[i].worldPosition);
 				loadedChunks[i].render();
 			}
 		}

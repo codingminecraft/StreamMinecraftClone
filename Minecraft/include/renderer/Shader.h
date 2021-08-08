@@ -26,6 +26,7 @@ namespace Minecraft
 		void uploadVec4(const Shader& shader, const char* varName, const glm::vec4& vec4);
 		void uploadVec3(const Shader& shader, const char* varName, const glm::vec3& vec3);
 		void uploadVec2(const Shader& shader, const char* varName, const glm::vec2& vec2);
+		void uploadIVec2(const Shader& shader, const char* varName, const glm::ivec2& vec2);
 		void uploadFloat(const Shader& shader, const char* varName, float value);
 		void uploadInt(const Shader& shader, const char* varName, int value);
 		void uploadIntArray(const Shader& shader, const char* varName, int length, const int* array);

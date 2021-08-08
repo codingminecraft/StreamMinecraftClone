@@ -6,9 +6,9 @@ namespace Minecraft
 {
 	struct Vertex
 	{
-		glm::vec3 position;
+		uint32 data;
+		uint32 data2;
 		glm::vec2 uv;
-		uint32 face;
 	};
 
 	struct RenderState
@@ -20,11 +20,9 @@ namespace Minecraft
 	struct ChunkRenderData
 	{
 		Vertex* vertices;
-		int32* elements;
 
 		size_t vertexSizeBytes;
-		size_t elementSizeBytes;
-		uint32 numElements;
+		uint32 numVertices;
 
 		RenderState renderState;
 	};

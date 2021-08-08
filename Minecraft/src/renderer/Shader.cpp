@@ -206,6 +206,12 @@ namespace Minecraft
 			glUniform2f(varLocation, vec2.x, vec2.y);
 		}
 
+		void uploadIVec2(const Shader& shader, const char* varName, const glm::ivec2& vec2)
+		{
+			int varLocation = GetVariableLocation(shader, varName);
+			glUniform2i(varLocation, vec2.x, vec2.y);
+		}
+
 		void uploadFloat(const Shader& shader, const char* varName, float value)
 		{
 			int varLocation = GetVariableLocation(shader, varName);
