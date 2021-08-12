@@ -45,21 +45,28 @@ namespace Minecraft
 				"",
 				"",
 				true
-			});
+				});
 
-			for (auto texture : textureFormat["Blocks"])
+			if (textureFormat["Blocks"])
 			{
-				const YAML::Node& uvs = texture["UVS"];
-				glm::vec2 uv0 = YamlExtended::readVec2("0", uvs);
-				glm::vec2 uv1 = YamlExtended::readVec2("1", uvs);
-				glm::vec2 uv2 = YamlExtended::readVec2("2", uvs);
-				glm::vec2 uv3 = YamlExtended::readVec2("3", uvs);
-				const uint16 texCoordId = texture["ID"].as<uint16>();
-				TextureFormat format = {
-					{ uv0, uv1, uv2, uv3 },
-					texCoordId
-				};
-				textureFormatMap[texture.first.as<std::string>()] = format;
+				const YAML::Node& textureFormatBlocks = textureFormat["Blocks"];
+				for (auto texture : textureFormatBlocks)
+				{
+					if (texture.second["UVS"])
+					{
+						const YAML::Node& uvs = texture.second["UVS"];
+						glm::vec2 uv0 = YamlExtended::readVec2("0", uvs);
+						glm::vec2 uv1 = YamlExtended::readVec2("1", uvs);
+						glm::vec2 uv2 = YamlExtended::readVec2("2", uvs);
+						glm::vec2 uv3 = YamlExtended::readVec2("3", uvs);
+						const uint16 texCoordId = texture.second["ID"].as<uint16>();
+						TextureFormat format = {
+							{ uv0, uv1, uv2, uv3 },
+							texCoordId
+						};
+						textureFormatMap[texture.first.as<std::string>()] = format;
+					}
+				}
 			}
 
 			for (auto block : blockFormat)
