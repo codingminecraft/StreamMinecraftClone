@@ -13,3 +13,6 @@
 [submodule "Minecraft/vendor/logger"]
 	path = Minecraft/vendor/logger
 	url = https://github.com/ambrosiogabe/logger
+[submodule "Minecraft/vendor/memory"]
+	path = Minecraft/vendor/memory
+	url = https://github.com/ambrosiogabe/memory
