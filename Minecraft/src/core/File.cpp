@@ -27,7 +27,7 @@ namespace Minecraft
 			};
 			if (SHFileOperationA(&op) != 0)
 			{
-				Logger::Error("Removing directory '%s' failed with '%d'", directoryName, GetLastError());
+				g_logger_error("Removing directory '%s' failed with '%d'", directoryName, GetLastError());
 				return false;
 			}
 
@@ -50,7 +50,7 @@ namespace Minecraft
 		{
 			if (!MoveFileExA(from, to, MOVEFILE_WRITE_THROUGH))
 			{
-				Logger::Error("Move file failed with %d", GetLastError());
+				g_logger_error("Move file failed with %d", GetLastError());
 				return false;
 			}
 
@@ -64,7 +64,7 @@ namespace Minecraft
 			{
 				if (!CreateDirectoryA(directoryName, NULL))
 				{
-					Logger::Error("Creating tmp directory failed with error code '%d'", GetLastError());
+					g_logger_error("Creating tmp directory failed with error code '%d'", GetLastError());
 					return false;
 				}
 			}

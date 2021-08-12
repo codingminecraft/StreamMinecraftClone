@@ -18,7 +18,7 @@ namespace Minecraft
 		{
 			if (!playerCamera) 
 			{
-				Logger::Warning("Player camera pointer not set.");
+				g_logger_warning("Player camera pointer not set.");
 				return;
 			}
 

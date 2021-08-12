@@ -54,11 +54,13 @@ namespace Minecraft
 
 		void generateRenderData();
 
-		void render();
+		void render() const;
 
 		void serialize(const std::string& worldSavePath);
 
 		void deserialize(const std::string& worldSavePath, int chunkX, int chunkZ);
+
+		void free();
 
 		static void info();
 	};

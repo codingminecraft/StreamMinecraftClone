@@ -24,8 +24,7 @@ namespace Minecraft
 		static Camera camera;
 		static Shader shader;
 		static Texture worldTexture;
-		static const int numChunks = 64;
-		static Chunk loadedChunks[numChunks];
+		static std::vector<Chunk> loadedChunks;
 
 		static int32 seed = 0;
 
@@ -33,7 +32,7 @@ namespace Minecraft
 		{
 			srand((unsigned long)time(NULL));
 			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
-			Logger::Info("World seed: %d", seed);
+			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
@@ -43,18 +42,18 @@ namespace Minecraft
 
 			// Create a chunk
 			File::createDirIfNotExists("world");
-			int chunkIndex = 0;
 			Chunk::info();
 			for (int z = -2; z < 2; z++)
 			{
 				for (int x = -2; x < 2; x++)
 				{
-					Logger::Info("Generating chunk %d", chunkIndex);
-					loadedChunks[chunkIndex].generate(x, z, seed);
-					//loadedChunks[chunkIndex].deserialize("world", x, z);
-					loadedChunks[chunkIndex].generateRenderData();
-					loadedChunks[chunkIndex].serialize("world");
-					chunkIndex++;
+					g_logger_info("Generating chunk (%d, %d)", x, z);
+					Chunk chunk;
+					chunk.generate(x, z, seed);
+					//chunk.deserialize("world", x, z);
+					chunk.generateRenderData();
+					chunk.serialize("world");
+					loadedChunks.push_back(chunk);
 				}
 			}
 
@@ -84,10 +83,18 @@ namespace Minecraft
 				Application::lockCursor(true);
 			}
 
-			for (int i = 0; i < numChunks; i++)
+			for (const Chunk& chunk : loadedChunks)
 			{
-				NShader::uploadIVec2(shader, "uChunkPos", loadedChunks[i].worldPosition);
-				loadedChunks[i].render();
+				NShader::uploadIVec2(shader, "uChunkPos", chunk.worldPosition);
+				chunk.render();
+			}
+		}
+
+		void cleanup()
+		{
+			for (Chunk& chunk : loadedChunks)
+			{
+				chunk.free();
 			}
 		}
 

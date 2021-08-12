@@ -56,9 +56,9 @@ namespace Minecraft
 
 	void Chunk::info()
 	{
-		Logger::Info("%d size of chunk", sizeof(Block) * CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT);
-		Logger::Info("%d size of vertex data", sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
-		Logger::Info("%d size of element data", sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
+		g_logger_info("%d size of chunk", sizeof(Block) * CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT);
+		g_logger_info("%d size of vertex data", sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
+		g_logger_info("%d size of element data", sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
 	}
 
 	void Chunk::generate(int chunkX, int chunkZ, int32 seed)
@@ -68,8 +68,8 @@ namespace Minecraft
 
 		worldPosition = { chunkX, chunkZ };
 
-		chunkData = (Block*)AllocMem(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
-		Memory::zeroMem(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		chunkData = (Block*)g_memory_allocate(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		g_memory_zeroMem(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
 		const SimplexNoise generator = SimplexNoise();
 		for (int y = 0; y < CHUNK_HEIGHT; y++)
 		{
@@ -138,7 +138,7 @@ namespace Minecraft
 		const int worldChunkX = worldPosition.x * 16;
 		const int worldChunkZ = worldPosition.y * 16;
 
-		Vertex* vertexData = (Vertex*)AllocMem(sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
+		Vertex* vertexData = (Vertex*)g_memory_allocate(sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
 		int vertexCursor = 0;
 		int uvCursor = 0;
 
@@ -247,10 +247,19 @@ namespace Minecraft
 		uploadToGPU(*this);
 	}
 
-	void Chunk::render()
+	void Chunk::render() const
 	{
 		glBindVertexArray(renderData.renderState.vao);
 		glDrawArrays(GL_TRIANGLES, 0, renderData.numVertices);
+	}
+
+	void Chunk::free()
+	{
+		glDeleteBuffers(1, &renderData.renderState.vbo);
+		glDeleteVertexArrays(1, &renderData.renderState.vao);
+
+		g_memory_free(renderData.vertices);
+		g_memory_free(chunkData);
 	}
 
 	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
@@ -274,12 +283,12 @@ namespace Minecraft
 		FILE* fp = fopen(filepath.c_str(), "rb");
 		if (!fp)
 		{
-			Logger::Error("Could not open file '%s'", filepath.c_str());
+			g_logger_error("Could not open file '%s'", filepath.c_str());
 			return;
 		}
 
 		fread(&worldPosition, sizeof(glm::ivec2), 1, fp);
-		chunkData = (Block*)AllocMem(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
+		chunkData = (Block*)g_memory_allocate(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
 		fread(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
 		fclose(fp);
 	}
@@ -381,22 +390,22 @@ namespace Minecraft
 		vertexData[vertexCursor + 5].uv = texture.uvs[3];
 
 		// TODO: Remove this once you are confident you are getting the right values
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 0].data) == vert1, "Failed Position.");
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 1].data) == vert2, "Failed Position.");
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 2].data) == vert3, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 0].data) == vert1, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 1].data) == vert2, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 2].data) == vert3, "Failed Position.");
 
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 3].data) == vert1, "Failed Position.");
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 4].data) == vert3, "Failed Position.");
-		Logger::Assert(extractPosition(vertexData[vertexCursor + 5].data) == vert4, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 3].data) == vert1, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 4].data) == vert3, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 5].data) == vert4, "Failed Position.");
 
-		Logger::Assert(extractFace(vertexData[vertexCursor + 0].data) == face, "Failed Face");
-		Logger::Assert(extractFace(vertexData[vertexCursor + 1].data) == face, "Failed Face");
-		Logger::Assert(extractFace(vertexData[vertexCursor + 2].data) == face, "Failed Face");
-		Logger::Assert(extractFace(vertexData[vertexCursor + 3].data) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 0].data) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 1].data) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 2].data) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 3].data) == face, "Failed Face");
 
-		Logger::Assert(extractTexId(vertexData[vertexCursor + 0].data) == texture.id, "Failed Texture Id");
-		Logger::Assert(extractTexId(vertexData[vertexCursor + 1].data) == texture.id, "Failed Texture Id");
-		Logger::Assert(extractTexId(vertexData[vertexCursor + 2].data) == texture.id, "Failed Texture Id");
-		Logger::Assert(extractTexId(vertexData[vertexCursor + 3].data) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 0].data) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 1].data) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 2].data) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 3].data) == texture.id, "Failed Texture Id");
 	}
 }

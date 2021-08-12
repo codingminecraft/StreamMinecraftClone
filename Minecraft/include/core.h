@@ -8,8 +8,9 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <CppUtils/CppUtils.h>
-using namespace CppUtils;
+// My libraries
+#include <logger/logger.h>
+#include <memory/memory.h>
 
 // Standard
 #include <filesystem>

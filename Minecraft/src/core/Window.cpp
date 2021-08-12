@@ -29,10 +29,10 @@ namespace Minecraft
 		if (res->windowPtr == nullptr)
 		{
 			glfwTerminate();
-			Logger::Error("Window creation failed.");
+			g_logger_error("Window creation failed.");
 			return nullptr;
 		}
-		Logger::Info("GLFW window created");
+		g_logger_info("GLFW window created");
 
 		glfwSetWindowUserPointer((GLFWwindow*)res->windowPtr, (void*)(&res));
 		res->makeContextCurrent();
@@ -58,11 +58,11 @@ namespace Minecraft
 		// Load OpenGL functions using Glad
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
-			Logger::Error("Failed to initialize glad.");
+			g_logger_error("Failed to initialize glad.");
 			return nullptr;
 		}
-		Logger::Info("GLAD initialized.");
-		Logger::Info("Hello OpenGL %d.%d", GLVersion.major, GLVersion.minor);
+		g_logger_info("GLAD initialized.");
+		g_logger_info("Hello OpenGL %d.%d", GLVersion.major, GLVersion.minor);
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);

@@ -51,11 +51,12 @@ project "Minecraft"
         "Minecraft/include",
         "Minecraft/vendor/GLFW/include",
         "Minecraft/vendor/glad/include",
-        "Minecraft/vendor/CppUtils/SingleInclude/",
         "Minecraft/vendor/glm/",
         "Minecraft/vendor/stb/",
         "Minecraft/vendor/yamlCpp/include",
-        "Minecraft/vendor/simplex/src"
+        "Minecraft/vendor/simplex/src",
+        "Minecraft/vendor/logger/single_include",
+        "Minecraft/vendor/memory/single_include"
     }
 
     filter "system:windows"

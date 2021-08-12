@@ -13,7 +13,7 @@ namespace YamlExtended
 
 		YAML::Node node2 = readFile("textureFormat.yaml");
 		glm::vec2 vector = readVec2("uv", node2);
-		Logger::Info("Vec2: %2.3f %2.3f", vector.x, vector.y);
+		g_logger_info("Vec2: %2.3f %2.3f", vector.x, vector.y);
 	}
 
 	void writeFile(const char* filename, YAML::Node& node)

@@ -1,15 +1,8 @@
 #include "utils/TexturePacker.h"
 #include "utils/YamlExtended.h"
 
-#include <stb/stb_image.h>
-#include <stb/stb_write.h>
-#include <filesystem>
-#include <vector>
-
 namespace Minecraft
 {
-	using namespace CppUtils;
-
 	struct Location
 	{
 		int x, y, width, height;
@@ -32,11 +25,11 @@ namespace Minecraft
 			}
 
 			int pngOutputWidth = sqrt(numFiles * 32 * 32);
-			Logger::Info("Max Width: %d", pngOutputWidth);
+			g_logger_info("Max Width: %d", pngOutputWidth);
 			int currentX = 0;
 			int currentY = 0;
 			int lineHeight = 0;
-			List<Pixel> pixels = List<Pixel>(pngOutputWidth);
+			std::vector<Pixel> pixels = std::vector<Pixel>(pngOutputWidth);
 			for (auto image : std::filesystem::directory_iterator(filepath))
 			{
 				if (strcmp(image.path().extension().string().c_str(), ".png") != 0) continue;
@@ -72,7 +65,7 @@ namespace Minecraft
 					{
 						int localX = x + currentX;
 						int localY = y + currentY;
-						Pixel& currentPixel = pixels.get(localY * pngOutputWidth + localX);
+						Pixel& currentPixel = pixels.at(localY * pngOutputWidth + localX);
 						unsigned char* currentRawPixel = &rawPixels[(y * width + x) * 4];
 						currentPixel.r = *(currentRawPixel);
 						currentPixel.g = *(currentRawPixel + 1);

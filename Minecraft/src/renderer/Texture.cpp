@@ -17,7 +17,7 @@ namespace Minecraft
 			case WrapMode::None:
 				return GL_NONE;
 			default:
-				Logger::Warning("Unknown glWrapMode '%d'", wrapMode);
+				g_logger_warning("Unknown glWrapMode '%d'", wrapMode);
 			}
 
 			return GL_NONE;
@@ -34,7 +34,7 @@ namespace Minecraft
 			case FilterMode::None:
 				return GL_NONE;
 			default:
-				Logger::Warning("Unknown glFilterMode '%d'", filterMode);
+				g_logger_warning("Unknown glFilterMode '%d'", filterMode);
 			}
 
 			return GL_NONE;
@@ -61,7 +61,7 @@ namespace Minecraft
 			case ByteFormat::None:
 				return GL_NONE;
 			default:
-				Logger::Warning("Unknown glByteFormat '%d'", format);
+				g_logger_warning("Unknown glByteFormat '%d'", format);
 			}
 
 			return GL_NONE;
@@ -86,7 +86,7 @@ namespace Minecraft
 			case ByteFormat::None:
 				return GL_NONE;
 			default:
-				Logger::Warning("Unknown glByteFormat '%d'", format);
+				g_logger_warning("Unknown glByteFormat '%d'", format);
 			}
 
 			return GL_NONE;
@@ -111,7 +111,7 @@ namespace Minecraft
 			case ByteFormat::None:
 				return GL_NONE;
 			default:
-				Logger::Warning("Unknown glByteFormat '%d'", format);
+				g_logger_warning("Unknown glByteFormat '%d'", format);
 			}
 
 			return false;
@@ -142,7 +142,7 @@ namespace Minecraft
 			int channels;
 
 			unsigned char* pixels = stbi_load(path.string().c_str(), &texture.width, &texture.height, &channels, 0);
-			Logger::Assert((pixels != nullptr), "STB failed to load image: %s\n-> STB Failure Reason: %s", path.string().c_str(), stbi_failure_reason());
+			g_logger_assert((pixels != nullptr), "STB failed to load image: %s\n-> STB Failure Reason: %s", path.string().c_str(), stbi_failure_reason());
 
 			int bytesPerPixel = channels;
 			if (bytesPerPixel == 4)
@@ -157,7 +157,7 @@ namespace Minecraft
 			}
 			else
 			{
-				Logger::Warning("Unknown number of channels '%d' in image '%s'.", path.string().c_str(), channels);
+				g_logger_warning("Unknown number of channels '%d' in image '%s'.", path.string().c_str(), channels);
 				return;
 			}
 
@@ -168,7 +168,7 @@ namespace Minecraft
 
 			uint32 internalFormat = toGl(texture.internalFormat);
 			uint32 externalFormat = toGl(texture.externalFormat);
-			Logger::Assert(internalFormat != GL_NONE && externalFormat != GL_NONE, "Tried to load image from file, but failed to identify internal format for image '%s'", texture.path.string().c_str());
+			g_logger_assert(internalFormat != GL_NONE && externalFormat != GL_NONE, "Tried to load image from file, but failed to identify internal format for image '%s'", texture.path.string().c_str());
 			glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, texture.width, texture.height, 0, externalFormat, GL_UNSIGNED_BYTE, pixels);
 
 			stbi_image_free(pixels);
@@ -176,8 +176,8 @@ namespace Minecraft
 
 		void generate(Texture& texture)
 		{
-			Logger::Assert(texture.internalFormat != ByteFormat::None, "Cannot generate texture without internal format.");
-			Logger::Assert(texture.externalFormat != ByteFormat::None, "Cannot generate texture without external format.");
+			g_logger_assert(texture.internalFormat != ByteFormat::None, "Cannot generate texture without internal format.");
+			g_logger_assert(texture.externalFormat != ByteFormat::None, "Cannot generate texture without external format.");
 			glGenTextures(1, &texture.graphicsId);
 			glBindTexture(GL_TEXTURE_2D, texture.graphicsId);
 

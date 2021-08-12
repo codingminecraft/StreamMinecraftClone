@@ -56,6 +56,7 @@ namespace Minecraft
 				window->pollInput();
 			}
 
+			World::cleanup();
 			Window::cleanup();
 		}
 
