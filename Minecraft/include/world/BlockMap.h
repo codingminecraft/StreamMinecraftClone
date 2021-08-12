@@ -5,6 +5,8 @@
 
 namespace Minecraft
 {
+	struct Texture;
+
 	struct BlockFormat
 	{
 		std::string sideTexture;
@@ -28,6 +30,9 @@ namespace Minecraft
 		const BlockFormat& getBlock(const std::string& name);
 		const BlockFormat& getBlock(int blockId);
 		void loadBlocks(const char* textureFormatConfig, const char* blockFormatConfig);
+		void uploadTextureCoordinateMapToGpu();
+
+		const Texture& getTextureCoordinatesTexture();
 	}
 }
 

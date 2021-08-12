@@ -13,6 +13,7 @@ Blocks:
       3:
         - 0
         - 0
+    ID: 0
   acacia_door_top:
     UVS:
       0:
@@ -27,6 +28,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0
+    ID: 1
   acacia_leaves:
     UVS:
       0:
@@ -41,6 +43,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0
+    ID: 2
   acacia_log:
     UVS:
       0:
@@ -55,6 +58,7 @@ Blocks:
       3:
         - 0.113744073
         - 0
+    ID: 3
   acacia_log_top:
     UVS:
       0:
@@ -69,6 +73,7 @@ Blocks:
       3:
         - 0.151658773
         - 0
+    ID: 4
   acacia_planks:
     UVS:
       0:
@@ -83,6 +88,7 @@ Blocks:
       3:
         - 0.189573467
         - 0
+    ID: 5
   acacia_sapling:
     UVS:
       0:
@@ -97,6 +103,7 @@ Blocks:
       3:
         - 0.227488145
         - 0
+    ID: 6
   acacia_trapdoor:
     UVS:
       0:
@@ -111,6 +118,7 @@ Blocks:
       3:
         - 0.265402853
         - 0
+    ID: 7
   activator_rail:
     UVS:
       0:
@@ -125,6 +133,7 @@ Blocks:
       3:
         - 0.303317547
         - 0
+    ID: 8
   activator_rail_on:
     UVS:
       0:
@@ -139,6 +148,7 @@ Blocks:
       3:
         - 0.34123224
         - 0
+    ID: 9
   allium:
     UVS:
       0:
@@ -153,6 +163,7 @@ Blocks:
       3:
         - 0.379146934
         - 0
+    ID: 10
   ancient_debris_side:
     UVS:
       0:
@@ -167,6 +178,7 @@ Blocks:
       3:
         - 0.417061597
         - 0
+    ID: 11
   ancient_debris_top:
     UVS:
       0:
@@ -181,6 +193,7 @@ Blocks:
       3:
         - 0.45497629
         - 0
+    ID: 12
   andesite:
     UVS:
       0:
@@ -195,6 +208,7 @@ Blocks:
       3:
         - 0.492890984
         - 0
+    ID: 13
   anvil:
     UVS:
       0:
@@ -209,6 +223,7 @@ Blocks:
       3:
         - 0.530805707
         - 0
+    ID: 14
   anvil_top:
     UVS:
       0:
@@ -223,6 +238,7 @@ Blocks:
       3:
         - 0.5687204
         - 0
+    ID: 15
   attached_melon_stem:
     UVS:
       0:
@@ -237,6 +253,7 @@ Blocks:
       3:
         - 0.606635094
         - 0
+    ID: 16
   attached_pumpkin_stem:
     UVS:
       0:
@@ -251,6 +268,7 @@ Blocks:
       3:
         - 0.644549787
         - 0
+    ID: 17
   azure_bluet:
     UVS:
       0:
@@ -265,6 +283,7 @@ Blocks:
       3:
         - 0.68246448
         - 0
+    ID: 18
   bamboo_large_leaves:
     UVS:
       0:
@@ -279,6 +298,7 @@ Blocks:
       3:
         - 0.720379174
         - 0
+    ID: 19
   bamboo_singleleaf:
     UVS:
       0:
@@ -293,6 +313,7 @@ Blocks:
       3:
         - 0.758293867
         - 0
+    ID: 20
   bamboo_small_leaves:
     UVS:
       0:
@@ -307,6 +328,7 @@ Blocks:
       3:
         - 0.79620856
         - 0
+    ID: 21
   bamboo_stage0:
     UVS:
       0:
@@ -321,6 +343,7 @@ Blocks:
       3:
         - 0.834123194
         - 0
+    ID: 22
   bamboo_stalk:
     UVS:
       0:
@@ -335,6 +358,7 @@ Blocks:
       3:
         - 0.872037888
         - 0
+    ID: 23
   barrel_bottom:
     UVS:
       0:
@@ -349,6 +373,7 @@ Blocks:
       3:
         - 0.909952581
         - 0
+    ID: 24
   barrel_side:
     UVS:
       0:
@@ -363,6 +388,7 @@ Blocks:
       3:
         - 0.947867274
         - 0
+    ID: 25
   barrel_top:
     UVS:
       0:
@@ -377,6 +403,7 @@ Blocks:
       3:
         - 0
         - 0.00349650346
+    ID: 26
   barrel_top_open:
     UVS:
       0:
@@ -391,6 +418,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.00349650346
+    ID: 27
   basalt_side:
     UVS:
       0:
@@ -405,6 +433,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.00349650346
+    ID: 28
   basalt_top:
     UVS:
       0:
@@ -419,6 +448,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.00349650346
+    ID: 29
   beacon:
     UVS:
       0:
@@ -433,6 +463,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.00349650346
+    ID: 30
   bedrock:
     UVS:
       0:
@@ -447,6 +478,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.00349650346
+    ID: 31
   beehive_end:
     UVS:
       0:
@@ -461,6 +493,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.00349650346
+    ID: 32
   beehive_front:
     UVS:
       0:
@@ -475,6 +508,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.00349650346
+    ID: 33
   beehive_front_honey:
     UVS:
       0:
@@ -489,6 +523,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.00349650346
+    ID: 34
   beehive_side:
     UVS:
       0:
@@ -503,6 +538,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.00349650346
+    ID: 35
   beetroots_stage0:
     UVS:
       0:
@@ -517,6 +553,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.00349650346
+    ID: 36
   beetroots_stage1:
     UVS:
       0:
@@ -531,6 +568,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.00349650346
+    ID: 37
   beetroots_stage2:
     UVS:
       0:
@@ -545,6 +583,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.00349650346
+    ID: 38
   beetroots_stage3:
     UVS:
       0:
@@ -559,6 +598,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.00349650346
+    ID: 39
   bee_nest_bottom:
     UVS:
       0:
@@ -573,6 +613,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.00349650346
+    ID: 40
   bee_nest_front:
     UVS:
       0:
@@ -587,6 +628,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.00349650346
+    ID: 41
   bee_nest_front_honey:
     UVS:
       0:
@@ -601,6 +643,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.00349650346
+    ID: 42
   bee_nest_side:
     UVS:
       0:
@@ -615,6 +658,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.00349650346
+    ID: 43
   bee_nest_top:
     UVS:
       0:
@@ -629,6 +673,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.00349650346
+    ID: 44
   bell_bottom:
     UVS:
       0:
@@ -643,6 +688,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.00349650346
+    ID: 45
   bell_side:
     UVS:
       0:
@@ -657,6 +703,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.00349650346
+    ID: 46
   bell_top:
     UVS:
       0:
@@ -671,6 +718,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.00349650346
+    ID: 47
   birch_door_bottom:
     UVS:
       0:
@@ -685,6 +733,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.00349650346
+    ID: 48
   birch_door_top:
     UVS:
       0:
@@ -699,6 +748,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.00349650346
+    ID: 49
   birch_leaves:
     UVS:
       0:
@@ -713,6 +763,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.00349650346
+    ID: 50
   birch_log:
     UVS:
       0:
@@ -727,6 +778,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.00349650346
+    ID: 51
   birch_log_top:
     UVS:
       0:
@@ -741,6 +793,7 @@ Blocks:
       3:
         - 0
         - 0.00699300691
+    ID: 52
   birch_planks:
     UVS:
       0:
@@ -755,6 +808,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.00699300691
+    ID: 53
   birch_sapling:
     UVS:
       0:
@@ -769,6 +823,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.00699300691
+    ID: 54
   birch_trapdoor:
     UVS:
       0:
@@ -783,6 +838,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.00699300691
+    ID: 55
   blackstone:
     UVS:
       0:
@@ -797,6 +853,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.00699300691
+    ID: 56
   blackstone_top:
     UVS:
       0:
@@ -811,6 +868,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.00699300691
+    ID: 57
   black_concrete:
     UVS:
       0:
@@ -825,6 +883,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.00699300691
+    ID: 58
   black_concrete_powder:
     UVS:
       0:
@@ -839,6 +898,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.00699300691
+    ID: 59
   black_glazed_terracotta:
     UVS:
       0:
@@ -853,6 +913,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.00699300691
+    ID: 60
   black_shulker_box:
     UVS:
       0:
@@ -867,6 +928,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.00699300691
+    ID: 61
   black_stained_glass:
     UVS:
       0:
@@ -881,6 +943,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.00699300691
+    ID: 62
   black_stained_glass_pane_top:
     UVS:
       0:
@@ -895,6 +958,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.00699300691
+    ID: 63
   black_terracotta:
     UVS:
       0:
@@ -909,6 +973,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.00699300691
+    ID: 64
   black_wool:
     UVS:
       0:
@@ -923,6 +988,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.00699300691
+    ID: 65
   blast_furnace_front:
     UVS:
       0:
@@ -937,6 +1003,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.00699300691
+    ID: 66
   blast_furnace_front_on:
     UVS:
       0:
@@ -951,6 +1018,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.00699300691
+    ID: 67
   blast_furnace_side:
     UVS:
       0:
@@ -965,6 +1033,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.00699300691
+    ID: 68
   blast_furnace_top:
     UVS:
       0:
@@ -979,6 +1048,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.00699300691
+    ID: 69
   blue_concrete:
     UVS:
       0:
@@ -993,6 +1063,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.00699300691
+    ID: 70
   blue_concrete_powder:
     UVS:
       0:
@@ -1007,6 +1078,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.00699300691
+    ID: 71
   blue_glazed_terracotta:
     UVS:
       0:
@@ -1021,6 +1093,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.00699300691
+    ID: 72
   blue_ice:
     UVS:
       0:
@@ -1035,6 +1108,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.00699300691
+    ID: 73
   blue_orchid:
     UVS:
       0:
@@ -1049,6 +1123,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.00699300691
+    ID: 74
   blue_shulker_box:
     UVS:
       0:
@@ -1063,6 +1138,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.00699300691
+    ID: 75
   blue_stained_glass:
     UVS:
       0:
@@ -1077,6 +1153,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.00699300691
+    ID: 76
   blue_stained_glass_pane_top:
     UVS:
       0:
@@ -1091,6 +1168,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.00699300691
+    ID: 77
   blue_terracotta:
     UVS:
       0:
@@ -1105,6 +1183,7 @@ Blocks:
       3:
         - 0
         - 0.0139860138
+    ID: 78
   blue_wool:
     UVS:
       0:
@@ -1119,6 +1198,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0139860138
+    ID: 79
   bone_block_side:
     UVS:
       0:
@@ -1133,6 +1213,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0139860138
+    ID: 80
   bone_block_top:
     UVS:
       0:
@@ -1147,6 +1228,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0139860138
+    ID: 81
   bookshelf:
     UVS:
       0:
@@ -1161,6 +1243,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0139860138
+    ID: 82
   brain_coral:
     UVS:
       0:
@@ -1175,6 +1258,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0139860138
+    ID: 83
   brain_coral_block:
     UVS:
       0:
@@ -1189,6 +1273,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0139860138
+    ID: 84
   brain_coral_fan:
     UVS:
       0:
@@ -1203,6 +1288,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0139860138
+    ID: 85
   brewing_stand:
     UVS:
       0:
@@ -1217,6 +1303,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0139860138
+    ID: 86
   brewing_stand_base:
     UVS:
       0:
@@ -1231,6 +1318,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0139860138
+    ID: 87
   bricks:
     UVS:
       0:
@@ -1245,6 +1333,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0139860138
+    ID: 88
   brown_concrete:
     UVS:
       0:
@@ -1259,6 +1348,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0139860138
+    ID: 89
   brown_concrete_powder:
     UVS:
       0:
@@ -1273,6 +1363,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0139860138
+    ID: 90
   brown_glazed_terracotta:
     UVS:
       0:
@@ -1287,6 +1378,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0139860138
+    ID: 91
   brown_mushroom:
     UVS:
       0:
@@ -1301,6 +1393,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0139860138
+    ID: 92
   brown_mushroom_block:
     UVS:
       0:
@@ -1315,6 +1408,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0139860138
+    ID: 93
   brown_shulker_box:
     UVS:
       0:
@@ -1329,6 +1423,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0139860138
+    ID: 94
   brown_stained_glass:
     UVS:
       0:
@@ -1343,6 +1438,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0139860138
+    ID: 95
   brown_stained_glass_pane_top:
     UVS:
       0:
@@ -1357,6 +1453,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0139860138
+    ID: 96
   brown_terracotta:
     UVS:
       0:
@@ -1371,6 +1468,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0139860138
+    ID: 97
   brown_wool:
     UVS:
       0:
@@ -1385,6 +1483,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0139860138
+    ID: 98
   bubble_coral:
     UVS:
       0:
@@ -1399,6 +1498,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0139860138
+    ID: 99
   bubble_coral_block:
     UVS:
       0:
@@ -1413,6 +1513,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0139860138
+    ID: 100
   bubble_coral_fan:
     UVS:
       0:
@@ -1427,6 +1528,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0139860138
+    ID: 101
   cactus_bottom:
     UVS:
       0:
@@ -1441,6 +1543,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0139860138
+    ID: 102
   cactus_side:
     UVS:
       0:
@@ -1455,6 +1558,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0139860138
+    ID: 103
   cactus_top:
     UVS:
       0:
@@ -1469,6 +1573,7 @@ Blocks:
       3:
         - 0
         - 0.0174825173
+    ID: 104
   cake_bottom:
     UVS:
       0:
@@ -1483,6 +1588,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0174825173
+    ID: 105
   cake_inner:
     UVS:
       0:
@@ -1497,6 +1603,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0174825173
+    ID: 106
   cake_side:
     UVS:
       0:
@@ -1511,6 +1618,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0174825173
+    ID: 107
   cake_top:
     UVS:
       0:
@@ -1525,6 +1633,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0174825173
+    ID: 108
   campfire_fire:
     UVS:
       0:
@@ -1539,6 +1648,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0174825173
+    ID: 109
   campfire_log:
     UVS:
       0:
@@ -1553,6 +1663,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0174825173
+    ID: 110
   campfire_log_lit:
     UVS:
       0:
@@ -1567,6 +1678,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0174825173
+    ID: 111
   carrots_stage0:
     UVS:
       0:
@@ -1581,6 +1693,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0174825173
+    ID: 112
   carrots_stage1:
     UVS:
       0:
@@ -1595,6 +1708,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0174825173
+    ID: 113
   carrots_stage2:
     UVS:
       0:
@@ -1609,6 +1723,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0174825173
+    ID: 114
   carrots_stage3:
     UVS:
       0:
@@ -1623,6 +1738,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0174825173
+    ID: 115
   cartography_table_side1:
     UVS:
       0:
@@ -1637,6 +1753,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0174825173
+    ID: 116
   cartography_table_side2:
     UVS:
       0:
@@ -1651,6 +1768,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0174825173
+    ID: 117
   cartography_table_side3:
     UVS:
       0:
@@ -1665,6 +1783,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0174825173
+    ID: 118
   cartography_table_top:
     UVS:
       0:
@@ -1679,6 +1798,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0174825173
+    ID: 119
   carved_pumpkin:
     UVS:
       0:
@@ -1693,6 +1813,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0174825173
+    ID: 120
   cauldron_bottom:
     UVS:
       0:
@@ -1707,6 +1828,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0174825173
+    ID: 121
   cauldron_inner:
     UVS:
       0:
@@ -1721,6 +1843,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0174825173
+    ID: 122
   cauldron_side:
     UVS:
       0:
@@ -1735,6 +1858,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0174825173
+    ID: 123
   cauldron_top:
     UVS:
       0:
@@ -1749,6 +1873,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0174825173
+    ID: 124
   chain:
     UVS:
       0:
@@ -1763,6 +1888,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0174825173
+    ID: 125
   chain_command_block_back:
     UVS:
       0:
@@ -1777,6 +1903,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0174825173
+    ID: 126
   chain_command_block_conditional:
     UVS:
       0:
@@ -1791,6 +1918,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0174825173
+    ID: 127
   chain_command_block_front:
     UVS:
       0:
@@ -1805,6 +1933,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0174825173
+    ID: 128
   chain_command_block_side:
     UVS:
       0:
@@ -1819,6 +1948,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0174825173
+    ID: 129
   chipped_anvil_top:
     UVS:
       0:
@@ -1833,6 +1963,7 @@ Blocks:
       3:
         - 0
         - 0.0454545468
+    ID: 130
   chiseled_nether_bricks:
     UVS:
       0:
@@ -1847,6 +1978,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0454545468
+    ID: 131
   chiseled_polished_blackstone:
     UVS:
       0:
@@ -1861,6 +1993,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0454545468
+    ID: 132
   chiseled_quartz_block:
     UVS:
       0:
@@ -1875,6 +2008,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0454545468
+    ID: 133
   chiseled_quartz_block_top:
     UVS:
       0:
@@ -1889,6 +2023,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0454545468
+    ID: 134
   chiseled_red_sandstone:
     UVS:
       0:
@@ -1903,6 +2038,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0454545468
+    ID: 135
   chiseled_sandstone:
     UVS:
       0:
@@ -1917,6 +2053,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0454545468
+    ID: 136
   chiseled_stone_bricks:
     UVS:
       0:
@@ -1931,6 +2068,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0454545468
+    ID: 137
   chorus_flower:
     UVS:
       0:
@@ -1945,6 +2083,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0454545468
+    ID: 138
   chorus_flower_dead:
     UVS:
       0:
@@ -1959,6 +2098,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0454545468
+    ID: 139
   chorus_plant:
     UVS:
       0:
@@ -1973,6 +2113,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0454545468
+    ID: 140
   clay:
     UVS:
       0:
@@ -1987,6 +2128,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0454545468
+    ID: 141
   coal_block:
     UVS:
       0:
@@ -2001,6 +2143,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0454545468
+    ID: 142
   coal_ore:
     UVS:
       0:
@@ -2015,6 +2158,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0454545468
+    ID: 143
   coarse_dirt:
     UVS:
       0:
@@ -2029,6 +2173,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0454545468
+    ID: 144
   cobblestone:
     UVS:
       0:
@@ -2043,6 +2188,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0454545468
+    ID: 145
   cobweb:
     UVS:
       0:
@@ -2057,6 +2203,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0454545468
+    ID: 146
   cocoa_stage0:
     UVS:
       0:
@@ -2071,6 +2218,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0454545468
+    ID: 147
   cocoa_stage1:
     UVS:
       0:
@@ -2085,6 +2233,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0454545468
+    ID: 148
   cocoa_stage2:
     UVS:
       0:
@@ -2099,6 +2248,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0454545468
+    ID: 149
   command_block_back:
     UVS:
       0:
@@ -2113,6 +2263,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0454545468
+    ID: 150
   command_block_conditional:
     UVS:
       0:
@@ -2127,6 +2278,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0454545468
+    ID: 151
   command_block_front:
     UVS:
       0:
@@ -2141,6 +2293,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0454545468
+    ID: 152
   command_block_side:
     UVS:
       0:
@@ -2155,6 +2308,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0454545468
+    ID: 153
   comparator:
     UVS:
       0:
@@ -2169,6 +2323,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0454545468
+    ID: 154
   comparator_on:
     UVS:
       0:
@@ -2183,6 +2338,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0454545468
+    ID: 155
   composter_bottom:
     UVS:
       0:
@@ -2197,6 +2353,7 @@ Blocks:
       3:
         - 0
         - 0.0594405606
+    ID: 156
   composter_compost:
     UVS:
       0:
@@ -2211,6 +2368,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0594405606
+    ID: 157
   composter_ready:
     UVS:
       0:
@@ -2225,6 +2383,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0594405606
+    ID: 158
   composter_side:
     UVS:
       0:
@@ -2239,6 +2398,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0594405606
+    ID: 159
   composter_top:
     UVS:
       0:
@@ -2253,6 +2413,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0594405606
+    ID: 160
   conduit:
     UVS:
       0:
@@ -2267,6 +2428,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0594405606
+    ID: 161
   cornflower:
     UVS:
       0:
@@ -2281,6 +2443,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0594405606
+    ID: 162
   cracked_nether_bricks:
     UVS:
       0:
@@ -2295,6 +2458,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0594405606
+    ID: 163
   cracked_polished_blackstone_bricks:
     UVS:
       0:
@@ -2309,6 +2473,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0594405606
+    ID: 164
   cracked_stone_bricks:
     UVS:
       0:
@@ -2323,6 +2488,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0594405606
+    ID: 165
   crafting_table_front:
     UVS:
       0:
@@ -2337,6 +2503,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0594405606
+    ID: 166
   crafting_table_side:
     UVS:
       0:
@@ -2351,6 +2518,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0594405606
+    ID: 167
   crafting_table_top:
     UVS:
       0:
@@ -2365,6 +2533,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0594405606
+    ID: 168
   crimson_door_bottom:
     UVS:
       0:
@@ -2379,6 +2548,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0594405606
+    ID: 169
   crimson_door_top:
     UVS:
       0:
@@ -2393,6 +2563,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0594405606
+    ID: 170
   crimson_fungus:
     UVS:
       0:
@@ -2407,6 +2578,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0594405606
+    ID: 171
   crimson_nylium:
     UVS:
       0:
@@ -2421,6 +2593,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0594405606
+    ID: 172
   crimson_nylium_side:
     UVS:
       0:
@@ -2435,6 +2608,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0594405606
+    ID: 173
   crimson_planks:
     UVS:
       0:
@@ -2449,6 +2623,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0594405606
+    ID: 174
   crimson_roots:
     UVS:
       0:
@@ -2463,6 +2638,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0594405606
+    ID: 175
   crimson_roots_pot:
     UVS:
       0:
@@ -2477,6 +2653,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0594405606
+    ID: 176
   crimson_stem:
     UVS:
       0:
@@ -2491,6 +2668,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0594405606
+    ID: 177
   crimson_stem_top:
     UVS:
       0:
@@ -2505,6 +2683,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0594405606
+    ID: 178
   crimson_trapdoor:
     UVS:
       0:
@@ -2519,6 +2698,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0594405606
+    ID: 179
   crying_obsidian:
     UVS:
       0:
@@ -2533,6 +2713,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0594405606
+    ID: 180
   cut_red_sandstone:
     UVS:
       0:
@@ -2547,6 +2728,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0594405606
+    ID: 181
   cut_sandstone:
     UVS:
       0:
@@ -2561,6 +2743,7 @@ Blocks:
       3:
         - 0
         - 0.0769230798
+    ID: 182
   cyan_concrete:
     UVS:
       0:
@@ -2575,6 +2758,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0769230798
+    ID: 183
   cyan_concrete_powder:
     UVS:
       0:
@@ -2589,6 +2773,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0769230798
+    ID: 184
   cyan_glazed_terracotta:
     UVS:
       0:
@@ -2603,6 +2788,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0769230798
+    ID: 185
   cyan_shulker_box:
     UVS:
       0:
@@ -2617,6 +2803,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0769230798
+    ID: 186
   cyan_stained_glass:
     UVS:
       0:
@@ -2631,6 +2818,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0769230798
+    ID: 187
   cyan_stained_glass_pane_top:
     UVS:
       0:
@@ -2645,6 +2833,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0769230798
+    ID: 188
   cyan_terracotta:
     UVS:
       0:
@@ -2659,6 +2848,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0769230798
+    ID: 189
   cyan_wool:
     UVS:
       0:
@@ -2673,6 +2863,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0769230798
+    ID: 190
   damaged_anvil_top:
     UVS:
       0:
@@ -2687,6 +2878,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0769230798
+    ID: 191
   dandelion:
     UVS:
       0:
@@ -2701,6 +2893,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0769230798
+    ID: 192
   dark_oak_door_bottom:
     UVS:
       0:
@@ -2715,6 +2908,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0769230798
+    ID: 193
   dark_oak_door_top:
     UVS:
       0:
@@ -2729,6 +2923,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0769230798
+    ID: 194
   dark_oak_leaves:
     UVS:
       0:
@@ -2743,6 +2938,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0769230798
+    ID: 195
   dark_oak_log:
     UVS:
       0:
@@ -2757,6 +2953,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0769230798
+    ID: 196
   dark_oak_log_top:
     UVS:
       0:
@@ -2771,6 +2968,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0769230798
+    ID: 197
   dark_oak_planks:
     UVS:
       0:
@@ -2785,6 +2983,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0769230798
+    ID: 198
   dark_oak_sapling:
     UVS:
       0:
@@ -2799,6 +2998,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0769230798
+    ID: 199
   dark_oak_trapdoor:
     UVS:
       0:
@@ -2813,6 +3013,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0769230798
+    ID: 200
   dark_prismarine:
     UVS:
       0:
@@ -2827,6 +3028,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0769230798
+    ID: 201
   daylight_detector_inverted_top:
     UVS:
       0:
@@ -2841,6 +3043,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0769230798
+    ID: 202
   daylight_detector_side:
     UVS:
       0:
@@ -2855,6 +3058,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0769230798
+    ID: 203
   daylight_detector_top:
     UVS:
       0:
@@ -2869,6 +3073,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0769230798
+    ID: 204
   dead_brain_coral:
     UVS:
       0:
@@ -2883,6 +3088,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0769230798
+    ID: 205
   dead_brain_coral_block:
     UVS:
       0:
@@ -2897,6 +3103,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0769230798
+    ID: 206
   dead_brain_coral_fan:
     UVS:
       0:
@@ -2911,6 +3118,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0769230798
+    ID: 207
   dead_bubble_coral:
     UVS:
       0:
@@ -2925,6 +3133,7 @@ Blocks:
       3:
         - 0
         - 0.0804195777
+    ID: 208
   dead_bubble_coral_block:
     UVS:
       0:
@@ -2939,6 +3148,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0804195777
+    ID: 209
   dead_bubble_coral_fan:
     UVS:
       0:
@@ -2953,6 +3163,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0804195777
+    ID: 210
   dead_bush:
     UVS:
       0:
@@ -2967,6 +3178,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0804195777
+    ID: 211
   dead_fire_coral:
     UVS:
       0:
@@ -2981,6 +3193,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0804195777
+    ID: 212
   dead_fire_coral_block:
     UVS:
       0:
@@ -2995,6 +3208,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0804195777
+    ID: 213
   dead_fire_coral_fan:
     UVS:
       0:
@@ -3009,6 +3223,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0804195777
+    ID: 214
   dead_horn_coral:
     UVS:
       0:
@@ -3023,6 +3238,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0804195777
+    ID: 215
   dead_horn_coral_block:
     UVS:
       0:
@@ -3037,6 +3253,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0804195777
+    ID: 216
   dead_horn_coral_fan:
     UVS:
       0:
@@ -3051,6 +3268,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0804195777
+    ID: 217
   dead_tube_coral:
     UVS:
       0:
@@ -3065,6 +3283,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0804195777
+    ID: 218
   dead_tube_coral_block:
     UVS:
       0:
@@ -3079,6 +3298,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0804195777
+    ID: 219
   dead_tube_coral_fan:
     UVS:
       0:
@@ -3093,6 +3313,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0804195777
+    ID: 220
   debug:
     UVS:
       0:
@@ -3107,6 +3328,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0804195777
+    ID: 221
   debug2:
     UVS:
       0:
@@ -3121,6 +3343,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0804195777
+    ID: 222
   destroy_stage_0:
     UVS:
       0:
@@ -3135,6 +3358,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0804195777
+    ID: 223
   destroy_stage_1:
     UVS:
       0:
@@ -3149,6 +3373,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0804195777
+    ID: 224
   destroy_stage_2:
     UVS:
       0:
@@ -3163,6 +3388,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0804195777
+    ID: 225
   destroy_stage_3:
     UVS:
       0:
@@ -3177,6 +3403,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0804195777
+    ID: 226
   destroy_stage_4:
     UVS:
       0:
@@ -3191,6 +3418,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0804195777
+    ID: 227
   destroy_stage_5:
     UVS:
       0:
@@ -3205,6 +3433,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0804195777
+    ID: 228
   destroy_stage_6:
     UVS:
       0:
@@ -3219,6 +3448,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0804195777
+    ID: 229
   destroy_stage_7:
     UVS:
       0:
@@ -3233,6 +3463,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0804195777
+    ID: 230
   destroy_stage_8:
     UVS:
       0:
@@ -3247,6 +3478,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0804195777
+    ID: 231
   destroy_stage_9:
     UVS:
       0:
@@ -3261,6 +3493,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0804195777
+    ID: 232
   detector_rail:
     UVS:
       0:
@@ -3275,6 +3508,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0804195777
+    ID: 233
   detector_rail_on:
     UVS:
       0:
@@ -3289,6 +3523,7 @@ Blocks:
       3:
         - 0
         - 0.083916083
+    ID: 234
   diamond_block:
     UVS:
       0:
@@ -3303,6 +3538,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.083916083
+    ID: 235
   diamond_ore:
     UVS:
       0:
@@ -3317,6 +3553,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.083916083
+    ID: 236
   diorite:
     UVS:
       0:
@@ -3331,6 +3568,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.083916083
+    ID: 237
   dirt:
     UVS:
       0:
@@ -3345,6 +3583,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.083916083
+    ID: 238
   dispenser_front:
     UVS:
       0:
@@ -3359,6 +3598,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.083916083
+    ID: 239
   dispenser_front_vertical:
     UVS:
       0:
@@ -3373,6 +3613,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.083916083
+    ID: 240
   dragon_egg:
     UVS:
       0:
@@ -3387,6 +3628,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.083916083
+    ID: 241
   dried_kelp_bottom:
     UVS:
       0:
@@ -3401,6 +3643,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.083916083
+    ID: 242
   dried_kelp_side:
     UVS:
       0:
@@ -3415,6 +3658,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.083916083
+    ID: 243
   dried_kelp_top:
     UVS:
       0:
@@ -3429,6 +3673,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.083916083
+    ID: 244
   dropper_front:
     UVS:
       0:
@@ -3443,6 +3688,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.083916083
+    ID: 245
   dropper_front_vertical:
     UVS:
       0:
@@ -3457,6 +3703,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.083916083
+    ID: 246
   emerald_block:
     UVS:
       0:
@@ -3471,6 +3718,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.083916083
+    ID: 247
   emerald_ore:
     UVS:
       0:
@@ -3485,6 +3733,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.083916083
+    ID: 248
   enchanting_table_bottom:
     UVS:
       0:
@@ -3499,6 +3748,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.083916083
+    ID: 249
   enchanting_table_side:
     UVS:
       0:
@@ -3513,6 +3763,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.083916083
+    ID: 250
   enchanting_table_top:
     UVS:
       0:
@@ -3527,6 +3778,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.083916083
+    ID: 251
   end_portal_frame_eye:
     UVS:
       0:
@@ -3541,6 +3793,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.083916083
+    ID: 252
   end_portal_frame_side:
     UVS:
       0:
@@ -3555,6 +3808,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.083916083
+    ID: 253
   end_portal_frame_top:
     UVS:
       0:
@@ -3569,6 +3823,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.083916083
+    ID: 254
   end_rod:
     UVS:
       0:
@@ -3583,6 +3838,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.083916083
+    ID: 255
   end_stone:
     UVS:
       0:
@@ -3597,6 +3853,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.083916083
+    ID: 256
   end_stone_bricks:
     UVS:
       0:
@@ -3611,6 +3868,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.083916083
+    ID: 257
   farmland:
     UVS:
       0:
@@ -3625,6 +3883,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.083916083
+    ID: 258
   farmland_moist:
     UVS:
       0:
@@ -3639,6 +3898,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.083916083
+    ID: 259
   farmland_moist_side:
     UVS:
       0:
@@ -3653,6 +3913,7 @@ Blocks:
       3:
         - 0
         - 0.0874125883
+    ID: 260
   fern:
     UVS:
       0:
@@ -3667,6 +3928,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.0874125883
+    ID: 261
   fire_0:
     UVS:
       0:
@@ -3681,6 +3943,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.0874125883
+    ID: 262
   fire_1:
     UVS:
       0:
@@ -3695,6 +3958,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.0874125883
+    ID: 263
   fire_coral:
     UVS:
       0:
@@ -3709,6 +3973,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.0874125883
+    ID: 264
   fire_coral_block:
     UVS:
       0:
@@ -3723,6 +3988,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.0874125883
+    ID: 265
   fire_coral_fan:
     UVS:
       0:
@@ -3737,6 +4003,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.0874125883
+    ID: 266
   fletching_table_front:
     UVS:
       0:
@@ -3751,6 +4018,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.0874125883
+    ID: 267
   fletching_table_side:
     UVS:
       0:
@@ -3765,6 +4033,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.0874125883
+    ID: 268
   fletching_table_top:
     UVS:
       0:
@@ -3779,6 +4048,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.0874125883
+    ID: 269
   flower_pot:
     UVS:
       0:
@@ -3793,6 +4063,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.0874125883
+    ID: 270
   frosted_ice_0:
     UVS:
       0:
@@ -3807,6 +4078,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.0874125883
+    ID: 271
   frosted_ice_1:
     UVS:
       0:
@@ -3821,6 +4093,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.0874125883
+    ID: 272
   frosted_ice_2:
     UVS:
       0:
@@ -3835,6 +4108,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.0874125883
+    ID: 273
   frosted_ice_3:
     UVS:
       0:
@@ -3849,6 +4123,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.0874125883
+    ID: 274
   furnace_front:
     UVS:
       0:
@@ -3863,6 +4138,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.0874125883
+    ID: 275
   furnace_front_on:
     UVS:
       0:
@@ -3877,6 +4153,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.0874125883
+    ID: 276
   furnace_side:
     UVS:
       0:
@@ -3891,6 +4168,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.0874125883
+    ID: 277
   furnace_top:
     UVS:
       0:
@@ -3905,6 +4183,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.0874125883
+    ID: 278
   gilded_blackstone:
     UVS:
       0:
@@ -3919,6 +4198,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.0874125883
+    ID: 279
   glass:
     UVS:
       0:
@@ -3933,6 +4213,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.0874125883
+    ID: 280
   glass_pane_top:
     UVS:
       0:
@@ -3947,6 +4228,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.0874125883
+    ID: 281
   glowstone:
     UVS:
       0:
@@ -3961,6 +4243,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.0874125883
+    ID: 282
   gold_block:
     UVS:
       0:
@@ -3975,6 +4258,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.0874125883
+    ID: 283
   gold_ore:
     UVS:
       0:
@@ -3989,6 +4273,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.0874125883
+    ID: 284
   granite:
     UVS:
       0:
@@ -4003,6 +4288,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.0874125883
+    ID: 285
   grass:
     UVS:
       0:
@@ -4017,6 +4303,7 @@ Blocks:
       3:
         - 0
         - 0.199300706
+    ID: 286
   grass_block_side:
     UVS:
       0:
@@ -4031,6 +4318,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.199300706
+    ID: 287
   grass_block_side_overlay:
     UVS:
       0:
@@ -4045,6 +4333,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.199300706
+    ID: 288
   grass_block_snow:
     UVS:
       0:
@@ -4059,6 +4348,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.199300706
+    ID: 289
   grass_block_top:
     UVS:
       0:
@@ -4073,6 +4363,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.199300706
+    ID: 290
   grass_path_side:
     UVS:
       0:
@@ -4087,6 +4378,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.199300706
+    ID: 291
   grass_path_top:
     UVS:
       0:
@@ -4101,6 +4393,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.199300706
+    ID: 292
   gravel:
     UVS:
       0:
@@ -4115,6 +4408,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.199300706
+    ID: 293
   gray_concrete:
     UVS:
       0:
@@ -4129,6 +4423,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.199300706
+    ID: 294
   gray_concrete_powder:
     UVS:
       0:
@@ -4143,6 +4438,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.199300706
+    ID: 295
   gray_glazed_terracotta:
     UVS:
       0:
@@ -4157,6 +4453,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.199300706
+    ID: 296
   gray_shulker_box:
     UVS:
       0:
@@ -4171,6 +4468,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.199300706
+    ID: 297
   gray_stained_glass:
     UVS:
       0:
@@ -4185,6 +4483,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.199300706
+    ID: 298
   gray_stained_glass_pane_top:
     UVS:
       0:
@@ -4199,6 +4498,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.199300706
+    ID: 299
   gray_terracotta:
     UVS:
       0:
@@ -4213,6 +4513,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.199300706
+    ID: 300
   gray_wool:
     UVS:
       0:
@@ -4227,6 +4528,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.199300706
+    ID: 301
   green_concrete:
     UVS:
       0:
@@ -4241,6 +4543,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.199300706
+    ID: 302
   green_concrete_powder:
     UVS:
       0:
@@ -4255,6 +4558,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.199300706
+    ID: 303
   green_glazed_terracotta:
     UVS:
       0:
@@ -4269,6 +4573,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.199300706
+    ID: 304
   green_shulker_box:
     UVS:
       0:
@@ -4283,6 +4588,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.199300706
+    ID: 305
   green_stained_glass:
     UVS:
       0:
@@ -4297,6 +4603,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.199300706
+    ID: 306
   green_stained_glass_pane_top:
     UVS:
       0:
@@ -4311,6 +4618,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.199300706
+    ID: 307
   green_terracotta:
     UVS:
       0:
@@ -4325,6 +4633,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.199300706
+    ID: 308
   green_wool:
     UVS:
       0:
@@ -4339,6 +4648,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.199300706
+    ID: 309
   grindstone_pivot:
     UVS:
       0:
@@ -4353,6 +4663,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.199300706
+    ID: 310
   grindstone_round:
     UVS:
       0:
@@ -4367,6 +4678,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.199300706
+    ID: 311
   grindstone_side:
     UVS:
       0:
@@ -4381,6 +4693,7 @@ Blocks:
       3:
         - 0
         - 0.202797204
+    ID: 312
   hay_block_side:
     UVS:
       0:
@@ -4395,6 +4708,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.202797204
+    ID: 313
   hay_block_top:
     UVS:
       0:
@@ -4409,6 +4723,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.202797204
+    ID: 314
   honeycomb_block:
     UVS:
       0:
@@ -4423,6 +4738,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.202797204
+    ID: 315
   honey_block_bottom:
     UVS:
       0:
@@ -4437,6 +4753,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.202797204
+    ID: 316
   honey_block_side:
     UVS:
       0:
@@ -4451,6 +4768,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.202797204
+    ID: 317
   honey_block_top:
     UVS:
       0:
@@ -4465,6 +4783,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.202797204
+    ID: 318
   hopper_inside:
     UVS:
       0:
@@ -4479,6 +4798,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.202797204
+    ID: 319
   hopper_outside:
     UVS:
       0:
@@ -4493,6 +4813,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.202797204
+    ID: 320
   hopper_top:
     UVS:
       0:
@@ -4507,6 +4828,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.202797204
+    ID: 321
   horn_coral:
     UVS:
       0:
@@ -4521,6 +4843,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.202797204
+    ID: 322
   horn_coral_block:
     UVS:
       0:
@@ -4535,6 +4858,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.202797204
+    ID: 323
   horn_coral_fan:
     UVS:
       0:
@@ -4549,6 +4873,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.202797204
+    ID: 324
   ice:
     UVS:
       0:
@@ -4563,6 +4888,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.202797204
+    ID: 325
   iron_bars:
     UVS:
       0:
@@ -4577,6 +4903,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.202797204
+    ID: 326
   iron_block:
     UVS:
       0:
@@ -4591,6 +4918,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.202797204
+    ID: 327
   iron_door_bottom:
     UVS:
       0:
@@ -4605,6 +4933,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.202797204
+    ID: 328
   iron_door_top:
     UVS:
       0:
@@ -4619,6 +4948,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.202797204
+    ID: 329
   iron_ore:
     UVS:
       0:
@@ -4633,6 +4963,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.202797204
+    ID: 330
   iron_trapdoor:
     UVS:
       0:
@@ -4647,6 +4978,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.202797204
+    ID: 331
   item_frame:
     UVS:
       0:
@@ -4661,6 +4993,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.202797204
+    ID: 332
   jack_o_lantern:
     UVS:
       0:
@@ -4675,6 +5008,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.202797204
+    ID: 333
   jigsaw_bottom:
     UVS:
       0:
@@ -4689,6 +5023,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.202797204
+    ID: 334
   jigsaw_lock:
     UVS:
       0:
@@ -4703,6 +5038,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.202797204
+    ID: 335
   jigsaw_side:
     UVS:
       0:
@@ -4717,6 +5053,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.202797204
+    ID: 336
   jigsaw_top:
     UVS:
       0:
@@ -4731,6 +5068,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.202797204
+    ID: 337
   jukebox_side:
     UVS:
       0:
@@ -4745,6 +5083,7 @@ Blocks:
       3:
         - 0
         - 0.206293702
+    ID: 338
   jukebox_top:
     UVS:
       0:
@@ -4759,6 +5098,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.206293702
+    ID: 339
   jungle_door_bottom:
     UVS:
       0:
@@ -4773,6 +5113,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.206293702
+    ID: 340
   jungle_door_top:
     UVS:
       0:
@@ -4787,6 +5128,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.206293702
+    ID: 341
   jungle_leaves:
     UVS:
       0:
@@ -4801,6 +5143,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.206293702
+    ID: 342
   jungle_log:
     UVS:
       0:
@@ -4815,6 +5158,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.206293702
+    ID: 343
   jungle_log_top:
     UVS:
       0:
@@ -4829,6 +5173,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.206293702
+    ID: 344
   jungle_planks:
     UVS:
       0:
@@ -4843,6 +5188,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.206293702
+    ID: 345
   jungle_sapling:
     UVS:
       0:
@@ -4857,6 +5203,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.206293702
+    ID: 346
   jungle_trapdoor:
     UVS:
       0:
@@ -4871,6 +5218,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.206293702
+    ID: 347
   kelp:
     UVS:
       0:
@@ -4885,6 +5233,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.206293702
+    ID: 348
   kelp_plant:
     UVS:
       0:
@@ -4899,6 +5248,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.206293702
+    ID: 349
   ladder:
     UVS:
       0:
@@ -4913,6 +5263,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.206293702
+    ID: 350
   lantern:
     UVS:
       0:
@@ -4927,6 +5278,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.206293702
+    ID: 351
   lapis_block:
     UVS:
       0:
@@ -4941,6 +5293,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.206293702
+    ID: 352
   lapis_ore:
     UVS:
       0:
@@ -4955,6 +5308,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.206293702
+    ID: 353
   large_fern_bottom:
     UVS:
       0:
@@ -4969,6 +5323,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.206293702
+    ID: 354
   large_fern_top:
     UVS:
       0:
@@ -4983,6 +5338,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.206293702
+    ID: 355
   lava_flow:
     UVS:
       0:
@@ -4997,6 +5353,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.206293702
+    ID: 356
   lava_still:
     UVS:
       0:
@@ -5011,6 +5368,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.206293702
+    ID: 357
   lectern_base:
     UVS:
       0:
@@ -5025,6 +5383,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.206293702
+    ID: 358
   lectern_front:
     UVS:
       0:
@@ -5039,6 +5398,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.206293702
+    ID: 359
   lectern_sides:
     UVS:
       0:
@@ -5053,6 +5413,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.206293702
+    ID: 360
   lectern_top:
     UVS:
       0:
@@ -5067,6 +5428,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.206293702
+    ID: 361
   lever:
     UVS:
       0:
@@ -5081,6 +5443,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.206293702
+    ID: 362
   light_blue_concrete:
     UVS:
       0:
@@ -5095,6 +5458,7 @@ Blocks:
       3:
         - 0
         - 0.318181813
+    ID: 363
   light_blue_concrete_powder:
     UVS:
       0:
@@ -5109,6 +5473,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.318181813
+    ID: 364
   light_blue_glazed_terracotta:
     UVS:
       0:
@@ -5123,6 +5488,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.318181813
+    ID: 365
   light_blue_shulker_box:
     UVS:
       0:
@@ -5137,6 +5503,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.318181813
+    ID: 366
   light_blue_stained_glass:
     UVS:
       0:
@@ -5151,6 +5518,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.318181813
+    ID: 367
   light_blue_stained_glass_pane_top:
     UVS:
       0:
@@ -5165,6 +5533,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.318181813
+    ID: 368
   light_blue_terracotta:
     UVS:
       0:
@@ -5179,6 +5548,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.318181813
+    ID: 369
   light_blue_wool:
     UVS:
       0:
@@ -5193,6 +5563,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.318181813
+    ID: 370
   light_gray_concrete:
     UVS:
       0:
@@ -5207,6 +5578,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.318181813
+    ID: 371
   light_gray_concrete_powder:
     UVS:
       0:
@@ -5221,6 +5593,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.318181813
+    ID: 372
   light_gray_glazed_terracotta:
     UVS:
       0:
@@ -5235,6 +5608,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.318181813
+    ID: 373
   light_gray_shulker_box:
     UVS:
       0:
@@ -5249,6 +5623,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.318181813
+    ID: 374
   light_gray_stained_glass:
     UVS:
       0:
@@ -5263,6 +5638,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.318181813
+    ID: 375
   light_gray_stained_glass_pane_top:
     UVS:
       0:
@@ -5277,6 +5653,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.318181813
+    ID: 376
   light_gray_terracotta:
     UVS:
       0:
@@ -5291,6 +5668,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.318181813
+    ID: 377
   light_gray_wool:
     UVS:
       0:
@@ -5305,6 +5683,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.318181813
+    ID: 378
   lilac_bottom:
     UVS:
       0:
@@ -5319,6 +5698,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.318181813
+    ID: 379
   lilac_top:
     UVS:
       0:
@@ -5333,6 +5713,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.318181813
+    ID: 380
   lily_of_the_valley:
     UVS:
       0:
@@ -5347,6 +5728,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.318181813
+    ID: 381
   lily_pad:
     UVS:
       0:
@@ -5361,6 +5743,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.318181813
+    ID: 382
   lime_concrete:
     UVS:
       0:
@@ -5375,6 +5758,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.318181813
+    ID: 383
   lime_concrete_powder:
     UVS:
       0:
@@ -5389,6 +5773,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.318181813
+    ID: 384
   lime_glazed_terracotta:
     UVS:
       0:
@@ -5403,6 +5788,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.318181813
+    ID: 385
   lime_shulker_box:
     UVS:
       0:
@@ -5417,6 +5803,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.318181813
+    ID: 386
   lime_stained_glass:
     UVS:
       0:
@@ -5431,6 +5818,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.318181813
+    ID: 387
   lime_stained_glass_pane_top:
     UVS:
       0:
@@ -5445,6 +5833,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.318181813
+    ID: 388
   lime_terracotta:
     UVS:
       0:
@@ -5459,6 +5848,7 @@ Blocks:
       3:
         - 0
         - 0.321678311
+    ID: 389
   lime_wool:
     UVS:
       0:
@@ -5473,6 +5863,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.321678311
+    ID: 390
   lodestone_side:
     UVS:
       0:
@@ -5487,6 +5878,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.321678311
+    ID: 391
   lodestone_top:
     UVS:
       0:
@@ -5501,6 +5893,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.321678311
+    ID: 392
   loom_bottom:
     UVS:
       0:
@@ -5515,6 +5908,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.321678311
+    ID: 393
   loom_front:
     UVS:
       0:
@@ -5529,6 +5923,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.321678311
+    ID: 394
   loom_side:
     UVS:
       0:
@@ -5543,6 +5938,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.321678311
+    ID: 395
   loom_top:
     UVS:
       0:
@@ -5557,6 +5953,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.321678311
+    ID: 396
   magenta_concrete:
     UVS:
       0:
@@ -5571,6 +5968,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.321678311
+    ID: 397
   magenta_concrete_powder:
     UVS:
       0:
@@ -5585,6 +5983,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.321678311
+    ID: 398
   magenta_glazed_terracotta:
     UVS:
       0:
@@ -5599,6 +5998,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.321678311
+    ID: 399
   magenta_shulker_box:
     UVS:
       0:
@@ -5613,6 +6013,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.321678311
+    ID: 400
   magenta_stained_glass:
     UVS:
       0:
@@ -5627,6 +6028,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.321678311
+    ID: 401
   magenta_stained_glass_pane_top:
     UVS:
       0:
@@ -5641,6 +6043,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.321678311
+    ID: 402
   magenta_terracotta:
     UVS:
       0:
@@ -5655,6 +6058,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.321678311
+    ID: 403
   magenta_wool:
     UVS:
       0:
@@ -5669,6 +6073,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.321678311
+    ID: 404
   magma:
     UVS:
       0:
@@ -5683,6 +6088,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.321678311
+    ID: 405
   melon_side:
     UVS:
       0:
@@ -5697,6 +6103,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.321678311
+    ID: 406
   melon_stem:
     UVS:
       0:
@@ -5711,6 +6118,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.321678311
+    ID: 407
   melon_top:
     UVS:
       0:
@@ -5725,6 +6133,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.321678311
+    ID: 408
   mossy_cobblestone:
     UVS:
       0:
@@ -5739,6 +6148,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.321678311
+    ID: 409
   mossy_stone_bricks:
     UVS:
       0:
@@ -5753,6 +6163,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.321678311
+    ID: 410
   mushroom_block_inside:
     UVS:
       0:
@@ -5767,6 +6178,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.321678311
+    ID: 411
   mushroom_stem:
     UVS:
       0:
@@ -5781,6 +6193,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.321678311
+    ID: 412
   mycelium_side:
     UVS:
       0:
@@ -5795,6 +6208,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.321678311
+    ID: 413
   mycelium_top:
     UVS:
       0:
@@ -5809,6 +6223,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.321678311
+    ID: 414
   netherite_block:
     UVS:
       0:
@@ -5823,6 +6238,7 @@ Blocks:
       3:
         - 0
         - 0.332167834
+    ID: 415
   netherrack:
     UVS:
       0:
@@ -5837,6 +6253,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.332167834
+    ID: 416
   nether_bricks:
     UVS:
       0:
@@ -5851,6 +6268,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.332167834
+    ID: 417
   nether_gold_ore:
     UVS:
       0:
@@ -5865,6 +6283,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.332167834
+    ID: 418
   nether_portal:
     UVS:
       0:
@@ -5879,6 +6298,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.332167834
+    ID: 419
   nether_quartz_ore:
     UVS:
       0:
@@ -5893,6 +6313,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.332167834
+    ID: 420
   nether_sprouts:
     UVS:
       0:
@@ -5907,6 +6328,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.332167834
+    ID: 421
   nether_wart_block:
     UVS:
       0:
@@ -5921,6 +6343,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.332167834
+    ID: 422
   nether_wart_stage0:
     UVS:
       0:
@@ -5935,6 +6358,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.332167834
+    ID: 423
   nether_wart_stage1:
     UVS:
       0:
@@ -5949,6 +6373,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.332167834
+    ID: 424
   nether_wart_stage2:
     UVS:
       0:
@@ -5963,6 +6388,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.332167834
+    ID: 425
   note_block:
     UVS:
       0:
@@ -5977,6 +6403,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.332167834
+    ID: 426
   oak_door_bottom:
     UVS:
       0:
@@ -5991,6 +6418,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.332167834
+    ID: 427
   oak_door_top:
     UVS:
       0:
@@ -6005,6 +6433,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.332167834
+    ID: 428
   oak_leaves:
     UVS:
       0:
@@ -6019,6 +6448,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.332167834
+    ID: 429
   oak_log:
     UVS:
       0:
@@ -6033,6 +6463,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.332167834
+    ID: 430
   oak_log_top:
     UVS:
       0:
@@ -6047,6 +6478,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.332167834
+    ID: 431
   oak_planks:
     UVS:
       0:
@@ -6061,6 +6493,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.332167834
+    ID: 432
   oak_sapling:
     UVS:
       0:
@@ -6075,6 +6508,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.332167834
+    ID: 433
   oak_trapdoor:
     UVS:
       0:
@@ -6089,6 +6523,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.332167834
+    ID: 434
   observer_back:
     UVS:
       0:
@@ -6103,6 +6538,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.332167834
+    ID: 435
   observer_back_on:
     UVS:
       0:
@@ -6117,6 +6553,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.332167834
+    ID: 436
   observer_front:
     UVS:
       0:
@@ -6131,6 +6568,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.332167834
+    ID: 437
   observer_side:
     UVS:
       0:
@@ -6145,6 +6583,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.332167834
+    ID: 438
   observer_top:
     UVS:
       0:
@@ -6159,6 +6598,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.332167834
+    ID: 439
   obsidian:
     UVS:
       0:
@@ -6173,6 +6613,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.332167834
+    ID: 440
   orange_concrete:
     UVS:
       0:
@@ -6187,6 +6628,7 @@ Blocks:
       3:
         - 0
         - 0.444055945
+    ID: 441
   orange_concrete_powder:
     UVS:
       0:
@@ -6201,6 +6643,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.444055945
+    ID: 442
   orange_glazed_terracotta:
     UVS:
       0:
@@ -6215,6 +6658,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.444055945
+    ID: 443
   orange_shulker_box:
     UVS:
       0:
@@ -6229,6 +6673,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.444055945
+    ID: 444
   orange_stained_glass:
     UVS:
       0:
@@ -6243,6 +6688,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.444055945
+    ID: 445
   orange_stained_glass_pane_top:
     UVS:
       0:
@@ -6257,6 +6703,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.444055945
+    ID: 446
   orange_terracotta:
     UVS:
       0:
@@ -6271,6 +6718,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.444055945
+    ID: 447
   orange_tulip:
     UVS:
       0:
@@ -6285,6 +6733,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.444055945
+    ID: 448
   orange_wool:
     UVS:
       0:
@@ -6299,6 +6748,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.444055945
+    ID: 449
   oxeye_daisy:
     UVS:
       0:
@@ -6313,6 +6763,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.444055945
+    ID: 450
   packed_ice:
     UVS:
       0:
@@ -6327,6 +6778,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.444055945
+    ID: 451
   peony_bottom:
     UVS:
       0:
@@ -6341,6 +6793,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.444055945
+    ID: 452
   peony_top:
     UVS:
       0:
@@ -6355,6 +6808,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.444055945
+    ID: 453
   pink_concrete:
     UVS:
       0:
@@ -6369,6 +6823,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.444055945
+    ID: 454
   pink_concrete_powder:
     UVS:
       0:
@@ -6383,6 +6838,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.444055945
+    ID: 455
   pink_glazed_terracotta:
     UVS:
       0:
@@ -6397,6 +6853,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.444055945
+    ID: 456
   pink_shulker_box:
     UVS:
       0:
@@ -6411,6 +6868,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.444055945
+    ID: 457
   pink_stained_glass:
     UVS:
       0:
@@ -6425,6 +6883,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.444055945
+    ID: 458
   pink_stained_glass_pane_top:
     UVS:
       0:
@@ -6439,6 +6898,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.444055945
+    ID: 459
   pink_terracotta:
     UVS:
       0:
@@ -6453,6 +6913,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.444055945
+    ID: 460
   pink_tulip:
     UVS:
       0:
@@ -6467,6 +6928,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.444055945
+    ID: 461
   pink_wool:
     UVS:
       0:
@@ -6481,6 +6943,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.444055945
+    ID: 462
   piston_bottom:
     UVS:
       0:
@@ -6495,6 +6958,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.444055945
+    ID: 463
   piston_inner:
     UVS:
       0:
@@ -6509,6 +6973,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.444055945
+    ID: 464
   piston_side:
     UVS:
       0:
@@ -6523,6 +6988,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.444055945
+    ID: 465
   piston_top:
     UVS:
       0:
@@ -6537,6 +7003,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.444055945
+    ID: 466
   piston_top_sticky:
     UVS:
       0:
@@ -6551,6 +7018,7 @@ Blocks:
       3:
         - 0
         - 0.447552443
+    ID: 467
   podzol_side:
     UVS:
       0:
@@ -6565,6 +7033,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.447552443
+    ID: 468
   podzol_top:
     UVS:
       0:
@@ -6579,6 +7048,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.447552443
+    ID: 469
   polished_andesite:
     UVS:
       0:
@@ -6593,6 +7063,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.447552443
+    ID: 470
   polished_basalt_side:
     UVS:
       0:
@@ -6607,6 +7078,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.447552443
+    ID: 471
   polished_basalt_top:
     UVS:
       0:
@@ -6621,6 +7093,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.447552443
+    ID: 472
   polished_blackstone:
     UVS:
       0:
@@ -6635,6 +7108,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.447552443
+    ID: 473
   polished_blackstone_bricks:
     UVS:
       0:
@@ -6649,6 +7123,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.447552443
+    ID: 474
   polished_diorite:
     UVS:
       0:
@@ -6663,6 +7138,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.447552443
+    ID: 475
   polished_granite:
     UVS:
       0:
@@ -6677,6 +7153,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.447552443
+    ID: 476
   poppy:
     UVS:
       0:
@@ -6691,6 +7168,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.447552443
+    ID: 477
   potatoes_stage0:
     UVS:
       0:
@@ -6705,6 +7183,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.447552443
+    ID: 478
   potatoes_stage1:
     UVS:
       0:
@@ -6719,6 +7198,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.447552443
+    ID: 479
   potatoes_stage2:
     UVS:
       0:
@@ -6733,6 +7213,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.447552443
+    ID: 480
   potatoes_stage3:
     UVS:
       0:
@@ -6747,6 +7228,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.447552443
+    ID: 481
   powered_rail:
     UVS:
       0:
@@ -6761,6 +7243,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.447552443
+    ID: 482
   powered_rail_on:
     UVS:
       0:
@@ -6775,6 +7258,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.447552443
+    ID: 483
   prismarine:
     UVS:
       0:
@@ -6789,6 +7273,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.447552443
+    ID: 484
   prismarine_bricks:
     UVS:
       0:
@@ -6803,6 +7288,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.447552443
+    ID: 485
   pumpkin_side:
     UVS:
       0:
@@ -6817,6 +7303,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.447552443
+    ID: 486
   pumpkin_stem:
     UVS:
       0:
@@ -6831,6 +7318,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.447552443
+    ID: 487
   pumpkin_top:
     UVS:
       0:
@@ -6845,6 +7333,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.447552443
+    ID: 488
   purple_concrete:
     UVS:
       0:
@@ -6859,6 +7348,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.447552443
+    ID: 489
   purple_concrete_powder:
     UVS:
       0:
@@ -6873,6 +7363,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.447552443
+    ID: 490
   purple_glazed_terracotta:
     UVS:
       0:
@@ -6887,6 +7378,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.447552443
+    ID: 491
   purple_shulker_box:
     UVS:
       0:
@@ -6901,6 +7393,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.447552443
+    ID: 492
   purple_stained_glass:
     UVS:
       0:
@@ -6915,6 +7408,7 @@ Blocks:
       3:
         - 0
         - 0.461538464
+    ID: 493
   purple_stained_glass_pane_top:
     UVS:
       0:
@@ -6929,6 +7423,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.461538464
+    ID: 494
   purple_terracotta:
     UVS:
       0:
@@ -6943,6 +7438,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.461538464
+    ID: 495
   purple_wool:
     UVS:
       0:
@@ -6957,6 +7453,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.461538464
+    ID: 496
   purpur_block:
     UVS:
       0:
@@ -6971,6 +7468,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.461538464
+    ID: 497
   purpur_pillar:
     UVS:
       0:
@@ -6985,6 +7483,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.461538464
+    ID: 498
   purpur_pillar_top:
     UVS:
       0:
@@ -6999,6 +7498,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.461538464
+    ID: 499
   quartz_block_bottom:
     UVS:
       0:
@@ -7013,6 +7513,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.461538464
+    ID: 500
   quartz_block_side:
     UVS:
       0:
@@ -7027,6 +7528,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.461538464
+    ID: 501
   quartz_block_top:
     UVS:
       0:
@@ -7041,6 +7543,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.461538464
+    ID: 502
   quartz_bricks:
     UVS:
       0:
@@ -7055,6 +7558,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.461538464
+    ID: 503
   quartz_pillar:
     UVS:
       0:
@@ -7069,6 +7573,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.461538464
+    ID: 504
   quartz_pillar_top:
     UVS:
       0:
@@ -7083,6 +7588,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.461538464
+    ID: 505
   rail:
     UVS:
       0:
@@ -7097,6 +7603,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.461538464
+    ID: 506
   rail_corner:
     UVS:
       0:
@@ -7111,6 +7618,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.461538464
+    ID: 507
   redstone_block:
     UVS:
       0:
@@ -7125,6 +7633,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.461538464
+    ID: 508
   redstone_dust_dot:
     UVS:
       0:
@@ -7139,6 +7648,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.461538464
+    ID: 509
   redstone_dust_line0:
     UVS:
       0:
@@ -7153,6 +7663,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.461538464
+    ID: 510
   redstone_dust_line1:
     UVS:
       0:
@@ -7167,6 +7678,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.461538464
+    ID: 511
   redstone_dust_overlay:
     UVS:
       0:
@@ -7181,6 +7693,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.461538464
+    ID: 512
   redstone_lamp:
     UVS:
       0:
@@ -7195,6 +7708,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.461538464
+    ID: 513
   redstone_lamp_on:
     UVS:
       0:
@@ -7209,6 +7723,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.461538464
+    ID: 514
   redstone_ore:
     UVS:
       0:
@@ -7223,6 +7738,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.461538464
+    ID: 515
   redstone_torch:
     UVS:
       0:
@@ -7237,6 +7753,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.461538464
+    ID: 516
   redstone_torch_off:
     UVS:
       0:
@@ -7251,6 +7768,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.461538464
+    ID: 517
   red_concrete:
     UVS:
       0:
@@ -7265,6 +7783,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.461538464
+    ID: 518
   red_concrete_powder:
     UVS:
       0:
@@ -7279,6 +7798,7 @@ Blocks:
       3:
         - 0
         - 0.465034962
+    ID: 519
   red_glazed_terracotta:
     UVS:
       0:
@@ -7293,6 +7813,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.465034962
+    ID: 520
   red_mushroom:
     UVS:
       0:
@@ -7307,6 +7828,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.465034962
+    ID: 521
   red_mushroom_block:
     UVS:
       0:
@@ -7321,6 +7843,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.465034962
+    ID: 522
   red_nether_bricks:
     UVS:
       0:
@@ -7335,6 +7858,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.465034962
+    ID: 523
   red_sand:
     UVS:
       0:
@@ -7349,6 +7873,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.465034962
+    ID: 524
   red_sandstone:
     UVS:
       0:
@@ -7363,6 +7888,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.465034962
+    ID: 525
   red_sandstone_bottom:
     UVS:
       0:
@@ -7377,6 +7903,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.465034962
+    ID: 526
   red_sandstone_top:
     UVS:
       0:
@@ -7391,6 +7918,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.465034962
+    ID: 527
   red_shulker_box:
     UVS:
       0:
@@ -7405,6 +7933,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.465034962
+    ID: 528
   red_stained_glass:
     UVS:
       0:
@@ -7419,6 +7948,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.465034962
+    ID: 529
   red_stained_glass_pane_top:
     UVS:
       0:
@@ -7433,6 +7963,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.465034962
+    ID: 530
   red_terracotta:
     UVS:
       0:
@@ -7447,6 +7978,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.465034962
+    ID: 531
   red_tulip:
     UVS:
       0:
@@ -7461,6 +7993,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.465034962
+    ID: 532
   red_wool:
     UVS:
       0:
@@ -7475,6 +8008,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.465034962
+    ID: 533
   repeater:
     UVS:
       0:
@@ -7489,6 +8023,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.465034962
+    ID: 534
   repeater_on:
     UVS:
       0:
@@ -7503,6 +8038,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.465034962
+    ID: 535
   repeating_command_block_back:
     UVS:
       0:
@@ -7517,6 +8053,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.465034962
+    ID: 536
   repeating_command_block_conditional:
     UVS:
       0:
@@ -7531,6 +8068,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.465034962
+    ID: 537
   repeating_command_block_front:
     UVS:
       0:
@@ -7545,6 +8083,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.465034962
+    ID: 538
   repeating_command_block_side:
     UVS:
       0:
@@ -7559,6 +8098,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.465034962
+    ID: 539
   respawn_anchor_bottom:
     UVS:
       0:
@@ -7573,6 +8113,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.465034962
+    ID: 540
   respawn_anchor_side0:
     UVS:
       0:
@@ -7587,6 +8128,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.465034962
+    ID: 541
   respawn_anchor_side1:
     UVS:
       0:
@@ -7601,6 +8143,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.465034962
+    ID: 542
   respawn_anchor_side2:
     UVS:
       0:
@@ -7615,6 +8158,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.465034962
+    ID: 543
   respawn_anchor_side3:
     UVS:
       0:
@@ -7629,6 +8173,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.465034962
+    ID: 544
   respawn_anchor_side4:
     UVS:
       0:
@@ -7643,6 +8188,7 @@ Blocks:
       3:
         - 0
         - 0.479020983
+    ID: 545
   respawn_anchor_top:
     UVS:
       0:
@@ -7657,6 +8203,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.479020983
+    ID: 546
   respawn_anchor_top_off:
     UVS:
       0:
@@ -7671,6 +8218,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.479020983
+    ID: 547
   rose_bush_bottom:
     UVS:
       0:
@@ -7685,6 +8233,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.479020983
+    ID: 548
   rose_bush_top:
     UVS:
       0:
@@ -7699,6 +8248,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.479020983
+    ID: 549
   sand:
     UVS:
       0:
@@ -7713,6 +8263,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.479020983
+    ID: 550
   sandstone:
     UVS:
       0:
@@ -7727,6 +8278,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.479020983
+    ID: 551
   sandstone_bottom:
     UVS:
       0:
@@ -7741,6 +8293,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.479020983
+    ID: 552
   sandstone_top:
     UVS:
       0:
@@ -7755,6 +8308,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.479020983
+    ID: 553
   scaffolding_bottom:
     UVS:
       0:
@@ -7769,6 +8323,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.479020983
+    ID: 554
   scaffolding_side:
     UVS:
       0:
@@ -7783,6 +8338,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.479020983
+    ID: 555
   scaffolding_top:
     UVS:
       0:
@@ -7797,6 +8353,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.479020983
+    ID: 556
   seagrass:
     UVS:
       0:
@@ -7811,6 +8368,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.479020983
+    ID: 557
   sea_lantern:
     UVS:
       0:
@@ -7825,6 +8383,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.479020983
+    ID: 558
   sea_pickle:
     UVS:
       0:
@@ -7839,6 +8398,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.479020983
+    ID: 559
   shroomlight:
     UVS:
       0:
@@ -7853,6 +8413,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.479020983
+    ID: 560
   shulker_box:
     UVS:
       0:
@@ -7867,6 +8428,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.479020983
+    ID: 561
   slime_block:
     UVS:
       0:
@@ -7881,6 +8443,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.479020983
+    ID: 562
   smithing_table_bottom:
     UVS:
       0:
@@ -7895,6 +8458,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.479020983
+    ID: 563
   smithing_table_front:
     UVS:
       0:
@@ -7909,6 +8473,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.479020983
+    ID: 564
   smithing_table_side:
     UVS:
       0:
@@ -7923,6 +8488,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.479020983
+    ID: 565
   smithing_table_top:
     UVS:
       0:
@@ -7937,6 +8503,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.479020983
+    ID: 566
   smoker_bottom:
     UVS:
       0:
@@ -7951,6 +8518,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.479020983
+    ID: 567
   smoker_front:
     UVS:
       0:
@@ -7965,6 +8533,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.479020983
+    ID: 568
   smoker_front_on:
     UVS:
       0:
@@ -7979,6 +8548,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.479020983
+    ID: 569
   smoker_side:
     UVS:
       0:
@@ -7993,6 +8563,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.479020983
+    ID: 570
   smoker_top:
     UVS:
       0:
@@ -8007,6 +8578,7 @@ Blocks:
       3:
         - 0
         - 0.590909064
+    ID: 571
   smooth_stone:
     UVS:
       0:
@@ -8021,6 +8593,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.590909064
+    ID: 572
   smooth_stone_slab_side:
     UVS:
       0:
@@ -8035,6 +8608,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.590909064
+    ID: 573
   snow:
     UVS:
       0:
@@ -8049,6 +8623,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.590909064
+    ID: 574
   soul_campfire:
     UVS:
       0:
@@ -8063,6 +8638,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.590909064
+    ID: 575
   soul_campfire_fire:
     UVS:
       0:
@@ -8077,6 +8653,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.590909064
+    ID: 576
   soul_campfire_log_lit:
     UVS:
       0:
@@ -8091,6 +8668,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.590909064
+    ID: 577
   soul_fire_0:
     UVS:
       0:
@@ -8105,6 +8683,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.590909064
+    ID: 578
   soul_fire_1:
     UVS:
       0:
@@ -8119,6 +8698,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.590909064
+    ID: 579
   soul_lantern:
     UVS:
       0:
@@ -8133,6 +8713,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.590909064
+    ID: 580
   soul_sand:
     UVS:
       0:
@@ -8147,6 +8728,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.590909064
+    ID: 581
   soul_soil:
     UVS:
       0:
@@ -8161,6 +8743,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.590909064
+    ID: 582
   soul_torch:
     UVS:
       0:
@@ -8175,6 +8758,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.590909064
+    ID: 583
   spawner:
     UVS:
       0:
@@ -8189,6 +8773,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.590909064
+    ID: 584
   sponge:
     UVS:
       0:
@@ -8203,6 +8788,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.590909064
+    ID: 585
   spruce_door_bottom:
     UVS:
       0:
@@ -8217,6 +8803,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.590909064
+    ID: 586
   spruce_door_top:
     UVS:
       0:
@@ -8231,6 +8818,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.590909064
+    ID: 587
   spruce_leaves:
     UVS:
       0:
@@ -8245,6 +8833,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.590909064
+    ID: 588
   spruce_log:
     UVS:
       0:
@@ -8259,6 +8848,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.590909064
+    ID: 589
   spruce_log_top:
     UVS:
       0:
@@ -8273,6 +8863,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.590909064
+    ID: 590
   spruce_planks:
     UVS:
       0:
@@ -8287,6 +8878,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.590909064
+    ID: 591
   spruce_sapling:
     UVS:
       0:
@@ -8301,6 +8893,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.590909064
+    ID: 592
   spruce_trapdoor:
     UVS:
       0:
@@ -8315,6 +8908,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.590909064
+    ID: 593
   stone:
     UVS:
       0:
@@ -8329,6 +8923,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.590909064
+    ID: 594
   stonecutter_bottom:
     UVS:
       0:
@@ -8343,6 +8938,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.590909064
+    ID: 595
   stonecutter_saw:
     UVS:
       0:
@@ -8357,6 +8953,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.590909064
+    ID: 596
   stonecutter_side:
     UVS:
       0:
@@ -8371,6 +8968,7 @@ Blocks:
       3:
         - 0
         - 0.702797174
+    ID: 597
   stonecutter_top:
     UVS:
       0:
@@ -8385,6 +8983,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.702797174
+    ID: 598
   stone_bricks:
     UVS:
       0:
@@ -8399,6 +8998,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.702797174
+    ID: 599
   stripped_acacia_log:
     UVS:
       0:
@@ -8413,6 +9013,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.702797174
+    ID: 600
   stripped_acacia_log_top:
     UVS:
       0:
@@ -8427,6 +9028,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.702797174
+    ID: 601
   stripped_birch_log:
     UVS:
       0:
@@ -8441,6 +9043,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.702797174
+    ID: 602
   stripped_birch_log_top:
     UVS:
       0:
@@ -8455,6 +9058,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.702797174
+    ID: 603
   stripped_crimson_stem:
     UVS:
       0:
@@ -8469,6 +9073,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.702797174
+    ID: 604
   stripped_crimson_stem_top:
     UVS:
       0:
@@ -8483,6 +9088,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.702797174
+    ID: 605
   stripped_dark_oak_log:
     UVS:
       0:
@@ -8497,6 +9103,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.702797174
+    ID: 606
   stripped_dark_oak_log_top:
     UVS:
       0:
@@ -8511,6 +9118,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.702797174
+    ID: 607
   stripped_jungle_log:
     UVS:
       0:
@@ -8525,6 +9133,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.702797174
+    ID: 608
   stripped_jungle_log_top:
     UVS:
       0:
@@ -8539,6 +9148,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.702797174
+    ID: 609
   stripped_oak_log:
     UVS:
       0:
@@ -8553,6 +9163,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.702797174
+    ID: 610
   stripped_oak_log_top:
     UVS:
       0:
@@ -8567,6 +9178,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.702797174
+    ID: 611
   stripped_spruce_log:
     UVS:
       0:
@@ -8581,6 +9193,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.702797174
+    ID: 612
   stripped_spruce_log_top:
     UVS:
       0:
@@ -8595,6 +9208,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.702797174
+    ID: 613
   stripped_warped_stem:
     UVS:
       0:
@@ -8609,6 +9223,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.702797174
+    ID: 614
   stripped_warped_stem_top:
     UVS:
       0:
@@ -8623,6 +9238,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.702797174
+    ID: 615
   structure_block:
     UVS:
       0:
@@ -8637,6 +9253,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.702797174
+    ID: 616
   structure_block_corner:
     UVS:
       0:
@@ -8651,6 +9268,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.702797174
+    ID: 617
   structure_block_data:
     UVS:
       0:
@@ -8665,6 +9283,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.702797174
+    ID: 618
   structure_block_load:
     UVS:
       0:
@@ -8679,6 +9298,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.702797174
+    ID: 619
   structure_block_save:
     UVS:
       0:
@@ -8693,6 +9313,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.702797174
+    ID: 620
   sugar_cane:
     UVS:
       0:
@@ -8707,6 +9328,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.702797174
+    ID: 621
   sunflower_back:
     UVS:
       0:
@@ -8721,6 +9343,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.702797174
+    ID: 622
   sunflower_bottom:
     UVS:
       0:
@@ -8735,6 +9358,7 @@ Blocks:
       3:
         - 0
         - 0.706293702
+    ID: 623
   sunflower_front:
     UVS:
       0:
@@ -8749,6 +9373,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.706293702
+    ID: 624
   sunflower_top:
     UVS:
       0:
@@ -8763,6 +9388,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.706293702
+    ID: 625
   sweet_berry_bush_stage0:
     UVS:
       0:
@@ -8777,6 +9403,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.706293702
+    ID: 626
   sweet_berry_bush_stage1:
     UVS:
       0:
@@ -8791,6 +9418,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.706293702
+    ID: 627
   sweet_berry_bush_stage2:
     UVS:
       0:
@@ -8805,6 +9433,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.706293702
+    ID: 628
   sweet_berry_bush_stage3:
     UVS:
       0:
@@ -8819,6 +9448,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.706293702
+    ID: 629
   tall_grass_bottom:
     UVS:
       0:
@@ -8833,6 +9463,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.706293702
+    ID: 630
   tall_grass_top:
     UVS:
       0:
@@ -8847,6 +9478,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.706293702
+    ID: 631
   tall_seagrass_bottom:
     UVS:
       0:
@@ -8861,6 +9493,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.706293702
+    ID: 632
   tall_seagrass_top:
     UVS:
       0:
@@ -8875,6 +9508,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.706293702
+    ID: 633
   target_side:
     UVS:
       0:
@@ -8889,6 +9523,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.706293702
+    ID: 634
   target_top:
     UVS:
       0:
@@ -8903,6 +9538,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.706293702
+    ID: 635
   terracotta:
     UVS:
       0:
@@ -8917,6 +9553,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.706293702
+    ID: 636
   tnt_bottom:
     UVS:
       0:
@@ -8931,6 +9568,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.706293702
+    ID: 637
   tnt_side:
     UVS:
       0:
@@ -8945,6 +9583,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.706293702
+    ID: 638
   tnt_top:
     UVS:
       0:
@@ -8959,6 +9598,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.706293702
+    ID: 639
   torch:
     UVS:
       0:
@@ -8973,6 +9613,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.706293702
+    ID: 640
   tripwire_hook:
     UVS:
       0:
@@ -8987,6 +9628,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.706293702
+    ID: 641
   tube_coral:
     UVS:
       0:
@@ -9001,6 +9643,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.706293702
+    ID: 642
   tube_coral_block:
     UVS:
       0:
@@ -9015,6 +9658,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.706293702
+    ID: 643
   tube_coral_fan:
     UVS:
       0:
@@ -9029,6 +9673,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.706293702
+    ID: 644
   turtle_egg:
     UVS:
       0:
@@ -9043,6 +9688,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.706293702
+    ID: 645
   turtle_egg_slightly_cracked:
     UVS:
       0:
@@ -9057,6 +9703,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.706293702
+    ID: 646
   turtle_egg_very_cracked:
     UVS:
       0:
@@ -9071,6 +9718,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.706293702
+    ID: 647
   twisting_vines:
     UVS:
       0:
@@ -9085,6 +9733,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.706293702
+    ID: 648
   twisting_vines_plant:
     UVS:
       0:
@@ -9099,6 +9748,7 @@ Blocks:
       3:
         - 0
         - 0.772727251
+    ID: 649
   vine:
     UVS:
       0:
@@ -9113,6 +9763,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.772727251
+    ID: 650
   warped_door_bottom:
     UVS:
       0:
@@ -9127,6 +9778,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.772727251
+    ID: 651
   warped_door_top:
     UVS:
       0:
@@ -9141,6 +9793,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.772727251
+    ID: 652
   warped_fungus:
     UVS:
       0:
@@ -9155,6 +9808,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.772727251
+    ID: 653
   warped_nylium:
     UVS:
       0:
@@ -9169,6 +9823,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.772727251
+    ID: 654
   warped_nylium_side:
     UVS:
       0:
@@ -9183,6 +9838,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.772727251
+    ID: 655
   warped_planks:
     UVS:
       0:
@@ -9197,6 +9853,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.772727251
+    ID: 656
   warped_roots:
     UVS:
       0:
@@ -9211,6 +9868,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.772727251
+    ID: 657
   warped_roots_pot:
     UVS:
       0:
@@ -9225,6 +9883,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.772727251
+    ID: 658
   warped_stem:
     UVS:
       0:
@@ -9239,6 +9898,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.772727251
+    ID: 659
   warped_stem_top:
     UVS:
       0:
@@ -9253,6 +9913,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.772727251
+    ID: 660
   warped_trapdoor:
     UVS:
       0:
@@ -9267,6 +9928,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.772727251
+    ID: 661
   warped_wart_block:
     UVS:
       0:
@@ -9281,6 +9943,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.772727251
+    ID: 662
   water_flow:
     UVS:
       0:
@@ -9295,6 +9958,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.772727251
+    ID: 663
   water_overlay:
     UVS:
       0:
@@ -9309,6 +9973,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.772727251
+    ID: 664
   water_still:
     UVS:
       0:
@@ -9323,6 +9988,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.772727251
+    ID: 665
   wax_block:
     UVS:
       0:
@@ -9337,6 +10003,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.772727251
+    ID: 666
   weeping_vines:
     UVS:
       0:
@@ -9351,6 +10018,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.772727251
+    ID: 667
   weeping_vines_plant:
     UVS:
       0:
@@ -9365,6 +10033,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.772727251
+    ID: 668
   wet_sponge:
     UVS:
       0:
@@ -9379,6 +10048,7 @@ Blocks:
       3:
         - 0.79620856
         - 0.772727251
+    ID: 669
   wheat_stage0:
     UVS:
       0:
@@ -9393,6 +10063,7 @@ Blocks:
       3:
         - 0.834123194
         - 0.772727251
+    ID: 670
   wheat_stage1:
     UVS:
       0:
@@ -9407,6 +10078,7 @@ Blocks:
       3:
         - 0.872037888
         - 0.772727251
+    ID: 671
   wheat_stage2:
     UVS:
       0:
@@ -9421,6 +10093,7 @@ Blocks:
       3:
         - 0.909952581
         - 0.772727251
+    ID: 672
   wheat_stage3:
     UVS:
       0:
@@ -9435,6 +10108,7 @@ Blocks:
       3:
         - 0.947867274
         - 0.772727251
+    ID: 673
   wheat_stage4:
     UVS:
       0:
@@ -9449,6 +10123,7 @@ Blocks:
       3:
         - 0
         - 0.996503472
+    ID: 674
   wheat_stage5:
     UVS:
       0:
@@ -9463,6 +10138,7 @@ Blocks:
       3:
         - 0.0379146934
         - 0.996503472
+    ID: 675
   wheat_stage6:
     UVS:
       0:
@@ -9477,6 +10153,7 @@ Blocks:
       3:
         - 0.0758293867
         - 0.996503472
+    ID: 676
   wheat_stage7:
     UVS:
       0:
@@ -9491,6 +10168,7 @@ Blocks:
       3:
         - 0.113744073
         - 0.996503472
+    ID: 677
   white_concrete:
     UVS:
       0:
@@ -9505,6 +10183,7 @@ Blocks:
       3:
         - 0.151658773
         - 0.996503472
+    ID: 678
   white_concrete_powder:
     UVS:
       0:
@@ -9519,6 +10198,7 @@ Blocks:
       3:
         - 0.189573467
         - 0.996503472
+    ID: 679
   white_glazed_terracotta:
     UVS:
       0:
@@ -9533,6 +10213,7 @@ Blocks:
       3:
         - 0.227488145
         - 0.996503472
+    ID: 680
   white_shulker_box:
     UVS:
       0:
@@ -9547,6 +10228,7 @@ Blocks:
       3:
         - 0.265402853
         - 0.996503472
+    ID: 681
   white_stained_glass:
     UVS:
       0:
@@ -9561,6 +10243,7 @@ Blocks:
       3:
         - 0.303317547
         - 0.996503472
+    ID: 682
   white_stained_glass_pane_top:
     UVS:
       0:
@@ -9575,6 +10258,7 @@ Blocks:
       3:
         - 0.34123224
         - 0.996503472
+    ID: 683
   white_terracotta:
     UVS:
       0:
@@ -9589,6 +10273,7 @@ Blocks:
       3:
         - 0.379146934
         - 0.996503472
+    ID: 684
   white_tulip:
     UVS:
       0:
@@ -9603,6 +10288,7 @@ Blocks:
       3:
         - 0.417061597
         - 0.996503472
+    ID: 685
   white_wool:
     UVS:
       0:
@@ -9617,6 +10303,7 @@ Blocks:
       3:
         - 0.45497629
         - 0.996503472
+    ID: 686
   wither_rose:
     UVS:
       0:
@@ -9631,6 +10318,7 @@ Blocks:
       3:
         - 0.492890984
         - 0.996503472
+    ID: 687
   yellow_concrete:
     UVS:
       0:
@@ -9645,6 +10333,7 @@ Blocks:
       3:
         - 0.530805707
         - 0.996503472
+    ID: 688
   yellow_concrete_powder:
     UVS:
       0:
@@ -9659,6 +10348,7 @@ Blocks:
       3:
         - 0.5687204
         - 0.996503472
+    ID: 689
   yellow_glazed_terracotta:
     UVS:
       0:
@@ -9673,6 +10363,7 @@ Blocks:
       3:
         - 0.606635094
         - 0.996503472
+    ID: 690
   yellow_shulker_box:
     UVS:
       0:
@@ -9687,6 +10378,7 @@ Blocks:
       3:
         - 0.644549787
         - 0.996503472
+    ID: 691
   yellow_stained_glass:
     UVS:
       0:
@@ -9701,6 +10393,7 @@ Blocks:
       3:
         - 0.68246448
         - 0.996503472
+    ID: 692
   yellow_stained_glass_pane_top:
     UVS:
       0:
@@ -9715,6 +10408,7 @@ Blocks:
       3:
         - 0.720379174
         - 0.996503472
+    ID: 693
   yellow_terracotta:
     UVS:
       0:
@@ -9729,6 +10423,7 @@ Blocks:
       3:
         - 0.758293867
         - 0.996503472
+    ID: 694
   yellow_wool:
     UVS:
       0:
@@ -9743,3 +10438,4 @@ Blocks:
       3:
         - 0.79620856
         - 0.996503472
+    ID: 695

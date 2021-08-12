@@ -84,6 +84,7 @@ namespace Minecraft
 		
 			YAML::Node textureFormat;
 			textureFormat["Blocks"];
+			uint16 uid = 0;
 			for (const Location& location : textureLocations)
 			{
 				YAML::Node uvs;
@@ -104,8 +105,9 @@ namespace Minecraft
 					glm::vec2{ (float)location.x / (float)pngOutputWidth, (float)location.y / (float)pngOutputHeight },
 					uvs["UVS"]);
 
-
 				textureFormat["Blocks"][location.name] = uvs;
+				textureFormat["Blocks"][location.name]["ID"] = uid++;
+				g_logger_assert(uid <= 2 << 12, "We ran out of space. Add more bits to the vertex specification for texture IDs");
 			}
 			YamlExtended::writeFile(configFilepath, textureFormat);
 		}

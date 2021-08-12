@@ -58,7 +58,6 @@ namespace Minecraft
 	{
 		g_logger_info("%d size of chunk", sizeof(Block) * CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT);
 		g_logger_info("%d size of vertex data", sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
-		g_logger_info("%d size of element data", sizeof(int32) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 36);
 	}
 
 	void Chunk::generate(int chunkX, int chunkZ, int32 seed)

@@ -37,8 +37,13 @@ namespace Minecraft
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
+			BlockMap::uploadTextureCoordinateMapToGpu();
 			shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 			loadWorldTexture();
+
+			glActiveTexture(GL_TEXTURE1);
+			BlockMap::getTextureCoordinatesTexture().bind();
+			NShader::uploadInt(shader, "uTexCoordTexture", 1);
 
 			// Create a chunk
 			File::createDirIfNotExists("world");
@@ -71,6 +76,7 @@ namespace Minecraft
 			NShader::uploadMat4(shader, "uProjection", projection);
 			NShader::uploadMat4(shader, "uView", view);
 			NShader::uploadVec3(shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
+			
 
 			PlayerController::update(0.0f);
 
@@ -100,14 +106,18 @@ namespace Minecraft
 
 		static void loadWorldTexture()
 		{
-			worldTexture.internalFormat = ByteFormat::RGBA;
-			worldTexture.externalFormat = ByteFormat::RGBA8;
-			worldTexture.magFilter = FilterMode::Nearest;
-			worldTexture.minFilter = FilterMode::Nearest;
-			TextureUtil::Generate(worldTexture, "C:/dev/C++/MinecraftClone/test.png");
+			worldTexture = TextureBuilder()
+				.setFormat(ByteFormat::RGBA8_UI)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
+				.setFilepath("test.png")
+				.generate(true);
 
 			// Upload the world texture
-			NShader::uploadInt(shader, "uTexture", worldTexture.graphicsId);
+			glActiveTexture(GL_TEXTURE0);
+			worldTexture.bind();
+			NShader::uploadInt(shader, "uTexture", 0);
+
 			glUseProgram(shader.programId);
 		}
 	}

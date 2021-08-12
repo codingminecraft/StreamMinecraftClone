@@ -7,6 +7,7 @@ out vec2 fTexCoords;
 flat out uint fFace;
 out vec3 fFragPosition;
 
+uniform sampler2D uTexCoordTexture;
 uniform mat4 uProjection;
 uniform mat4 uView;
 uniform ivec2 uChunkPos;

@@ -22,6 +22,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <unordered_set>
 
 // GLFW/glad
 #include <glad/glad.h>
