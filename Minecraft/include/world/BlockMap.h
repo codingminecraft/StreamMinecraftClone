@@ -32,7 +32,7 @@ namespace Minecraft
 		void loadBlocks(const char* textureFormatConfig, const char* blockFormatConfig);
 		void uploadTextureCoordinateMapToGpu();
 
-		const Texture& getTextureCoordinatesTexture();
+		uint32 getTextureCoordinatesTextureId();
 	}
 }
 

@@ -26,7 +26,9 @@ namespace Minecraft
 
 		R32_UI,
 		R32_F,
-		R8_UI
+		R8_UI,
+
+		ALPHA_F
 	};
 
 	enum class ColorChannel
@@ -40,8 +42,16 @@ namespace Minecraft
 		One
 	};
 
+	enum class TextureType
+	{
+		None = 0,
+		_1D,
+		_2D
+	};
+
 	struct Texture
 	{
+		TextureType type;
 		uint32 graphicsId;
 		int32 width;
 		int32 height;
@@ -79,6 +89,7 @@ namespace Minecraft
 		TextureBuilder& setWidth(uint32 width);
 		TextureBuilder& setHeight(uint32 height);
 		TextureBuilder& setSwizzle(std::initializer_list<ColorChannel> swizzleMask);
+		TextureBuilder& setTextureType(TextureType type);
 
 		Texture generate(bool generateFromFilepath = false);
 		Texture build();

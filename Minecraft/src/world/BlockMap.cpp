@@ -17,7 +17,8 @@ namespace Minecraft
 		static std::vector<BlockFormat> blockFormats;
 		static std::unordered_map<std::string, TextureFormat> textureFormatMap;
 
-		static Texture texCoordsTexture;
+		static uint32 texCoordsTextureId;
+		static uint32 texCoordsBufferId;
 
 		const TextureFormat& getTextureFormat(const std::string& textureName)
 		{
@@ -111,28 +112,24 @@ namespace Minecraft
 				texCoordsMap[startingLocation + 7] = texFormat.uvs[3].y;
 			}
 
-			uint16 width = (uint16)sqrt(numTextures * 8) + 1;
-			uint16 height = width;
-			g_logger_info("Width and height of texture coordinates texture.");
-			g_logger_info("Width: %d", width);
-			g_logger_info("Height: %d", height);
 			g_logger_info("Num Textures: %d", numTextures);
-			texCoordsTexture = TextureBuilder()
-				.setFormat(ByteFormat::R32_F)
-				.setMagFilter(FilterMode::None)
-				.setMinFilter(FilterMode::None)
-				.setWrapS(WrapMode::None)
-				.setWrapT(WrapMode::None)
-				.setWidth(width)
-				.setHeight(height)
-				.generate();
+			glGenBuffers(1, &texCoordsBufferId);
+			glBindBuffer(GL_TEXTURE_BUFFER, texCoordsBufferId);
+			glBufferData(GL_TEXTURE_BUFFER, sizeof(float) * 8 * numTextures, texCoordsMap, GL_STATIC_DRAW);
+
+			glGenTextures(1, &texCoordsTextureId);
+			glBindTexture(GL_TEXTURE_BUFFER, texCoordsTextureId);
+			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, texCoordsBufferId);
+
+			glBindBuffer(GL_TEXTURE_BUFFER, 0);
+			glBindTexture(GL_TEXTURE_BUFFER, 0);
 
 			g_memory_free(texCoordsMap);
 		}
 
-		const Texture& getTextureCoordinatesTexture()
+		uint32 getTextureCoordinatesTextureId()
 		{
-			return texCoordsTexture;
+			return texCoordsTextureId;
 		}
 	}
 }

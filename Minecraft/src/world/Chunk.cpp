@@ -12,6 +12,7 @@ namespace Minecraft
 	static const int POSITION_INDEX_BITMASK = 0x1FFFF;
 	static const int TEX_ID_BITMASK = 0x1FFE0000;
 	static const int FACE_BITMASK = 0xE0000000;
+	static const int UV_INDEX_BITMASK = 0x3;
 
 	enum class CUBE_FACE : uint32
 	{
@@ -21,6 +22,14 @@ namespace Minecraft
 		TOP = 3,
 		BACK = 4,
 		FRONT = 5
+	};
+
+	enum class UV_INDEX : uint32
+	{
+		TOP_RIGHT = 0,
+		TOP_LEFT = 1,
+		BOTTOM_LEFT = 2,
+		BOTTOM_RIGHT = 3
 	};
 
 	static void uploadToGPU(Chunk& chunk);
@@ -307,10 +316,10 @@ namespace Minecraft
 		glBufferData(GL_ARRAY_BUFFER, renderData.vertexSizeBytes, renderData.vertices, GL_STATIC_DRAW);
 
 		// 1b. then set our vertex attributes pointers
-		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data));
+		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
 		glEnableVertexAttribArray(0);
 
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
+		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, data2)));
 		glEnableVertexAttribArray(1);
 	}
 
@@ -332,19 +341,26 @@ namespace Minecraft
 		};
 	}
 
-	static uint32 compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face)
+	static Vertex compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face, UV_INDEX uvIndex)
 	{
 		// Bits  0-16 position index
 		// Bits 17-28 texId
 		// Bits 29-31 normalDir face value
-		uint32 data = 0;
+		uint32 data1 = 0;
 
 		int positionIndex = toCompressedVec3(vertex.x, vertex.y, vertex.z);
-		data |= ((positionIndex << 0) & POSITION_INDEX_BITMASK);
-		data |= ((texture.id << 17) & TEX_ID_BITMASK);
-		data |= ((uint32)face << 29) & FACE_BITMASK;
+		data1 |= ((positionIndex << 0) & POSITION_INDEX_BITMASK);
+		data1 |= ((texture.id << 17) & TEX_ID_BITMASK);
+		data1 |= ((uint32)face << 29) & FACE_BITMASK;
 
-		return data;
+		uint32 data2 = 0;
+
+		data2 |= (((uint32)uvIndex << 0) & UV_INDEX_BITMASK);
+
+		return {
+			data1,
+			data2
+		};
 	}
 
 	static glm::ivec3 extractPosition(uint32 data)
@@ -363,6 +379,11 @@ namespace Minecraft
 		return (CUBE_FACE)((data & FACE_BITMASK) >> 29);
 	}
 
+	static UV_INDEX extractCorner(uint32 data)
+	{
+		return (UV_INDEX)((data & UV_INDEX_BITMASK) >> 0);
+	}
+
 	static void loadBlock(
 		Vertex* vertexData,
 		const glm::ivec3& vert1,
@@ -373,38 +394,38 @@ namespace Minecraft
 		const TextureFormat& texture,
 		CUBE_FACE face)
 	{
-		vertexData[vertexCursor + 0].data = compress(vert1, texture, face);
-		vertexData[vertexCursor + 1].data = compress(vert2, texture, face);
-		vertexData[vertexCursor + 2].data = compress(vert3, texture, face);
+		vertexData[vertexCursor + 0] = compress(vert1, texture, face, UV_INDEX::BOTTOM_RIGHT);
+		vertexData[vertexCursor + 1] = compress(vert2, texture, face, UV_INDEX::TOP_RIGHT);
+		vertexData[vertexCursor + 2] = compress(vert3, texture, face, UV_INDEX::TOP_LEFT);
 
-		vertexData[vertexCursor + 3].data = compress(vert1, texture, face);
-		vertexData[vertexCursor + 4].data = compress(vert3, texture, face);
-		vertexData[vertexCursor + 5].data = compress(vert4, texture, face);
-
-		vertexData[vertexCursor + 0].uv = texture.uvs[0];
-		vertexData[vertexCursor + 1].uv = texture.uvs[1];
-		vertexData[vertexCursor + 2].uv = texture.uvs[2];
-		vertexData[vertexCursor + 3].uv = texture.uvs[0];
-		vertexData[vertexCursor + 4].uv = texture.uvs[2];
-		vertexData[vertexCursor + 5].uv = texture.uvs[3];
+		vertexData[vertexCursor + 3] = compress(vert1, texture, face, UV_INDEX::BOTTOM_RIGHT);
+		vertexData[vertexCursor + 4] = compress(vert3, texture, face, UV_INDEX::TOP_LEFT);
+		vertexData[vertexCursor + 5] = compress(vert4, texture, face, UV_INDEX::BOTTOM_LEFT);
 
 		// TODO: Remove this once you are confident you are getting the right values
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 0].data) == vert1, "Failed Position.");
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 1].data) == vert2, "Failed Position.");
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 2].data) == vert3, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 0].data1) == vert1, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 1].data1) == vert2, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 2].data1) == vert3, "Failed Position.");
 
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 3].data) == vert1, "Failed Position.");
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 4].data) == vert3, "Failed Position.");
-		g_logger_assert(extractPosition(vertexData[vertexCursor + 5].data) == vert4, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 3].data1) == vert1, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 4].data1) == vert3, "Failed Position.");
+		g_logger_assert(extractPosition(vertexData[vertexCursor + 5].data1) == vert4, "Failed Position.");
 
-		g_logger_assert(extractFace(vertexData[vertexCursor + 0].data) == face, "Failed Face");
-		g_logger_assert(extractFace(vertexData[vertexCursor + 1].data) == face, "Failed Face");
-		g_logger_assert(extractFace(vertexData[vertexCursor + 2].data) == face, "Failed Face");
-		g_logger_assert(extractFace(vertexData[vertexCursor + 3].data) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 0].data1) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 1].data1) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 2].data1) == face, "Failed Face");
+		g_logger_assert(extractFace(vertexData[vertexCursor + 3].data1) == face, "Failed Face");
 
-		g_logger_assert(extractTexId(vertexData[vertexCursor + 0].data) == texture.id, "Failed Texture Id");
-		g_logger_assert(extractTexId(vertexData[vertexCursor + 1].data) == texture.id, "Failed Texture Id");
-		g_logger_assert(extractTexId(vertexData[vertexCursor + 2].data) == texture.id, "Failed Texture Id");
-		g_logger_assert(extractTexId(vertexData[vertexCursor + 3].data) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 0].data1) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 1].data1) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 2].data1) == texture.id, "Failed Texture Id");
+		g_logger_assert(extractTexId(vertexData[vertexCursor + 3].data1) == texture.id, "Failed Texture Id");
+
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 0].data2) == UV_INDEX::BOTTOM_RIGHT, "Failed on uv index");
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 1].data2) == UV_INDEX::TOP_RIGHT, "Failed on uv index");
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 2].data2) == UV_INDEX::TOP_LEFT, "Failed on uv index");
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 3].data2) == UV_INDEX::BOTTOM_RIGHT, "Failed on uv index");
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 4].data2) == UV_INDEX::TOP_LEFT, "Failed on uv index");
+		g_logger_assert(extractCorner(vertexData[vertexCursor + 5].data2) == UV_INDEX::BOTTOM_LEFT, "Failed on uv index");
 	}
 }

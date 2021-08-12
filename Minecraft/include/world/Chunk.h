@@ -6,9 +6,8 @@ namespace Minecraft
 {
 	struct Vertex
 	{
-		uint32 data;
+		uint32 data1;
 		uint32 data2;
-		glm::vec2 uv;
 	};
 
 	struct RenderState

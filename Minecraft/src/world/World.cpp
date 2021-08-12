@@ -42,15 +42,15 @@ namespace Minecraft
 			loadWorldTexture();
 
 			glActiveTexture(GL_TEXTURE1);
-			BlockMap::getTextureCoordinatesTexture().bind();
+			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
 			NShader::uploadInt(shader, "uTexCoordTexture", 1);
 
 			// Create a chunk
 			File::createDirIfNotExists("world");
 			Chunk::info();
-			for (int z = -2; z < 2; z++)
+			for (int z = -4; z < 4; z++)
 			{
-				for (int x = -2; x < 2; x++)
+				for (int x = -4; x < 4; x++)
 				{
 					g_logger_info("Generating chunk (%d, %d)", x, z);
 					Chunk chunk;
