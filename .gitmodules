@@ -10,3 +10,6 @@
 [submodule "Minecraft/vendor/simplex"]
 	path = Minecraft/vendor/simplex
 	url = https://github.com/SRombauts/SimplexNoise
+[submodule "Minecraft/vendor/logger"]
+	path = Minecraft/vendor/logger
+	url = https://github.com/ambrosiogabe/logger
