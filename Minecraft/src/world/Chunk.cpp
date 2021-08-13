@@ -94,10 +94,10 @@ namespace Minecraft
 								7,
 								(x + worldChunkX + seed) / incrementSize,
 								(z + worldChunkZ + seed) / incrementSize
-							), 
-							-1.0f, 
-							1.0f, 
-							0.0f, 
+							),
+							-1.0f,
+							1.0f,
+							0.0f,
 							1.0f
 						) * 255.0f;
 					int16 maxHeight = (int16)maxHeightFloat;
@@ -139,14 +139,83 @@ namespace Minecraft
 				}
 			}
 		}
+
+		// Count how many vertices we need
+		numVertices = 0;
+		for (int y = 0; y < CHUNK_HEIGHT; y++)
+		{
+			for (int x = 0; x < CHUNK_DEPTH; x++)
+			{
+				for (int z = 0; z < CHUNK_WIDTH; z++)
+				{
+					const Block& block = getBlock(chunkData, x, y, z);
+					int blockId = block.id;
+
+					if (block == BlockMap::NULL_BLOCK)
+					{
+						continue;
+					}
+
+					// Top Face
+					const int topBlockId = getBlock(chunkData, x, y + 1, z).id;
+					const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
+					if (!topBlockId || topBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+
+					// Bottom Face
+					const int bottomBlockId = getBlock(chunkData, x, y - 1, z).id;
+					const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
+					if (!bottomBlockId || bottomBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+
+					// Right Face
+					const int rightBlockId = getBlock(chunkData, x, y, z + 1).id;
+					const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
+					if (!rightBlockId || rightBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+
+					// Left Face
+					const int leftBlockId = getBlock(chunkData, x, y, z - 1).id;
+					const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
+					if (!leftBlockId || leftBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+
+					// Forward Face
+					const int forwardBlockId = getBlock(chunkData, x + 1, y, z).id;
+					const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
+					if (!forwardBlockId || forwardBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+
+					// Back Face
+					const int backBlockId = getBlock(chunkData, x - 1, y, z).id;
+					const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
+					if (!backBlockId || backBlock.isTransparent)
+					{
+						numVertices += 6;
+					}
+				}
+			}
+		}
 	}
 
-	void Chunk::generateRenderData() 
+	void Chunk::generateRenderData()
 	{
+		g_logger_assert(numVertices > 0, "Cannot generate chunk render data for empty chunk.");
+
 		const int worldChunkX = worldPosition.x * 16;
 		const int worldChunkZ = worldPosition.y * 16;
 
-		Vertex* vertexData = (Vertex*)g_memory_allocate(sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24);
+		Vertex* vertexData = (Vertex*)g_memory_allocate(sizeof(Vertex) * numVertices);
 		int vertexCursor = 0;
 		int uvCursor = 0;
 
@@ -190,7 +259,7 @@ namespace Minecraft
 					const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
 					if (!topBlockId || topBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[5], verts[6], verts[7], verts[4], vertexCursor, 
+						loadBlock(vertexData, verts[5], verts[6], verts[7], verts[4], vertexCursor,
 							top, CUBE_FACE::TOP);
 						vertexCursor += 6;
 					}
@@ -200,7 +269,7 @@ namespace Minecraft
 					const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
 					if (!bottomBlockId || bottomBlock.isTransparent)
 					{
-						loadBlock(vertexData, verts[0], verts[3], verts[2], verts[1], vertexCursor, 
+						loadBlock(vertexData, verts[0], verts[3], verts[2], verts[1], vertexCursor,
 							bottom, CUBE_FACE::BOTTOM);
 						vertexCursor += 6;
 					}
@@ -249,8 +318,7 @@ namespace Minecraft
 		}
 
 		renderData.vertices = vertexData;
-		renderData.vertexSizeBytes = sizeof(Vertex) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH * 24;
-		renderData.numVertices = vertexCursor;
+		g_logger_assert(numVertices == vertexCursor, "We must have miscounted our vertices. Num Vertices does not match number of vertices added. Num Vertices '%d' Vertex Cursor '%d'", numVertices, vertexCursor);
 
 		uploadToGPU(*this);
 	}
@@ -258,7 +326,7 @@ namespace Minecraft
 	void Chunk::render() const
 	{
 		glBindVertexArray(renderData.renderState.vao);
-		glDrawArrays(GL_TRIANGLES, 0, renderData.numVertices);
+		glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	}
 
 	void Chunk::free()
@@ -281,6 +349,7 @@ namespace Minecraft
 		std::string filepath = getFormattedFilepath(worldPosition.x, worldPosition.y, worldSavePath);
 		FILE* fp = fopen(filepath.c_str(), "wb");
 		fwrite(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		fwrite(&numVertices, sizeof(uint32), 1, fp);
 		fwrite(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
 		fclose(fp);
 	}
@@ -296,6 +365,7 @@ namespace Minecraft
 		}
 
 		fread(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		fread(&numVertices, sizeof(uint32), 1, fp);
 		chunkData = (Block*)g_memory_allocate(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
 		fread(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
 		fclose(fp);
@@ -313,7 +383,7 @@ namespace Minecraft
 
 		// 1a. copy our vertices array in a buffer for OpenGL to use
 		glBindBuffer(GL_ARRAY_BUFFER, renderData.renderState.vbo);
-		glBufferData(GL_ARRAY_BUFFER, renderData.vertexSizeBytes, renderData.vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * chunk.numVertices, renderData.vertices, GL_DYNAMIC_DRAW);
 
 		// 1b. then set our vertex attributes pointers
 		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));

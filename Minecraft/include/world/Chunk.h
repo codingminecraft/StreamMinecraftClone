@@ -19,10 +19,6 @@ namespace Minecraft
 	struct ChunkRenderData
 	{
 		Vertex* vertices;
-
-		size_t vertexSizeBytes;
-		uint32 numVertices;
-
 		RenderState renderState;
 	};
 
@@ -48,6 +44,7 @@ namespace Minecraft
 		Block* chunkData;
 		ChunkRenderData renderData;
 		glm::ivec2 worldPosition;
+		uint32 numVertices;
 
 		void generate(int chunkX, int chunkZ, int32 seed);
 

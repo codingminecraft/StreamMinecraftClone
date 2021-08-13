@@ -48,9 +48,9 @@ namespace Minecraft
 			// Create a chunk
 			File::createDirIfNotExists("world");
 			Chunk::info();
-			for (int z = -4; z < 4; z++)
+			for (int z = -16; z < 16; z++)
 			{
-				for (int x = -4; x < 4; x++)
+				for (int x = -16; x < 16; x++)
 				{
 					g_logger_info("Generating chunk (%d, %d)", x, z);
 					Chunk chunk;
