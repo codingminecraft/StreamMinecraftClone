@@ -45,17 +45,24 @@ namespace Minecraft
 		ChunkRenderData renderData;
 		glm::ivec2 chunkCoordinates;
 		uint32 numVertices;
-		bool loaded;
+		//std::mutex lock;
+		std::atomic<bool> loaded;
+		std::atomic<bool> shouldLoad;
+		std::atomic<bool> shouldUnload;
+		std::atomic<bool> working;
 
 		void generate(int chunkX, int chunkZ, int32 seed);
 		void generateRenderData();
+		void uploadToGPU();
 		void render() const;
 
 		void serialize(const std::string& worldSavePath);
 		void deserialize(const std::string& worldSavePath, int chunkX, int chunkZ);
 
 		void unload();
-		void free();
+		void load();
+		void freeCpu();
+		void freeGpu();
 
 		static bool exists(const std::string& worldSavePath, int chunkX, int chunkZ);
 		static void info();

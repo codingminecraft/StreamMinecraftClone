@@ -19,7 +19,8 @@ namespace Minecraft
 		// Internal declarations
 		static void loadWorldTexture();
 		static void checkChunkRadius();
-		static void unloadChunks();
+		static void synchronizeChunks();
+		static void chunkWorker();
 
 		// Members
 		static RenderState renderState;
@@ -27,10 +28,12 @@ namespace Minecraft
 		static PlayerController playerController;
 		static Shader shader;
 		static Texture worldTexture;
-		static std::vector<Chunk> loadedChunks;
+		static Chunk* chunks;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
-		static uint16 chunkRadius = 6;
+		static const uint16 chunkRadius = 8;
+		static const uint16 chunkCapacity = chunkRadius * chunkRadius * 2;
 		static const std::string worldSavePath = "world";
+		static std::thread workerThreads[16];
 
 		static int32 seed = 0;
 
@@ -42,10 +45,14 @@ namespace Minecraft
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
+			chunks = (Chunk*)g_memory_allocate(sizeof(Chunk) * chunkCapacity);
+			g_memory_zeroMem(chunks, sizeof(Chunk) * chunkCapacity);
+
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 			shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 			loadWorldTexture();
+
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
@@ -62,6 +69,8 @@ namespace Minecraft
 			playerController.init(&camera);
 
 			checkChunkRadius();
+
+			workerThreads[0] = std::thread(chunkWorker);
 		}
 
 		void update(float dt)
@@ -88,29 +97,52 @@ namespace Minecraft
 				playerPosition.x / 16,
 				playerPosition.z / 16
 			};
-			for (Chunk& chunk : loadedChunks)
+			for (int i = 0; i < chunkCapacity; i++)
 			{
-				NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
-				chunk.render();
-
-				const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-				if ((localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+				Chunk& chunk = chunks[i];
+				if (chunk.loaded && !chunk.working)
 				{
-					chunk.unload();
-					loadedChunkPositions.erase(chunk.chunkCoordinates);
+					NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
+					chunk.render();
+
+					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
+					if ((localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+					{
+						chunk.unload();
+						loadedChunkPositions.erase(chunk.chunkCoordinates);
+					}
 				}
 			}
 
-			unloadChunks();
+			synchronizeChunks();
 			checkChunkRadius();
 		}
 
 		void cleanup()
 		{
-			for (Chunk& chunk : loadedChunks)
+			for (int i = 0; i < chunkCapacity; i++)
 			{
-				chunk.free();
+				Chunk& chunk = chunks[i];
+				chunk.freeCpu();
+				chunk.freeGpu();
 			}
+
+			g_memory_free(chunks);
+		}
+
+		static Chunk& findUnloadedChunk()
+		{
+			for (int i = 0; i < chunkCapacity; i++)
+			{
+				Chunk& chunk = chunks[i];
+				if (!chunk.loaded && !chunk.working)
+				{
+					return chunk;
+				}
+			}
+
+			g_logger_assert(false, "Ran out of room of loaded chunks.");
+			return Chunk{};
 		}
 
 		static void checkChunkRadius()
@@ -133,37 +165,31 @@ namespace Minecraft
 					auto iter = loadedChunkPositions.find(glm::ivec2{ x, z });
 					if (iter == loadedChunkPositions.end())
 					{
-						g_logger_info("Loading chunk<%d, %d>", x, z);
-						Chunk chunk;
-						if (Chunk::exists(worldSavePath, x, z))
-						{
-							chunk.deserialize(worldSavePath, x, z);
-						}
-						else
-						{
-							chunk.generate(x, z, seed);
-						}
-						chunk.generateRenderData();
-						loadedChunks.emplace_back(chunk);
+						Chunk& chunk = findUnloadedChunk();
+						chunk.chunkCoordinates.x = x;
+						chunk.chunkCoordinates.y = z;
+						chunk.load();
 						loadedChunkPositions.emplace(glm::ivec2{ x, z });
 					}
 				}
 			}
 		}
 
-		static void unloadChunks()
+		static void synchronizeChunks()
 		{
-			for (auto chunkIter = loadedChunks.begin(); chunkIter != loadedChunks.end();)
+			for (int i = 0; i < chunkCapacity; i++)
 			{
-				if (!chunkIter->loaded)
+				Chunk& chunk = chunks[i];
+				if (chunk.shouldUnload && !chunk.working)
 				{
-					g_logger_info("Unloading chunk<%d, %d>", chunkIter->chunkCoordinates.x, chunkIter->chunkCoordinates.y);
-					chunkIter->free();
-					chunkIter = loadedChunks.erase(chunkIter);
+					g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+					chunk.freeGpu();
 				}
-				else
+
+				if (!chunk.working && chunk.shouldLoad)
 				{
-					chunkIter++;
+					g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+					chunk.uploadToGPU();
 				}
 			}
 		}
@@ -183,6 +209,39 @@ namespace Minecraft
 			NShader::uploadInt(shader, "uTexture", 0);
 
 			glUseProgram(shader.programId);
+		}
+
+		static void chunkWorker()
+		{
+			while (true)
+			{
+				for (int i = 0; i < chunkCapacity; i++)
+				{
+					Chunk& chunk = chunks[i];
+					if (chunk.shouldLoad && chunk.working)
+					{
+						g_logger_info("Loading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+						if (Chunk::exists(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
+						{
+							chunk.deserialize(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+						}
+						else
+						{
+							chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
+						}
+						chunk.generateRenderData();
+						//const std::lock_guard<std::mutex> booleanFlagsLock(chunk.lock);
+						chunk.working = false;
+					}
+					else if (chunk.shouldUnload && chunk.working)
+					{
+						g_logger_info("Unloading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+						chunk.freeCpu();
+						//const std::lock_guard<std::mutex> booleanFlagsLock(chunk.lock);
+						chunk.working = false;
+					}
+				}
+			}
 		}
 	}
 }

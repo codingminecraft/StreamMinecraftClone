@@ -33,8 +33,6 @@ namespace Minecraft
 		BOTTOM_RIGHT = 3
 	};
 
-	static void uploadToGPU(Chunk& chunk);
-
 	static int to1DArray(int x, int y, int z)
 	{
 		return (x * CHUNK_DEPTH) + (y * CHUNK_HEIGHT) + z;
@@ -320,9 +318,6 @@ namespace Minecraft
 
 		renderData.vertices = vertexData;
 		g_logger_assert(numVertices == vertexCursor, "We must have miscounted our vertices. Num Vertices does not match number of vertices added. Num Vertices '%d' Vertex Cursor '%d'", numVertices, vertexCursor);
-
-		uploadToGPU(*this);
-		loaded = true;
 	}
 
 	void Chunk::render() const
@@ -333,16 +328,45 @@ namespace Minecraft
 
 	void Chunk::unload()
 	{
-		loaded = false;
+		//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
+		working = true;
+		shouldUnload = true;
 	}
 
-	void Chunk::free()
+	void Chunk::load()
 	{
-		glDeleteBuffers(1, &renderData.renderState.vbo);
-		glDeleteVertexArrays(1, &renderData.renderState.vao);
+		//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
+		working = true;
+		shouldLoad = true;
+	}
 
-		g_memory_free(renderData.vertices);
-		g_memory_free(chunkData);
+	void Chunk::freeCpu()
+	{
+		if (loaded)
+		{
+			g_memory_free(renderData.vertices);
+			g_memory_free(chunkData);
+
+			renderData.vertices = nullptr;
+			chunkData = nullptr;
+		}
+	}
+
+	void Chunk::freeGpu()
+	{
+		if (loaded)
+		{
+			glDeleteBuffers(1, &renderData.renderState.vbo);
+			glDeleteVertexArrays(1, &renderData.renderState.vao);
+
+			renderData.renderState.vbo = 0;
+			renderData.renderState.vao = 0;
+
+			//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
+			loaded = false;
+			shouldLoad = false;
+			shouldUnload = false;
+		}
 	}
 
 	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
@@ -384,10 +408,8 @@ namespace Minecraft
 		return File::isFile(filepath.c_str());
 	}
 
-	static void uploadToGPU(Chunk& chunk)
+	void Chunk::uploadToGPU()
 	{
-		ChunkRenderData& renderData = chunk.renderData;
-
 		// 1. Buffer the data
 		glCreateVertexArrays(1, &renderData.renderState.vao);
 		glBindVertexArray(renderData.renderState.vao);
@@ -396,7 +418,7 @@ namespace Minecraft
 
 		// 1a. copy our vertices array in a buffer for OpenGL to use
 		glBindBuffer(GL_ARRAY_BUFFER, renderData.renderState.vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * chunk.numVertices, renderData.vertices, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVertices, renderData.vertices, GL_DYNAMIC_DRAW);
 
 		// 1b. then set our vertex attributes pointers
 		glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
@@ -404,6 +426,10 @@ namespace Minecraft
 
 		glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, data2)));
 		glEnableVertexAttribArray(1);
+
+		loaded = true;
+		shouldLoad = false;
+		shouldUnload = false;
 	}
 
 	static const int BASE_17_DEPTH = 17;
