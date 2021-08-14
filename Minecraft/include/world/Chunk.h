@@ -43,21 +43,21 @@ namespace Minecraft
 	{
 		Block* chunkData;
 		ChunkRenderData renderData;
-		glm::ivec2 worldPosition;
+		glm::ivec2 chunkCoordinates;
 		uint32 numVertices;
+		bool loaded;
 
 		void generate(int chunkX, int chunkZ, int32 seed);
-
 		void generateRenderData();
-
 		void render() const;
 
 		void serialize(const std::string& worldSavePath);
-
 		void deserialize(const std::string& worldSavePath, int chunkX, int chunkZ);
 
+		void unload();
 		void free();
 
+		static bool exists(const std::string& worldSavePath, int chunkX, int chunkZ);
 		static void info();
 	};
 }

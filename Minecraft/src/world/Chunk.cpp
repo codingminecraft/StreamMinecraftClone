@@ -2,6 +2,7 @@
 #include "utils/YamlExtended.h"
 #include "world/BlockMap.h"
 #include "utils/CMath.h"
+#include "core/File.h"
 
 namespace Minecraft
 {
@@ -74,7 +75,7 @@ namespace Minecraft
 		const int worldChunkX = chunkX * 16;
 		const int worldChunkZ = chunkZ * 16;
 
-		worldPosition = { chunkX, chunkZ };
+		chunkCoordinates = { chunkX, chunkZ };
 
 		chunkData = (Block*)g_memory_allocate(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
 		g_memory_zeroMem(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
@@ -212,8 +213,8 @@ namespace Minecraft
 	{
 		g_logger_assert(numVertices > 0, "Cannot generate chunk render data for empty chunk.");
 
-		const int worldChunkX = worldPosition.x * 16;
-		const int worldChunkZ = worldPosition.y * 16;
+		const int worldChunkX = chunkCoordinates.x * 16;
+		const int worldChunkZ = chunkCoordinates.y * 16;
 
 		Vertex* vertexData = (Vertex*)g_memory_allocate(sizeof(Vertex) * numVertices);
 		int vertexCursor = 0;
@@ -321,12 +322,18 @@ namespace Minecraft
 		g_logger_assert(numVertices == vertexCursor, "We must have miscounted our vertices. Num Vertices does not match number of vertices added. Num Vertices '%d' Vertex Cursor '%d'", numVertices, vertexCursor);
 
 		uploadToGPU(*this);
+		loaded = true;
 	}
 
 	void Chunk::render() const
 	{
 		glBindVertexArray(renderData.renderState.vao);
 		glDrawArrays(GL_TRIANGLES, 0, numVertices);
+	}
+
+	void Chunk::unload()
+	{
+		loaded = false;
 	}
 
 	void Chunk::free()
@@ -346,9 +353,9 @@ namespace Minecraft
 
 	void Chunk::serialize(const std::string& worldSavePath)
 	{
-		std::string filepath = getFormattedFilepath(worldPosition.x, worldPosition.y, worldSavePath);
+		std::string filepath = getFormattedFilepath(chunkCoordinates.x, chunkCoordinates.y, worldSavePath);
 		FILE* fp = fopen(filepath.c_str(), "wb");
-		fwrite(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		fwrite(&chunkCoordinates, sizeof(glm::ivec2), 1, fp);
 		fwrite(&numVertices, sizeof(uint32), 1, fp);
 		fwrite(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
 		fclose(fp);
@@ -364,11 +371,17 @@ namespace Minecraft
 			return;
 		}
 
-		fread(&worldPosition, sizeof(glm::ivec2), 1, fp);
+		fread(&chunkCoordinates, sizeof(glm::ivec2), 1, fp);
 		fread(&numVertices, sizeof(uint32), 1, fp);
 		chunkData = (Block*)g_memory_allocate(sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH);
 		fread(chunkData, sizeof(Block) * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_DEPTH, 1, fp);
 		fclose(fp);
+	}
+
+	bool Chunk::exists(const std::string& worldSavePath, int chunkX, int chunkZ)
+	{
+		std::string filepath = getFormattedFilepath(chunkX, chunkZ, worldSavePath);
+		return File::isFile(filepath.c_str());
 	}
 
 	static void uploadToGPU(Chunk& chunk)

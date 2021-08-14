@@ -4,6 +4,8 @@
 
 namespace Minecraft
 {
+	struct PlayerController;
+
 	namespace World
 	{
 		void init();

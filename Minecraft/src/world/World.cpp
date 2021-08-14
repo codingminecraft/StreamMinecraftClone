@@ -18,13 +18,19 @@ namespace Minecraft
 	{
 		// Internal declarations
 		static void loadWorldTexture();
+		static void checkChunkRadius();
+		static void unloadChunks();
 
 		// Members
 		static RenderState renderState;
 		static Camera camera;
+		static PlayerController playerController;
 		static Shader shader;
 		static Texture worldTexture;
 		static std::vector<Chunk> loadedChunks;
+		static std::unordered_set<glm::ivec2> loadedChunkPositions;
+		static uint16 chunkRadius = 6;
+		static const std::string worldSavePath = "world";
 
 		static int32 seed = 0;
 
@@ -46,27 +52,16 @@ namespace Minecraft
 			NShader::uploadInt(shader, "uTexCoordTexture", 1);
 
 			// Create a chunk
-			File::createDirIfNotExists("world");
+			File::createDirIfNotExists(worldSavePath.c_str());
 			Chunk::info();
-			for (int z = -16; z < 16; z++)
-			{
-				for (int x = -16; x < 16; x++)
-				{
-					g_logger_info("Generating chunk (%d, %d)", x, z);
-					Chunk chunk;
-					chunk.generate(x, z, seed);
-					//chunk.deserialize("world", x, z);
-					chunk.generateRenderData();
-					chunk.serialize("world");
-					loadedChunks.push_back(chunk);
-				}
-			}
 
 			// Setup camera
 			camera.position = glm::vec3(0, 257.0f, 1.0f);
 			camera.fov = 45.0f;
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
-			PlayerController::init(&camera);
+			playerController.init(&camera);
+
+			checkChunkRadius();
 		}
 
 		void update(float dt)
@@ -76,24 +71,38 @@ namespace Minecraft
 			NShader::uploadMat4(shader, "uProjection", projection);
 			NShader::uploadMat4(shader, "uView", view);
 			NShader::uploadVec3(shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
-			
 
-			PlayerController::update(0.0f);
+			playerController.update(dt);
 
 			if (Input::isKeyPressed(GLFW_KEY_F1))
 			{
 				Application::lockCursor(false);
-			} 
+			}
 			else if (Input::isKeyPressed(GLFW_KEY_F2))
 			{
 				Application::lockCursor(true);
 			}
 
-			for (const Chunk& chunk : loadedChunks)
+			const glm::vec3& playerPosition = playerController.playerCamera->position;
+			glm::ivec2 playerPositionInChunkCoords = glm::ivec2{
+				playerPosition.x / 16,
+				playerPosition.z / 16
+			};
+			for (Chunk& chunk : loadedChunks)
 			{
-				NShader::uploadIVec2(shader, "uChunkPos", chunk.worldPosition);
+				NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
 				chunk.render();
+
+				const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
+				if ((localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+				{
+					chunk.unload();
+					loadedChunkPositions.erase(chunk.chunkCoordinates);
+				}
 			}
+
+			unloadChunks();
+			checkChunkRadius();
 		}
 
 		void cleanup()
@@ -101,6 +110,61 @@ namespace Minecraft
 			for (Chunk& chunk : loadedChunks)
 			{
 				chunk.free();
+			}
+		}
+
+		static void checkChunkRadius()
+		{
+			const glm::vec3 playerPosition = playerController.playerCamera->position;
+			glm::ivec2 playerPositionInChunkCoords = glm::ivec2{
+				playerPosition.x / 16,
+				playerPosition.z / 16
+			};
+
+			int startX = playerPositionInChunkCoords.x - (chunkRadius / 2);
+			int endX = playerPositionInChunkCoords.x + (chunkRadius / 2);
+			int startZ = playerPositionInChunkCoords.y - (chunkRadius / 2);
+			int endZ = playerPositionInChunkCoords.y + (chunkRadius / 2);
+
+			for (int z = startZ; z <= endZ; z++)
+			{
+				for (int x = startX; x <= endX; x++)
+				{
+					auto iter = loadedChunkPositions.find(glm::ivec2{ x, z });
+					if (iter == loadedChunkPositions.end())
+					{
+						g_logger_info("Loading chunk<%d, %d>", x, z);
+						Chunk chunk;
+						if (Chunk::exists(worldSavePath, x, z))
+						{
+							chunk.deserialize(worldSavePath, x, z);
+						}
+						else
+						{
+							chunk.generate(x, z, seed);
+						}
+						chunk.generateRenderData();
+						loadedChunks.emplace_back(chunk);
+						loadedChunkPositions.emplace(glm::ivec2{ x, z });
+					}
+				}
+			}
+		}
+
+		static void unloadChunks()
+		{
+			for (auto chunkIter = loadedChunks.begin(); chunkIter != loadedChunks.end();)
+			{
+				if (!chunkIter->loaded)
+				{
+					g_logger_info("Unloading chunk<%d, %d>", chunkIter->chunkCoordinates.x, chunkIter->chunkCoordinates.y);
+					chunkIter->free();
+					chunkIter = loadedChunks.erase(chunkIter);
+				}
+				else
+				{
+					chunkIter++;
+				}
 			}
 		}
 

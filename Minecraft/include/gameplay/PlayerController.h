@@ -6,11 +6,14 @@ namespace Minecraft
 	// Forward declarations
 	struct Camera;
 
-	namespace PlayerController
+	struct PlayerController
 	{
+		float playerSpeed;
+		Camera* playerCamera;
+
 		void init(Camera* playerCamera);
 		void update(float dt);
-	}
+	};
 }
 
 #endif
