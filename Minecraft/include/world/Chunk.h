@@ -45,7 +45,6 @@ namespace Minecraft
 		ChunkRenderData renderData;
 		glm::ivec2 chunkCoordinates;
 		uint32 numVertices;
-		//std::mutex lock;
 		std::atomic<bool> loaded;
 		std::atomic<bool> shouldLoad;
 		std::atomic<bool> shouldUnload;

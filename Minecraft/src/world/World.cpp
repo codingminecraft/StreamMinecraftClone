@@ -31,9 +31,16 @@ namespace Minecraft
 		static Chunk* chunks;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
 		static const uint16 chunkRadius = 8;
-		static const uint16 chunkCapacity = chunkRadius * chunkRadius * 2;
+		// Area of circle is PI * r^2, we'll round PI up to 4
+		static const uint16 chunkCapacity = (chunkRadius + 1) * (chunkRadius + 1) * 4;
 		static const std::string worldSavePath = "world";
 		static std::thread workerThreads[16];
+
+		static std::mutex mutex;
+		static std::condition_variable cvar;
+		static bool chunkNeedsWork = false;
+		static bool threadRunning = true;
+
 
 		static int32 seed = 0;
 
@@ -106,10 +113,15 @@ namespace Minecraft
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-					if ((localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+					if (!chunk.shouldUnload && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
 					{
 						chunk.unload();
 						loadedChunkPositions.erase(chunk.chunkCoordinates);
+						{
+							std::lock_guard lock(mutex);
+							chunkNeedsWork = true;
+						}
+						cvar.notify_all();
 					}
 				}
 			}
@@ -120,6 +132,14 @@ namespace Minecraft
 
 		void cleanup()
 		{
+			{
+				std::lock_guard<std::mutex> lock(mutex);
+				threadRunning = false;
+				chunkNeedsWork = true;
+			}
+			cvar.notify_all();
+			workerThreads[0].join();
+
 			for (int i = 0; i < chunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
@@ -130,48 +150,99 @@ namespace Minecraft
 			g_memory_free(chunks);
 		}
 
-		static Chunk& findUnloadedChunk()
+		static Chunk* findUnloadedChunk()
 		{
 			for (int i = 0; i < chunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
 				if (!chunk.loaded && !chunk.working)
 				{
-					return chunk;
+					return &chunk;
 				}
 			}
 
-			g_logger_assert(false, "Ran out of room of loaded chunks.");
-			return Chunk{};
+			g_logger_warning("Ran out of room of loaded chunks. Number of chunks allowed %d", chunkCapacity);
+			return nullptr;
 		}
 
 		static void checkChunkRadius()
 		{
 			const glm::vec3 playerPosition = playerController.playerCamera->position;
-			glm::ivec2 playerPositionInChunkCoords = glm::ivec2{
+			glm::ivec2 position = glm::ivec2{
 				playerPosition.x / 16,
 				playerPosition.z / 16
 			};
+			glm::ivec2 playerPosChunkCoords = position;
 
-			int startX = playerPositionInChunkCoords.x - (chunkRadius / 2);
-			int endX = playerPositionInChunkCoords.x + (chunkRadius / 2);
-			int startZ = playerPositionInChunkCoords.y - (chunkRadius / 2);
-			int endZ = playerPositionInChunkCoords.y + (chunkRadius / 2);
-
-			for (int z = startZ; z <= endZ; z++)
+			bool needsWork = false;
+			// 0 RIGHT, 1 UP, 2 LEFT, 3 DOWN
+			uint8 direction = 0;
+			uint8 distance = 1;
+			uint8 timeToChangeDistance = 0;
+			uint8 travelled = 0;
+			while (true)
 			{
-				for (int x = startX; x <= endX; x++)
+				glm::ivec2 localPos = playerPosChunkCoords - position;
+				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < chunkRadius * chunkRadius)
 				{
-					auto iter = loadedChunkPositions.find(glm::ivec2{ x, z });
+					auto iter = loadedChunkPositions.find(position);
 					if (iter == loadedChunkPositions.end())
 					{
-						Chunk& chunk = findUnloadedChunk();
-						chunk.chunkCoordinates.x = x;
-						chunk.chunkCoordinates.y = z;
-						chunk.load();
-						loadedChunkPositions.emplace(glm::ivec2{ x, z });
+						Chunk* chunk = findUnloadedChunk();
+						if (chunk)
+						{
+							chunk->chunkCoordinates.x = position.x;
+							chunk->chunkCoordinates.y = position.y;
+							chunk->load();
+							loadedChunkPositions.insert(position);
+							needsWork = true;
+						}
 					}
 				}
+
+				switch (direction)
+				{
+				case 0:
+					position.x++;
+					break;
+				case 1:
+					position.y++;
+					break;
+				case 2:
+					position.x--;
+					break;
+				case 3:
+					position.y--;
+					break;
+				}
+
+				travelled++;
+				if (travelled >= distance)
+				{
+					direction = (direction + 1) % 4;
+					travelled = 0;
+
+					timeToChangeDistance++;
+					if (timeToChangeDistance > 1)
+					{
+						timeToChangeDistance = 0;
+						distance++;
+					}
+
+					if (distance > chunkRadius * 2)
+					{
+						break;
+					}
+				}
+			}
+
+			if (needsWork)
+			{
+				{
+					std::lock_guard lock(mutex);
+					chunkNeedsWork = true;
+				}
+				cvar.notify_all();
 			}
 		}
 
@@ -186,7 +257,7 @@ namespace Minecraft
 					chunk.freeGpu();
 				}
 
-				if (!chunk.working && chunk.shouldLoad)
+				if (chunk.shouldLoad && !chunk.working)
 				{
 					g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
 					chunk.uploadToGPU();
@@ -213,8 +284,13 @@ namespace Minecraft
 
 		static void chunkWorker()
 		{
-			while (true)
+			while (threadRunning)
 			{
+				{
+					std::unique_lock lock(mutex);
+					cvar.wait(lock, [&] { return chunkNeedsWork; });
+				}
+
 				for (int i = 0; i < chunkCapacity; i++)
 				{
 					Chunk& chunk = chunks[i];
@@ -230,16 +306,27 @@ namespace Minecraft
 							chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
 						}
 						chunk.generateRenderData();
-						//const std::lock_guard<std::mutex> booleanFlagsLock(chunk.lock);
-						chunk.working = false;
+
+						{
+							std::lock_guard<std::mutex> lock(mutex);
+							chunk.working = false;
+						}
 					}
 					else if (chunk.shouldUnload && chunk.working)
 					{
 						g_logger_info("Unloading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
 						chunk.freeCpu();
-						//const std::lock_guard<std::mutex> booleanFlagsLock(chunk.lock);
-						chunk.working = false;
+
+						{
+							std::lock_guard<std::mutex> lock(mutex);
+							chunk.working = false;
+						}
 					}
+				}
+
+				{
+					std::lock_guard<std::mutex> lock(mutex);
+					chunkNeedsWork = false;
 				}
 			}
 		}

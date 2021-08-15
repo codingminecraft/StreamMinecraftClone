@@ -328,14 +328,12 @@ namespace Minecraft
 
 	void Chunk::unload()
 	{
-		//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
 		working = true;
 		shouldUnload = true;
 	}
 
 	void Chunk::load()
 	{
-		//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
 		working = true;
 		shouldLoad = true;
 	}
@@ -362,7 +360,6 @@ namespace Minecraft
 			renderData.renderState.vbo = 0;
 			renderData.renderState.vao = 0;
 
-			//const std::lock_guard<std::mutex> booleanFlagsLock(lock);
 			loaded = false;
 			shouldLoad = false;
 			shouldUnload = false;

@@ -8,6 +8,8 @@ namespace Minecraft
 	{
 		playerCamera = camera;
 		playerSpeed = 0.2f;
+		playerCamera->position.x = 50.0f;
+		playerCamera->position.z = 50.0f;
 	}
 
 	void PlayerController::update(float dt)
