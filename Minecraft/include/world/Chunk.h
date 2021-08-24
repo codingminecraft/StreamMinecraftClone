@@ -45,10 +45,7 @@ namespace Minecraft
 		ChunkRenderData renderData;
 		glm::ivec2 chunkCoordinates;
 		uint32 numVertices;
-		std::atomic<bool> loaded;
-		std::atomic<bool> shouldLoad;
-		std::atomic<bool> shouldUnload;
-		std::atomic<bool> working;
+		bool loaded;
 
 		void generate(int chunkX, int chunkZ, int32 seed);
 		void generateRenderData();
@@ -58,8 +55,6 @@ namespace Minecraft
 		void serialize(const std::string& worldSavePath);
 		void deserialize(const std::string& worldSavePath, int chunkX, int chunkZ);
 
-		void unload();
-		void load();
 		void freeCpu();
 		void freeGpu();
 

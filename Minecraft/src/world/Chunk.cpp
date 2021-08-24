@@ -326,44 +326,37 @@ namespace Minecraft
 		glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	}
 
-	void Chunk::unload()
-	{
-		working = true;
-		shouldUnload = true;
-	}
-
-	void Chunk::load()
-	{
-		working = true;
-		shouldLoad = true;
-	}
-
 	void Chunk::freeCpu()
 	{
-		if (loaded)
+		if (renderData.vertices)
 		{
 			g_memory_free(renderData.vertices);
-			g_memory_free(chunkData);
-
 			renderData.vertices = nullptr;
+		}
+
+		if (chunkData)
+		{
+			g_memory_free(chunkData);
 			chunkData = nullptr;
 		}
 	}
 
 	void Chunk::freeGpu()
 	{
-		if (loaded)
+		if (renderData.renderState.vbo != -1)
 		{
 			glDeleteBuffers(1, &renderData.renderState.vbo);
-			glDeleteVertexArrays(1, &renderData.renderState.vao);
+			renderData.renderState.vbo = -1;
 
-			renderData.renderState.vbo = 0;
-			renderData.renderState.vao = 0;
-
-			loaded = false;
-			shouldLoad = false;
-			shouldUnload = false;
 		}
+
+		if (renderData.renderState.vao != -1) 
+		{
+			glDeleteVertexArrays(1, &renderData.renderState.vao);
+			renderData.renderState.vao = -1;
+		}
+
+		loaded = false;
 	}
 
 	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
@@ -425,8 +418,6 @@ namespace Minecraft
 		glEnableVertexAttribArray(1);
 
 		loaded = true;
-		shouldLoad = false;
-		shouldUnload = false;
 	}
 
 	static const int BASE_17_DEPTH = 17;

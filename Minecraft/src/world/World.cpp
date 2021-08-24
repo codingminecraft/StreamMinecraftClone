@@ -10,17 +10,22 @@
 #include "gameplay/PlayerController.h"
 #include "core/File.h"
 
-#include <random>
-
 namespace Minecraft
 {
 	namespace World
 	{
+		template<typename R>
+		bool is_ready(std::future<R> const& f)
+		{
+			return f.wait_for(std::chrono::seconds(-10)) == std::future_status::ready;
+		}
+
 		// Internal declarations
 		static void loadWorldTexture();
 		static void checkChunkRadius();
 		static void synchronizeChunks();
-		static void chunkWorker();
+		static Chunk createChunk(int x, int z);
+		static Chunk deleteChunk(Chunk chunk);
 
 		// Members
 		static RenderState renderState;
@@ -28,31 +33,35 @@ namespace Minecraft
 		static PlayerController playerController;
 		static Shader shader;
 		static Texture worldTexture;
-		static Chunk* chunks;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
 		static const uint16 chunkRadius = 8;
 		// Area of circle is PI * r^2, we'll round PI up to 4
 		static const uint16 chunkCapacity = (chunkRadius + 1) * (chunkRadius + 1) * 4;
+		static Chunk chunks[chunkCapacity];
 		static const std::string worldSavePath = "world";
 		static std::thread workerThreads[16];
 
 		static std::mutex mutex;
-		static std::condition_variable cvar;
+		//static std::condition_variable cvar;
 		static bool chunkNeedsWork = false;
 		static bool threadRunning = true;
 
+		static std::queue<std::future<Chunk>> queuedChunksForCreation;
+		static std::queue<std::future<Chunk>> queuedChunksForDeletion;
 
 		static int32 seed = 0;
 
 		void init()
 		{
+			queuedChunksForCreation = {};
+			queuedChunksForDeletion = {};
+
 			srand((unsigned long)time(NULL));
 			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
 			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
-			chunks = (Chunk*)g_memory_allocate(sizeof(Chunk) * chunkCapacity);
 			g_memory_zeroMem(chunks, sizeof(Chunk) * chunkCapacity);
 
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
@@ -76,8 +85,6 @@ namespace Minecraft
 			playerController.init(&camera);
 
 			checkChunkRadius();
-
-			workerThreads[0] = std::thread(chunkWorker);
 		}
 
 		void update(float dt)
@@ -107,39 +114,27 @@ namespace Minecraft
 			for (int i = 0; i < chunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
-				if (chunk.loaded && !chunk.working)
+				if (chunk.loaded)
 				{
 					NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-					if (!chunk.shouldUnload && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+					bool hasBeenQueued = loadedChunkPositions.find(chunk.chunkCoordinates) == loadedChunkPositions.end();
+					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
 					{
-						chunk.unload();
+						queuedChunksForDeletion.push(std::async(std::launch::async, deleteChunk, chunk));
 						loadedChunkPositions.erase(chunk.chunkCoordinates);
-						{
-							std::lock_guard lock(mutex);
-							chunkNeedsWork = true;
-						}
-						cvar.notify_all();
 					}
 				}
 			}
 
-			synchronizeChunks();
 			checkChunkRadius();
+			synchronizeChunks();
 		}
 
 		void cleanup()
 		{
-			{
-				std::lock_guard<std::mutex> lock(mutex);
-				threadRunning = false;
-				chunkNeedsWork = true;
-			}
-			cvar.notify_all();
-			workerThreads[0].join();
-
 			for (int i = 0; i < chunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
@@ -148,21 +143,6 @@ namespace Minecraft
 			}
 
 			g_memory_free(chunks);
-		}
-
-		static Chunk* findUnloadedChunk()
-		{
-			for (int i = 0; i < chunkCapacity; i++)
-			{
-				Chunk& chunk = chunks[i];
-				if (!chunk.loaded && !chunk.working)
-				{
-					return &chunk;
-				}
-			}
-
-			g_logger_warning("Ran out of room of loaded chunks. Number of chunks allowed %d", chunkCapacity);
-			return nullptr;
 		}
 
 		static void checkChunkRadius()
@@ -188,15 +168,8 @@ namespace Minecraft
 					auto iter = loadedChunkPositions.find(position);
 					if (iter == loadedChunkPositions.end())
 					{
-						Chunk* chunk = findUnloadedChunk();
-						if (chunk)
-						{
-							chunk->chunkCoordinates.x = position.x;
-							chunk->chunkCoordinates.y = position.y;
-							chunk->load();
-							loadedChunkPositions.insert(position);
-							needsWork = true;
-						}
+						queuedChunksForCreation.push(std::async(std::launch::async, createChunk, position.x, position.y));
+						loadedChunkPositions.insert(position);
 					}
 				}
 
@@ -235,32 +208,43 @@ namespace Minecraft
 					}
 				}
 			}
-
-			if (needsWork)
-			{
-				{
-					std::lock_guard lock(mutex);
-					chunkNeedsWork = true;
-				}
-				cvar.notify_all();
-			}
 		}
 
 		static void synchronizeChunks()
 		{
-			for (int i = 0; i < chunkCapacity; i++)
+			while (queuedChunksForDeletion.size() > 0 && is_ready(queuedChunksForDeletion.front()))
 			{
-				Chunk& chunk = chunks[i];
-				if (chunk.shouldUnload && !chunk.working)
-				{
-					g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-					chunk.freeGpu();
-				}
+				std::future<Chunk>& queuedChunk = queuedChunksForDeletion.front();
+				Chunk chunk = queuedChunk.get();
+				g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+				chunk.freeGpu();
+				queuedChunksForDeletion.pop();
 
-				if (chunk.shouldLoad && !chunk.working)
+				for (int i = 0; i < chunkCapacity; i++)
 				{
-					g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-					chunk.uploadToGPU();
+					if (chunks[i].chunkCoordinates == chunk.chunkCoordinates)
+					{
+						chunks[i] = chunk;
+						break;
+					}
+				}
+			}
+
+			while (queuedChunksForCreation.size() > 0 && is_ready(queuedChunksForCreation.front()))
+			{
+				std::future<Chunk>& queuedChunk = queuedChunksForCreation.front();
+				Chunk chunk = queuedChunk.get();
+				g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+				chunk.uploadToGPU();
+				queuedChunksForCreation.pop();
+
+				for (int i = 0; i < chunkCapacity; i++)
+				{
+					if (!chunks[i].loaded)
+					{
+						chunks[i] = chunk;
+						break;
+					}
 				}
 			}
 		}
@@ -282,53 +266,29 @@ namespace Minecraft
 			glUseProgram(shader.programId);
 		}
 
-		static void chunkWorker()
+		static Chunk createChunk(int x, int z)
 		{
-			while (threadRunning)
+			Chunk chunk;
+			chunk.chunkCoordinates = { x, z };
+			g_logger_info("Loading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+			if (Chunk::exists(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
 			{
-				{
-					std::unique_lock lock(mutex);
-					cvar.wait(lock, [&] { return chunkNeedsWork; });
-				}
-
-				for (int i = 0; i < chunkCapacity; i++)
-				{
-					Chunk& chunk = chunks[i];
-					if (chunk.shouldLoad && chunk.working)
-					{
-						g_logger_info("Loading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-						if (Chunk::exists(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
-						{
-							chunk.deserialize(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-						}
-						else
-						{
-							chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
-						}
-						chunk.generateRenderData();
-
-						{
-							std::lock_guard<std::mutex> lock(mutex);
-							chunk.working = false;
-						}
-					}
-					else if (chunk.shouldUnload && chunk.working)
-					{
-						g_logger_info("Unloading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-						chunk.freeCpu();
-
-						{
-							std::lock_guard<std::mutex> lock(mutex);
-							chunk.working = false;
-						}
-					}
-				}
-
-				{
-					std::lock_guard<std::mutex> lock(mutex);
-					chunkNeedsWork = false;
-				}
+				chunk.deserialize(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
 			}
+			else
+			{
+				chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
+			}
+			chunk.generateRenderData();
+
+			return chunk;
+		}
+
+		static Chunk deleteChunk(Chunk chunk)
+		{
+			g_logger_info("Unloading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+			chunk.freeCpu();
+			return chunk;
 		}
 	}
 }
