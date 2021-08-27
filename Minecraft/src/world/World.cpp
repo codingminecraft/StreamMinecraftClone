@@ -1,5 +1,6 @@
 #include "core.h"
 #include "world/World.h"
+#include "world/ChunkManager.h"
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
@@ -14,18 +15,10 @@ namespace Minecraft
 {
 	namespace World
 	{
-		template<typename R>
-		bool is_ready(std::future<R> const& f)
-		{
-			return f.wait_for(std::chrono::seconds(-10)) == std::future_status::ready;
-		}
-
 		// Internal declarations
 		static void loadWorldTexture();
 		static void checkChunkRadius();
 		static void synchronizeChunks();
-		static Chunk createChunk(int x, int z);
-		static Chunk deleteChunk(Chunk chunk);
 
 		// Members
 		static RenderState renderState;
@@ -34,35 +27,20 @@ namespace Minecraft
 		static Shader shader;
 		static Texture worldTexture;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
-		static const uint16 chunkRadius = 8;
-		// Area of circle is PI * r^2, we'll round PI up to 4
-		static const uint16 chunkCapacity = (chunkRadius + 1) * (chunkRadius + 1) * 4;
-		static Chunk chunks[chunkCapacity];
+		static Chunk chunks[ChunkCapacity];
 		static const std::string worldSavePath = "world";
-		static std::thread workerThreads[16];
-
-		static std::mutex mutex;
-		//static std::condition_variable cvar;
-		static bool chunkNeedsWork = false;
-		static bool threadRunning = true;
-
-		static std::queue<std::future<Chunk>> queuedChunksForCreation;
-		static std::queue<std::future<Chunk>> queuedChunksForDeletion;
 
 		static int32 seed = 0;
 
 		void init()
 		{
-			queuedChunksForCreation = {};
-			queuedChunksForDeletion = {};
-
 			srand((unsigned long)time(NULL));
 			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
 			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
-			g_memory_zeroMem(chunks, sizeof(Chunk) * chunkCapacity);
+			g_memory_zeroMem(chunks, sizeof(Chunk) * ChunkCapacity);
 
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
@@ -84,6 +62,7 @@ namespace Minecraft
 			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 			playerController.init(&camera);
 
+			ChunkManager::init(seed);
 			checkChunkRadius();
 		}
 
@@ -111,7 +90,7 @@ namespace Minecraft
 				playerPosition.x / 16,
 				playerPosition.z / 16
 			};
-			for (int i = 0; i < chunkCapacity; i++)
+			for (int i = 0; i < ChunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
 				if (chunk.loaded)
@@ -121,9 +100,9 @@ namespace Minecraft
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
 					bool hasBeenQueued = loadedChunkPositions.find(chunk.chunkCoordinates) == loadedChunkPositions.end();
-					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= chunkRadius * chunkRadius)
+					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= ChunkRadius * ChunkRadius)
 					{
-						queuedChunksForDeletion.push(std::async(std::launch::async, deleteChunk, chunk));
+						ChunkManager::queueDeleteChunk(chunk);
 						loadedChunkPositions.erase(chunk.chunkCoordinates);
 					}
 				}
@@ -135,14 +114,30 @@ namespace Minecraft
 
 		void cleanup()
 		{
-			for (int i = 0; i < chunkCapacity; i++)
+			ChunkManager::free();
+
+			for (int i = 0; i < ChunkCapacity; i++)
 			{
 				Chunk& chunk = chunks[i];
-				chunk.freeCpu();
-				chunk.freeGpu();
+				if (chunk.loaded)
+				{
+					chunk.freeCpu();
+					chunk.freeGpu();
+				}
+			}
+		}
+
+		static bool exists(const glm::ivec2& position)
+		{
+			for (Chunk& chunk : chunks)
+			{
+				if (chunk.chunkCoordinates == position)
+				{
+					return true;
+				}
 			}
 
-			g_memory_free(chunks);
+			return false;
 		}
 
 		static void checkChunkRadius()
@@ -163,12 +158,13 @@ namespace Minecraft
 			while (true)
 			{
 				glm::ivec2 localPos = playerPosChunkCoords - position;
-				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < chunkRadius * chunkRadius)
+				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < ChunkRadius * ChunkRadius)
 				{
+					bool alreadyExists = exists(position);
 					auto iter = loadedChunkPositions.find(position);
-					if (iter == loadedChunkPositions.end())
+					if (!alreadyExists && iter == loadedChunkPositions.end())
 					{
-						queuedChunksForCreation.push(std::async(std::launch::async, createChunk, position.x, position.y));
+						ChunkManager::queueCreateChunk(position.x, position.y);
 						loadedChunkPositions.insert(position);
 					}
 				}
@@ -202,7 +198,7 @@ namespace Minecraft
 						distance++;
 					}
 
-					if (distance > chunkRadius * 2)
+					if (distance > ChunkRadius * 2)
 					{
 						break;
 					}
@@ -212,38 +208,38 @@ namespace Minecraft
 
 		static void synchronizeChunks()
 		{
-			while (queuedChunksForDeletion.size() > 0 && is_ready(queuedChunksForDeletion.front()))
+			std::vector<Chunk> readyChunks = ChunkManager::getReadyChunks();
+			if (readyChunks.size() > 0)
 			{
-				std::future<Chunk>& queuedChunk = queuedChunksForDeletion.front();
-				Chunk chunk = queuedChunk.get();
-				g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-				chunk.freeGpu();
-				queuedChunksForDeletion.pop();
-
-				for (int i = 0; i < chunkCapacity; i++)
+				for (Chunk& chunk : readyChunks)
 				{
-					if (chunks[i].chunkCoordinates == chunk.chunkCoordinates)
+					if (chunk.loaded)
 					{
-						chunks[i] = chunk;
-						break;
+						g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+						chunk.freeGpu();
+
+						for (int i = 0; i < ChunkCapacity; i++)
+						{
+							if (chunks[i].chunkCoordinates == chunk.chunkCoordinates)
+							{
+								chunks[i] = chunk;
+								break;
+							}
+						}
 					}
-				}
-			}
-
-			while (queuedChunksForCreation.size() > 0 && is_ready(queuedChunksForCreation.front()))
-			{
-				std::future<Chunk>& queuedChunk = queuedChunksForCreation.front();
-				Chunk chunk = queuedChunk.get();
-				g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-				chunk.uploadToGPU();
-				queuedChunksForCreation.pop();
-
-				for (int i = 0; i < chunkCapacity; i++)
-				{
-					if (!chunks[i].loaded)
+					else
 					{
-						chunks[i] = chunk;
-						break;
+						g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+						chunk.uploadToGPU();
+
+						for (int i = 0; i < ChunkCapacity; i++)
+						{
+							if (!chunks[i].loaded)
+							{
+								chunks[i] = chunk;
+								break;
+							}
+						}
 					}
 				}
 			}
@@ -264,31 +260,6 @@ namespace Minecraft
 			NShader::uploadInt(shader, "uTexture", 0);
 
 			glUseProgram(shader.programId);
-		}
-
-		static Chunk createChunk(int x, int z)
-		{
-			Chunk chunk;
-			chunk.chunkCoordinates = { x, z };
-			g_logger_info("Loading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			if (Chunk::exists(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
-			{
-				chunk.deserialize(worldSavePath, chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			}
-			else
-			{
-				chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
-			}
-			chunk.generateRenderData();
-
-			return chunk;
-		}
-
-		static Chunk deleteChunk(Chunk chunk)
-		{
-			g_logger_info("Unloading on CPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			chunk.freeCpu();
-			return chunk;
 		}
 	}
 }

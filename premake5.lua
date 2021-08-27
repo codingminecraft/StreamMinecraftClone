@@ -86,6 +86,7 @@ project "Minecraft"
         symbols "on"
 
     filter { "configurations:Release" }
+        defines {" _RELEASE" }
         buildoptions "/MT"
         runtime "Release"
         optimize "on"
