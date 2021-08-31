@@ -31,6 +31,7 @@
 #include <future>
 #include <queue>
 #include <algorithm>
+#include <bitset>
 
 // GLFW/glad
 #include <glad/glad.h>

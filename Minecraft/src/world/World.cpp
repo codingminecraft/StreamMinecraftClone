@@ -10,9 +10,28 @@
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
 #include "core/File.h"
+#include "core/Ecs.h"
 
 namespace Minecraft
 {
+	struct Transform
+	{
+		glm::vec3 position;
+		glm::vec3 scale;
+	};
+
+	struct Rigidbody
+	{
+		float friction;
+		glm::vec3 velocity;
+		glm::vec3 acceleration;
+	};
+
+	struct BoxCollider
+	{
+		glm::vec3 bounds;
+	};
+
 	namespace World
 	{
 		// Internal declarations
@@ -37,6 +56,35 @@ namespace Minecraft
 			srand((unsigned long)time(NULL));
 			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
 			g_logger_info("World seed: %d", seed);
+
+			Ecs::Registry registry;
+			for (int i = 0; i < 10; i++)
+			{
+				registry.createEntity();
+			}
+
+			for (int i = 0; i < 5; i++)
+			{
+				registry.addComponent<Transform>(i);
+			}
+
+			for (int i = 2; i < 8; i++)
+			{
+				registry.addComponent<Rigidbody>(i);
+			}
+
+			for (int i = 5; i < 10; i++)
+			{
+				registry.addComponent<BoxCollider>(i);
+			}
+
+			// TODO: Debug me
+			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody>())
+			{
+				g_logger_info("Entity %d<Transform>: %d", (uint32)entity, registry.hasComponent<Transform>(entity));
+				g_logger_info("Entity %d<Rigidbody>: %d", (uint32)entity, registry.hasComponent<Rigidbody>(entity));
+				g_logger_info("Entity %d<BoxCollider>: %d\n", (uint32)entity, registry.hasComponent<BoxCollider>(entity));
+			}
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
@@ -96,6 +144,8 @@ namespace Minecraft
 				if (chunk.loaded)
 				{
 					NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
+					NShader::uploadVec3(shader, "uPlayerPosition", playerPosition);
+					NShader::uploadInt(shader, "uChunkRadius", World::ChunkRadius);
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;

@@ -15,7 +15,7 @@ namespace Minecraft
 		void cleanup();
 
 		// Area of circle is PI * r^2, we'll round PI up to 4
-		const uint16 ChunkRadius = 16;
+		const uint16 ChunkRadius = 32;
 		const uint16 ChunkCapacity = (ChunkRadius + 1) * (ChunkRadius + 1) * 4;
 	}
 }

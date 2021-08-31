@@ -66,6 +66,8 @@ in vec3 fFragPosition;
 
 uniform sampler2D uTexture;
 uniform vec3 uSunPosition;
+uniform vec3 uPlayerPosition;
+uniform int uChunkRadius;
 
 vec3 lightColor = vec3(1, 1, 1);
 
@@ -108,7 +110,11 @@ void main()
 	float diff = max(dot(normal, lightDir), 0.0);
 	vec3 diffuse = diff * lightColor;
 
+	float distanceToPlayer = length(fFragPosition - uPlayerPosition);
+	float d = distanceToPlayer / (float(uChunkRadius) * 16.0);
+	vec4 fogColor = vec4(153.0 / 255.0, 204.0 / 255.0, 1.0, 1.0);
+
 	vec3 objectColor = texture(uTexture, fTexCoords).rgb;
 	vec3 result = (diffuse + ambient) * objectColor;
-	FragColor = vec4(result, 1.0);
+	FragColor = vec4(result, 1.0) * (1 - d) + fogColor * d;
 }
