@@ -13,6 +13,7 @@ namespace Minecraft
 		std::string topTexture;
 		std::string bottomTexture;
 		bool isTransparent;
+		bool isSolid;
 	};
 
 	struct TextureFormat

@@ -45,7 +45,8 @@ namespace Minecraft
 				"",
 				"",
 				"",
-				true
+				true,
+				false
 				});
 
 			if (textureFormat["Blocks"])
@@ -76,6 +77,8 @@ namespace Minecraft
 				std::string side = block.second["side"].as<std::string>();
 				std::string top = block.second["top"].as<std::string>();
 				std::string bottom = block.second["bottom"].as<std::string>();
+				bool isTransparent = block.second["isTransparent"].as<bool>();
+				bool isSolid = block.second["isSolid"].as<bool>();
 
 				g_logger_info("Loading Block Id: %d", id);
 				g_logger_info("Side: %s", side.c_str());
@@ -84,7 +87,7 @@ namespace Minecraft
 
 				nameToIdMap[block.first.as<std::string>()] = id;
 				blockFormats.emplace_back(BlockFormat{
-					side, top, bottom
+					side, top, bottom, isTransparent, isSolid
 					});
 			}
 		}

@@ -1,128 +1,156 @@
 #include "core.h"
 #include "world/World.h"
 #include "world/ChunkManager.h"
+#include "world/BlockMap.h"
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
-#include "utils/TexturePacker.h"
 #include "core/Input.h"
 #include "core/Application.h"
-#include "world/BlockMap.h"
-#include "gameplay/PlayerController.h"
 #include "core/File.h"
 #include "core/Ecs.h"
+#include "core/Components.h"
+#include "core/TransformSystem.h"
+#include "physics/Physics.h"
+#include "physics/PhysicsComponents.h"
+#include "gameplay/PlayerController.h"
+#include "utils/TexturePacker.h"
 
 namespace Minecraft
 {
-	struct Transform
-	{
-		glm::vec3 position;
-		glm::vec3 scale;
-	};
-
-	struct Rigidbody
-	{
-		float friction;
-		glm::vec3 velocity;
-		glm::vec3 acceleration;
-	};
-
-	struct BoxCollider
-	{
-		glm::vec3 bounds;
-	};
-
 	namespace World
 	{
 		// Internal declarations
 		static void loadWorldTexture();
 		static void checkChunkRadius();
 		static void synchronizeChunks();
+		static Chunk* findChunk(const glm::ivec2& chunkCoords);
+		static void setUnloadedChunk(const Chunk& chunkVal);
+		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal);
 
 		// Members
-		static RenderState renderState;
-		static Camera camera;
-		static PlayerController playerController;
-		static Shader shader;
-		static Texture worldTexture;
-		static std::unordered_set<glm::ivec2> loadedChunkPositions;
-		static Chunk chunks[ChunkCapacity];
-		static const std::string worldSavePath = "world";
+		struct Members
+		{
+			RenderState renderState;
+			Camera camera;
+			PlayerController playerController;
+			Shader shader;
+			Texture worldTexture;
+			std::unordered_set<glm::ivec2> loadedChunkPositions;
+			Chunk chunks[World::ChunkCapacity];
+			std::string worldSavePath;
+			Ecs::Registry registry;
 
-		static int32 seed = 0;
+			int32 seed;
+		};
+
+		static Members& obj();
 
 		void init()
 		{
+			Members& m = obj();
+			m.worldSavePath = "world";
+
 			srand((unsigned long)time(NULL));
-			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
-			g_logger_info("World seed: %d", seed);
-
-			Ecs::Registry registry;
-			for (int i = 0; i < 10; i++)
-			{
-				registry.createEntity();
-			}
-
-			for (int i = 0; i < 5; i++)
-			{
-				registry.addComponent<Transform>(i);
-			}
-
-			for (int i = 2; i < 8; i++)
-			{
-				registry.addComponent<Rigidbody>(i);
-			}
-
-			for (int i = 5; i < 10; i++)
-			{
-				registry.addComponent<BoxCollider>(i);
-			}
-
-			// TODO: Debug me
-			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody>())
-			{
-				g_logger_info("Entity %d<Transform>: %d", (uint32)entity, registry.hasComponent<Transform>(entity));
-				g_logger_info("Entity %d<Rigidbody>: %d", (uint32)entity, registry.hasComponent<Rigidbody>(entity));
-				g_logger_info("Entity %d<BoxCollider>: %d\n", (uint32)entity, registry.hasComponent<BoxCollider>(entity));
-			}
+			m.seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
+			g_logger_info("World seed: %d", m.seed);
 
 			// Initialize blocks
 			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
-			g_memory_zeroMem(chunks, sizeof(Chunk) * ChunkCapacity);
+			g_memory_zeroMem(m.chunks, sizeof(Chunk) * ChunkCapacity);
 
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
-			shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
+			m.shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 			loadWorldTexture();
-
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
-			NShader::uploadInt(shader, "uTexCoordTexture", 1);
+			NShader::uploadInt(m.shader, "uTexCoordTexture", 1);
 
 			// Create a chunk
-			File::createDirIfNotExists(worldSavePath.c_str());
+			File::createDirIfNotExists(m.worldSavePath.c_str());
 			Chunk::info();
 
 			// Setup camera
-			camera.position = glm::vec3(0, 257.0f, 1.0f);
-			camera.fov = 45.0f;
-			camera.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
-			playerController.init(&camera);
+			Ecs::EntityId cameraEntity = m.registry.createEntity();
+			m.registry.addComponent<Transform>(cameraEntity);
+			Transform& cameraTransform = m.registry.getComponent<Transform>(cameraEntity);
+			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
+			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
+			m.camera.fov = 45.0f;
+			m.camera.cameraEntity = cameraEntity;
 
-			ChunkManager::init(seed);
+			// Setup player
+			Ecs::EntityId player = m.registry.createEntity();
+			m.registry.addComponent<Transform>(player);
+			m.registry.addComponent<BoxCollider>(player);
+			m.registry.addComponent<Rigidbody>(player);
+			BoxCollider& boxCollider = m.registry.getComponent<BoxCollider>(player);
+			boxCollider.size.x = 0.5f;
+			boxCollider.size.y = 2.0f;
+			boxCollider.size.z = 0.75f;
+			Transform& transform = m.registry.getComponent<Transform>(player);
+			transform.position.y = 255;
+			transform.position.x = 45.0f;
+			transform.position.z = -45.0f;
+			m.playerController.init(player);
+
+			ChunkManager::init(m.seed);
 			checkChunkRadius();
+		}
+
+		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
+		{
+			return {
+				glm::floor(worldCoordinates.x / 16.0f),
+				glm::floor(worldCoordinates.z / 16.0f)
+			};
+		}
+
+		Chunk& getChunk(const glm::vec3& worldPosition)
+		{
+			Members& m = obj();
+			glm::ivec2 chunkPosition = toChunkCoords(worldPosition);
+			for (Chunk& chunk : m.chunks)
+			{
+				if (chunk.chunkCoordinates == chunkPosition)
+				{
+					return chunk;
+				}
+			}
+
+			return Chunk{};
+		}
+
+		Block getBlock(const glm::vec3& worldPosition)
+		{
+			Members& m = obj();
+			Chunk& chunk = getChunk(worldPosition);
+			if (chunk.chunkData)
+			{
+				glm::ivec3 localPosition = glm::ivec3(worldPosition) - glm::ivec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f);
+				return chunk.getLocalBlock(localPosition);
+			}
+			return BlockMap::NULL_BLOCK;
 		}
 
 		void update(float dt)
 		{
-			glm::mat4 projection = camera.calculateProjectionMatrix();
-			glm::mat4 view = camera.calculateViewMatrix();
-			NShader::uploadMat4(shader, "uProjection", projection);
-			NShader::uploadMat4(shader, "uView", view);
-			NShader::uploadVec3(shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
+			Members& m = obj();
 
-			playerController.update(dt);
+			TransformSystem::update(dt, m.registry);
+			// Update all systems
+			Physics::update(m.registry, dt);
+			m.playerController.update(dt, m.registry);
+			m.registry.getComponent<Transform>(m.camera.cameraEntity).position = m.registry.getComponent<Transform>(0).position;
+			m.registry.getComponent<Transform>(m.camera.cameraEntity).orientation = m.registry.getComponent<Transform>(0).orientation;
+			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
+
+			// Update camera calculations
+			NShader::uploadMat4(m.shader, "uProjection", m.camera.calculateProjectionMatrix(m.registry) );
+			NShader::uploadMat4(m.shader, "uView", m.camera.calculateViewMatrix(m.registry));
+			NShader::uploadVec3(m.shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
 
 			if (Input::isKeyPressed(GLFW_KEY_F1))
 			{
@@ -133,27 +161,24 @@ namespace Minecraft
 				Application::lockCursor(true);
 			}
 
-			const glm::vec3& playerPosition = playerController.playerCamera->position;
-			glm::ivec2 playerPositionInChunkCoords = glm::ivec2{
-				playerPosition.x / 16,
-				playerPosition.z / 16
-			};
+			const glm::vec3& playerPosition = m.registry.getComponent<Transform>(m.playerController.playerId).position;
+			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				Chunk& chunk = chunks[i];
+				Chunk& chunk = m.chunks[i];
 				if (chunk.loaded)
 				{
-					NShader::uploadIVec2(shader, "uChunkPos", chunk.chunkCoordinates);
-					NShader::uploadVec3(shader, "uPlayerPosition", playerPosition);
-					NShader::uploadInt(shader, "uChunkRadius", World::ChunkRadius);
+					NShader::uploadIVec2(m.shader, "uChunkPos", chunk.chunkCoordinates);
+					NShader::uploadVec3(m.shader, "uPlayerPosition", playerPosition);
+					NShader::uploadInt(m.shader, "uChunkRadius", World::ChunkRadius);
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-					bool hasBeenQueued = loadedChunkPositions.find(chunk.chunkCoordinates) == loadedChunkPositions.end();
+					bool hasBeenQueued = m.loadedChunkPositions.find(chunk.chunkCoordinates) == m.loadedChunkPositions.end();
 					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= ChunkRadius * ChunkRadius)
 					{
 						ChunkManager::queueDeleteChunk(chunk);
-						loadedChunkPositions.erase(chunk.chunkCoordinates);
+						m.loadedChunkPositions.erase(chunk.chunkCoordinates);
 					}
 				}
 			}
@@ -164,11 +189,12 @@ namespace Minecraft
 
 		void cleanup()
 		{
+			Members& m = obj();
 			ChunkManager::free();
 
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				Chunk& chunk = chunks[i];
+				Chunk& chunk = m.chunks[i];
 				if (chunk.loaded)
 				{
 					chunk.freeCpu();
@@ -179,7 +205,8 @@ namespace Minecraft
 
 		static bool exists(const glm::ivec2& position)
 		{
-			for (Chunk& chunk : chunks)
+			Members& m = obj();
+			for (Chunk& chunk : m.chunks)
 			{
 				if (chunk.chunkCoordinates == position)
 				{
@@ -192,11 +219,12 @@ namespace Minecraft
 
 		static void checkChunkRadius()
 		{
-			const glm::vec3 playerPosition = playerController.playerCamera->position;
-			glm::ivec2 position = glm::ivec2{
-				playerPosition.x / 16,
-				playerPosition.z / 16
-			};
+			Members& m = obj();
+			const glm::vec3 playerPosition = m.registry.getComponent<Transform>(m.playerController.playerId).position;
+
+			// Position changes as we circle out
+			// See switch statement below
+			glm::ivec2 position = toChunkCoords(playerPosition);
 			glm::ivec2 playerPosChunkCoords = position;
 
 			bool needsWork = false;
@@ -211,11 +239,11 @@ namespace Minecraft
 				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < ChunkRadius * ChunkRadius)
 				{
 					bool alreadyExists = exists(position);
-					auto iter = loadedChunkPositions.find(position);
-					if (!alreadyExists && iter == loadedChunkPositions.end())
+					auto iter = m.loadedChunkPositions.find(position);
+					if (!alreadyExists && iter == m.loadedChunkPositions.end())
 					{
 						ChunkManager::queueCreateChunk(position.x, position.y);
-						loadedChunkPositions.insert(position);
+						m.loadedChunkPositions.insert(position);
 					}
 				}
 
@@ -258,6 +286,7 @@ namespace Minecraft
 
 		static void synchronizeChunks()
 		{
+			Members& m = obj();
 			std::vector<Chunk> readyChunks = ChunkManager::getReadyChunks();
 			if (readyChunks.size() > 0)
 			{
@@ -267,29 +296,13 @@ namespace Minecraft
 					{
 						g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
 						chunk.freeGpu();
-
-						for (int i = 0; i < ChunkCapacity; i++)
-						{
-							if (chunks[i].chunkCoordinates == chunk.chunkCoordinates)
-							{
-								chunks[i] = chunk;
-								break;
-							}
-						}
+						setChunk(chunk.chunkCoordinates, chunk);
 					}
 					else
 					{
 						g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
 						chunk.uploadToGPU();
-
-						for (int i = 0; i < ChunkCapacity; i++)
-						{
-							if (!chunks[i].loaded)
-							{
-								chunks[i] = chunk;
-								break;
-							}
-						}
+						setUnloadedChunk(chunk);
 					}
 				}
 			}
@@ -297,7 +310,8 @@ namespace Minecraft
 
 		static void loadWorldTexture()
 		{
-			worldTexture = TextureBuilder()
+			Members& m = obj();
+			m.worldTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
@@ -306,10 +320,60 @@ namespace Minecraft
 
 			// Upload the world texture
 			glActiveTexture(GL_TEXTURE0);
-			worldTexture.bind();
-			NShader::uploadInt(shader, "uTexture", 0);
+			m.worldTexture.bind();
+			NShader::uploadInt(m.shader, "uTexture", 0);
 
-			glUseProgram(shader.programId);
+			glUseProgram(m.shader.programId);
+		}
+
+		static Chunk* findChunk(const glm::ivec2& chunkCoords)
+		{
+			Members& m = obj();
+			for (int i = 0; i < ChunkCapacity; i++)
+			{
+				if (m.chunks[i].chunkCoordinates == chunkCoords)
+				{
+					return &m.chunks[i];
+				}
+			}
+
+			return nullptr;
+		}
+
+		static void setUnloadedChunk(const Chunk& chunkVal)
+		{
+			Members& m = obj();
+			for (int i = 0; i < ChunkCapacity; i++)
+			{
+				if (!m.chunks[i].loaded)
+				{
+					m.chunks[i] = chunkVal;
+					return;
+				}
+			}
+
+			g_logger_warning("Tried to set unloaded chunk, but there are no unloaded chunks left.");
+		}
+
+		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal)
+		{
+			Members& m = obj();
+			for (int i = 0; i < ChunkCapacity; i++)
+			{
+				if (m.chunks[i].chunkCoordinates == chunkCoords)
+				{
+					m.chunks[i] = chunkVal;
+					return;
+				}
+			}
+
+			g_logger_warning("Tried to set chunk<%d, %d> but could not find matching chunk.", chunkCoords.x, chunkCoords.y);
+		}
+
+		static Members& obj()
+		{
+			static Members memberData{};
+			return memberData;
 		}
 	}
 }

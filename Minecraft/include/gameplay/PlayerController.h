@@ -1,5 +1,6 @@
 #ifndef MINECRAFT_PLAYER_CONTROLLER_H
 #define MINECRAFT_PLAYER_CONTROLLER_H
+#include "core/Ecs.h"
 
 namespace Minecraft
 {
@@ -8,11 +9,13 @@ namespace Minecraft
 
 	struct PlayerController
 	{
+		Ecs::EntityId playerId;
 		float playerSpeed;
-		Camera* playerCamera;
+		float movementSensitivity;
+		float runSpeed;
 
-		void init(Camera* playerCamera);
-		void update(float dt);
+		void init(Ecs::EntityId playerId);
+		void update(float dt, Ecs::Registry& registry);
 	};
 }
 

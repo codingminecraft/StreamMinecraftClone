@@ -47,6 +47,7 @@ namespace Minecraft
 		uint32 numVertices;
 		bool loaded;
 
+		Block getLocalBlock(glm::ivec3 localPosition);
 		void generate(int chunkX, int chunkZ, int32 seed);
 		void generateRenderData();
 		void uploadToGPU();

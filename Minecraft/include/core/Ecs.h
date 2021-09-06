@@ -22,17 +22,17 @@ namespace Minecraft
 
 			inline EntityId createEntityId(EntityIndex index, EntityVersion version)
 			{
-				return ((EntityId)index << 32) | ((EntityId)version);
+				return  ((EntityId)version << 32) | ((EntityId)index);
 			}
 
 			inline EntityIndex getEntityIndex(EntityId id)
 			{
-				return id >> 32;
+				return (EntityIndex)id;
 			}
 
 			inline EntityVersion getEntityVersion(EntityId id)
 			{
-				return (EntityVersion)id;
+				return (EntityVersion)id >> 32;
 			}
 
 			inline bool isEntityValid(EntityId id)
@@ -159,8 +159,8 @@ namespace Minecraft
 			T& getComponent(EntityId id)
 			{
 				g_logger_assert(hasComponent<T>(id), "Entity %d does not have component", Internal::getEntityIndex(id));
-				int32 componentId = componentId<T>();
-				return componentPools[componentId].get<T>(id);
+				int32 componentId = Ecs::componentId<T>();
+				return *componentPools[componentId].get<T>(id);
 			}
 
 			template<typename T>

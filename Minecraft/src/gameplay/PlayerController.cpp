@@ -1,63 +1,58 @@
 #include "gameplay/PlayerController.h"
 #include "core/Input.h"
+#include "core/Ecs.h"
 #include "renderer/Camera.h"
+#include "core/Components.h"
+#include "physics/PhysicsComponents.h"
 
 namespace Minecraft
 {
-	void PlayerController::init(Camera* camera)
+	void PlayerController::init(Ecs::EntityId inPlayerId)
 	{
-		playerCamera = camera;
+		playerId = inPlayerId;
 		playerSpeed = 0.2f;
-		playerCamera->position.x = 50.0f;
-		playerCamera->position.z = 50.0f;
+		movementSensitivity = 0.1f;
+		runSpeed = playerSpeed * 2.0f;
 	}
 
-	void PlayerController::update(float dt)
+	void PlayerController::update(float dt, Ecs::Registry& registry)
 	{
-		if (!playerCamera) 
+		if (registry.hasComponent<Transform>(playerId))
 		{
-			g_logger_warning("Player camera pointer not set.");
-			return;
-		}
+			Transform& transform = registry.getComponent<Transform>(playerId);
 
-		float sensitivity = 0.1f;
-		float mx = Input::deltaMouseX;
-		float my = Input::deltaMouseY;
-		mx *= sensitivity;
-		my *= sensitivity;
+			float mx = Input::deltaMouseX;
+			float my = Input::deltaMouseY;
+			mx *= movementSensitivity;
+			my *= movementSensitivity;
 
-		playerCamera->orientation.x += my;
-		playerCamera->orientation.y += mx;
+			transform.orientation.x += my;
+			transform.orientation.y += mx;
+			transform.orientation = glm::clamp(transform.orientation, glm::vec3(-90.0f, -90.0f, 0.0f), glm::vec3(90.0f, 90.0f, 0.0f));
 
-		if (playerCamera->orientation.x > 89.0f)
-			playerCamera->orientation.x = 89.0f;
-		if (playerCamera->orientation.x < -89.0f)
-			playerCamera->orientation.x = -89.0f;
+			float speed = playerSpeed;
+			if (Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL))
+			{
+				speed = runSpeed;
+			}
 
-		float speedMultiplier = 1.0f;
-		if (Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL))
-		{
-			speedMultiplier = 2.0f;
-		}
+			if (Input::isKeyPressed(GLFW_KEY_W))
+			{
+				transform.position += transform.forward * speed;
+			}
+			else if (Input::isKeyPressed(GLFW_KEY_S))
+			{
+				transform.position -= transform.forward * speed;
+			}
 
-		if (Input::isKeyPressed(GLFW_KEY_W))
-		{
-			playerCamera->position += playerCamera->forward * playerSpeed * speedMultiplier;
-		}
-		else if (Input::isKeyPressed(GLFW_KEY_S))
-		{
-			playerCamera->position -= playerCamera->forward * playerSpeed * speedMultiplier;
-		}
-
-		if (Input::isKeyPressed(GLFW_KEY_A))
-		{
-			glm::vec3 localRight = glm::cross(playerCamera->forward, glm::vec3(0, 1, 0));
-			playerCamera->position -= localRight * playerSpeed * speedMultiplier;
-		}
-		else if (Input::isKeyPressed(GLFW_KEY_D))
-		{
-			glm::vec3 localRight = glm::cross(playerCamera->forward, glm::vec3(0, 1, 0));
-			playerCamera->position += localRight * playerSpeed * speedMultiplier;
+			if (Input::isKeyPressed(GLFW_KEY_A))
+			{
+				transform.position -= transform.right * speed;
+			}
+			else if (Input::isKeyPressed(GLFW_KEY_D))
+			{
+				transform.position += transform.right * speed;
+			}
 		}
 	}
 }

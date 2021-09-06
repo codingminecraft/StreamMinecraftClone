@@ -32,6 +32,7 @@
 #include <queue>
 #include <algorithm>
 #include <bitset>
+#include <optional>
 
 // GLFW/glad
 #include <glad/glad.h>

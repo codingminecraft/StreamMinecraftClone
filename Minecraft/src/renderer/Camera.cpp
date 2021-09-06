@@ -1,25 +1,24 @@
 #include "renderer/Camera.h"
+#include "core/Components.h"
+#include "physics/PhysicsComponents.h"
 
 namespace Minecraft
 {
-	glm::mat4 Camera::calculateViewMatrix()
+	glm::mat4 Camera::calculateViewMatrix(Ecs::Registry& registry) const
 	{
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(orientation.y)) * cos(glm::radians(orientation.x));
-		direction.y = sin(glm::radians(orientation.x));
-		direction.z = sin(glm::radians(orientation.y)) * cos(glm::radians(orientation.x));
-		forward = glm::normalize(direction);
-		glm::vec3 localRight = glm::cross(forward, glm::vec3(0, 1, 0));
-		glm::vec3 localUp = glm::cross(localRight, forward);
-		
-		return glm::lookAt(
-			position,
-			position + forward,
-			localUp
-		);
+		if (registry.hasComponent<Transform>(cameraEntity))
+		{
+			Transform& transform = registry.getComponent<Transform>(cameraEntity);
+
+			return glm::lookAt(
+				transform.position,
+				transform.position + transform.forward,
+				transform.up
+			);
+		}
 	}
 
-	glm::mat4 Camera::calculateProjectionMatrix() const
+	glm::mat4 Camera::calculateProjectionMatrix(Ecs::Registry& registry) const
 	{
 		return glm::perspective(
 			glm::radians(fov),
