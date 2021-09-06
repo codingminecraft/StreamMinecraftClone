@@ -11,8 +11,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // My libraries
-#include <logger/logger.h>
-#include <memory/memory.h>
+#include <cppUtils/cppUtils.hpp>
 
 // Standard
 #include <filesystem>

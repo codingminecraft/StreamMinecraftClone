@@ -55,8 +55,7 @@ project "Minecraft"
         "Minecraft/vendor/stb/",
         "Minecraft/vendor/yamlCpp/include",
         "Minecraft/vendor/simplex/src",
-        "Minecraft/vendor/logger/single_include",
-        "Minecraft/vendor/memory/single_include"
+        "Minecraft/vendor/cppUtils/single_include"
     }
 
     filter "system:windows"

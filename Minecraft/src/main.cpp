@@ -1,9 +1,4 @@
-// Implementations
-// TODO: Remove all includes in headers
-// TODO: Only allowed to include <stdint> and <stdbool> in headers
-#include <memory/memory.h>
-#include <logger/logger.h>
-
+#include <cppUtils/cppUtils.hpp>
 #include "core/Application.h"
 
 int main()

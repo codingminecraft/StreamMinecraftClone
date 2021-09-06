@@ -201,6 +201,8 @@ namespace Minecraft
 					chunk.freeGpu();
 				}
 			}
+
+			m.registry.free();
 		}
 
 		static bool exists(const glm::ivec2& position)
