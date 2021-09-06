@@ -88,7 +88,7 @@ namespace Minecraft
 			m.registry.addComponent<Rigidbody>(player);
 			BoxCollider& boxCollider = m.registry.getComponent<BoxCollider>(player);
 			boxCollider.size.x = 0.5f;
-			boxCollider.size.y = 2.0f;
+			boxCollider.size.y = 3.0f;
 			boxCollider.size.z = 0.75f;
 			Transform& transform = m.registry.getComponent<Transform>(player);
 			transform.position.y = 255;
@@ -139,13 +139,15 @@ namespace Minecraft
 		{
 			Members& m = obj();
 
-			TransformSystem::update(dt, m.registry);
 			// Update all systems
 			Physics::update(m.registry, dt);
 			m.playerController.update(dt, m.registry);
-			m.registry.getComponent<Transform>(m.camera.cameraEntity).position = m.registry.getComponent<Transform>(0).position;
-			m.registry.getComponent<Transform>(m.camera.cameraEntity).orientation = m.registry.getComponent<Transform>(0).orientation;
+			m.registry.getComponent<Transform>(m.camera.cameraEntity).position = 
+				m.registry.getComponent<Transform>(m.playerController.playerId).position;
+			m.registry.getComponent<Transform>(m.camera.cameraEntity).orientation = 
+				m.registry.getComponent<Transform>(m.playerController.playerId).orientation;
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
+			TransformSystem::update(dt, m.registry);
 
 			// Update camera calculations
 			NShader::uploadMat4(m.shader, "uProjection", m.camera.calculateProjectionMatrix(m.registry) );

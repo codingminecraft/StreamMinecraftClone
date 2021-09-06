@@ -7,6 +7,7 @@ namespace Minecraft
 	{
 		glm::vec3 velocity;
 		glm::vec3 acceleration;
+		bool onGround;
 	};
 
 	struct BoxCollider

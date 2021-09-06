@@ -28,7 +28,8 @@ namespace Minecraft
 
 			transform.orientation.x += my;
 			transform.orientation.y += mx;
-			transform.orientation = glm::clamp(transform.orientation, glm::vec3(-90.0f, -90.0f, 0.0f), glm::vec3(90.0f, 90.0f, 0.0f));
+			transform.orientation.x = glm::clamp(transform.orientation.x, -89.9f, 89.9f);
+			transform.orientation.z = glm::clamp(transform.orientation.z, -89.9f, 89.9f);
 
 			float speed = playerSpeed;
 			if (Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL))
@@ -38,20 +39,20 @@ namespace Minecraft
 
 			if (Input::isKeyPressed(GLFW_KEY_W))
 			{
-				transform.position += transform.forward * speed;
+				transform.position += glm::vec3(transform.forward.x, 0, transform.forward.z) * speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_S))
 			{
-				transform.position -= transform.forward * speed;
+				transform.position -= glm::vec3(transform.forward.x, 0, transform.forward.z) * speed;
 			}
 
 			if (Input::isKeyPressed(GLFW_KEY_A))
 			{
-				transform.position -= transform.right * speed;
+				transform.position -= glm::vec3(transform.right.x, 0, transform.right.z) * speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_D))
 			{
-				transform.position += transform.right * speed;
+				transform.position += glm::vec3(transform.right.x, 0, transform.right.z) * speed;
 			}
 		}
 	}
