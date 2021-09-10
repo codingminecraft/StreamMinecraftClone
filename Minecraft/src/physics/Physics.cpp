@@ -13,14 +13,21 @@ namespace Minecraft
 		float max;
 	};
 
+	struct CollisionManifold
+	{
+		float penetrationAmount;
+		glm::vec3 axisOfPenetration;
+		bool didCollide;
+	};
+
 	namespace Physics
 	{
 		static glm::vec3 gravity = glm::vec3(0.0f, 11.2f, 0.0f);
 		static glm::vec3 terminalVelocity = glm::vec3(55.0f, 55.0f, 55.0f);
 
 		static void resolveStaticCollision(Rigidbody& rb, Transform& transform, BoxCollider& boxCollider);
-		static bool boxVsBox(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
-		static bool overlapOnAxis(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis);
+		static CollisionManifold boxVsBox(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
+		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis);
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis);
 
 		void update(Ecs::Registry& registry, float dt)
@@ -33,7 +40,7 @@ namespace Minecraft
 
 				transform.position += rb.velocity * dt;
 				rb.velocity += rb.acceleration * dt;
-				//rb.velocity -= gravity * dt;
+				rb.velocity -= gravity * dt;
 				rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
 
 				resolveStaticCollision(rb, transform, boxCollider);
@@ -48,16 +55,12 @@ namespace Minecraft
 
 		static void resolveStaticCollision(Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
 		{
-			glm::vec3 forward = glm::vec3(0, 0, 1);
-			glm::vec3 localRight = glm::vec3(1, 0, 0);
-			glm::vec3 localUp = glm::vec3(0, 1, 0);
-
-			glm::vec3 boxFront = transform.position + (forward * boxCollider.size.z * 0.5f);
-			glm::vec3 boxBack = transform.position - (forward * boxCollider.size.z * 0.5f);
-			glm::vec3 boxLeft = transform.position - (localRight * boxCollider.size.x * 0.5f);
-			glm::vec3 boxRight = transform.position + (localRight * boxCollider.size.x * 0.5f);
-			glm::vec3 boxBottom = transform.position - (localUp * boxCollider.size.y * 0.5f);
-			glm::vec3 boxTop = transform.position + (localUp * boxCollider.size.y * 0.5f);
+			glm::vec3 boxFront = transform.position + (transform.forward * boxCollider.size.z * 0.5f);
+			glm::vec3 boxBack = transform.position - (transform.forward * boxCollider.size.z * 0.5f);
+			glm::vec3 boxLeft = transform.position - (transform.right * boxCollider.size.x * 0.5f);
+			glm::vec3 boxRight = transform.position + (transform.right * boxCollider.size.x * 0.5f);
+			glm::vec3 boxBottom = transform.position - (transform.up * boxCollider.size.y * 0.5f);
+			glm::vec3 boxTop = transform.position + (transform.up * boxCollider.size.y * 0.5f);
 
 			BlockFormat frontBlock = BlockMap::getBlock(World::getBlock(boxFront).id);
 			BlockFormat backBlock = BlockMap::getBlock(World::getBlock(boxBack).id);
@@ -76,9 +79,10 @@ namespace Minecraft
 			blockTransform.scale = glm::vec3(1, 1, 1);
 
 			blockTransform.position = glm::ceil(boxBottom) - glm::vec3(0.5f, 0.5f, 0.5f);
-			if (bottomBlock.isSolid && boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform))
+			CollisionManifold collision = boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform);
+			if (bottomBlock.isSolid && collision.didCollide)
 			{
-				transform.position.y = glm::ceil(boxBottom.y) + (boxCollider.size.y * 0.5f);
+				transform.position -= collision.axisOfPenetration * collision.penetrationAmount;
 				rb.acceleration.y = 0;
 				rb.velocity.y = 0;
 				rb.onGround = true;
@@ -89,39 +93,43 @@ namespace Minecraft
 			}
 
 			blockTransform.position = glm::ceil(boxFront) - glm::vec3(0.5f, 0.5f, 0.5f);
-			if (frontBlock.isSolid && boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform))
+			collision = boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform);
+			if (frontBlock.isSolid && collision.didCollide)
 			{
-				transform.position.z = glm::floor(boxFront.z) - (boxCollider.size.z * 0.5f);
+				transform.position -= collision.axisOfPenetration * collision.penetrationAmount;
 				rb.acceleration.z = 0;
 				rb.velocity.z = 0;
 			}
 
 			blockTransform.position = glm::ceil(boxBack) - glm::vec3(0.5f, 0.5f, 0.5f);
-			if (backBlock.isSolid && boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform))
+			collision = boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform);
+			if (backBlock.isSolid && collision.didCollide)
 			{
-				transform.position.z = glm::ceil(boxBack.z) + (boxCollider.size.z * 0.5f);
+				transform.position -= collision.axisOfPenetration * collision.penetrationAmount;
 				rb.acceleration.z = 0;
 				rb.velocity.z = 0;
 			}
 
 			blockTransform.position = glm::ceil(boxLeft) - glm::vec3(0.5f, 0.5f, 0.5f);
-			if (leftBlock.isSolid && boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform))
+			collision = boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform);
+			if (leftBlock.isSolid && collision.didCollide)
 			{
-				transform.position.x = glm::ceil(boxLeft.x) + (boxCollider.size.x * 0.5f);
+				transform.position -= collision.axisOfPenetration * collision.penetrationAmount;
 				rb.acceleration.x = 0;
 				rb.velocity.x = 0;
 			}
 
 			blockTransform.position = glm::ceil(boxRight) - glm::vec3(0.5f, 0.5f, 0.5f);
-			if (rightBlock.isSolid && boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform))
+			collision = boxVsBox(boxCollider, transform, defaultBlockCollider, blockTransform);
+			if (rightBlock.isSolid && collision.didCollide)
 			{
-				transform.position.x = glm::floor(boxRight.x) - (boxCollider.size.x * 0.5f);
+				transform.position -= collision.axisOfPenetration * collision.penetrationAmount;
 				rb.acceleration.x = 0;
 				rb.velocity.x = 0;
 			}
 		}
 
-		static bool boxVsBox(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2)
+		static CollisionManifold boxVsBox(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2)
 		{
 			glm::vec3 testAxes[15];
 			testAxes[0] = t1.forward;
@@ -141,24 +149,45 @@ namespace Minecraft
 				testAxes[6 + i * 3 + 2] = glm::cross(testAxes[i], testAxes[5]);
 			}
 
+			float minPenetration = FLT_MAX;
+			glm::vec3 axisOfPenetration = glm::vec3();
 			for (int i = 0; i < 15; i++)
 			{
-				if (!overlapOnAxis(b1, t1, b2, t2, testAxes[i]))
+				float penetration = penetrationAmount(b1, t1, b2, t2, testAxes[i]);
+				if (penetration == 0)
 				{
 					// Separating axis found
-					return false;
+					CollisionManifold res;
+					res.axisOfPenetration = glm::vec3();
+					res.penetrationAmount = 0.0f;
+					res.didCollide = false;
+					return res;
+				}
+				else if (glm::abs(penetration) < minPenetration)
+				{
+					minPenetration = glm::abs(penetration);
+					axisOfPenetration = penetration > 0 ? testAxes[i] : -testAxes[i];
 				}
 			}
 
 			// No separating axis found
-			return true;
+			CollisionManifold res;
+			res.axisOfPenetration = axisOfPenetration;
+			res.penetrationAmount = minPenetration;
+			res.didCollide = true;
+			return res;
 		}
 
-		static bool overlapOnAxis(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis)
+		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis)
 		{
 			Interval a = getInterval(b1, t1, axis);
 			Interval b = getInterval(b2, t2, axis);
-			return ((b.min <= a.max) && (a.min <= b.max));
+			if ((b.min <= a.max) && (a.min <= b.max))
+			{
+				// We have penetration
+				return b.min - a.max;
+			}
+			return 0.0f;
 		}
 
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis)
