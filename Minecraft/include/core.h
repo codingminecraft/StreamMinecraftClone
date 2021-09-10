@@ -47,4 +47,7 @@
 // Simplex 
 #include <SimplexNoise.h>
 
+// User defined literals
+glm::vec4 operator""_hex(const char* hexColor, size_t length);
+
 #endif

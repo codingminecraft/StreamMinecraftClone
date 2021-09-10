@@ -61,12 +61,12 @@ namespace Minecraft
 
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
-			m.shader = NShader::createShader("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
+			m.shader.compile("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
 			loadWorldTexture();
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
-			NShader::uploadInt(m.shader, "uTexCoordTexture", 1);
+			m.shader.uploadInt("uTexCoordTexture", 1);
 
 			// Create a chunk
 			File::createDirIfNotExists(m.worldSavePath.c_str());
@@ -150,9 +150,9 @@ namespace Minecraft
 			TransformSystem::update(dt, m.registry);
 
 			// Update camera calculations
-			NShader::uploadMat4(m.shader, "uProjection", m.camera.calculateProjectionMatrix(m.registry) );
-			NShader::uploadMat4(m.shader, "uView", m.camera.calculateViewMatrix(m.registry));
-			NShader::uploadVec3(m.shader, "uSunPosition", glm::vec3{ 1, 355, 1 });
+			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(m.registry) );
+			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(m.registry));
+			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
 			if (Input::isKeyPressed(GLFW_KEY_F1))
 			{
@@ -170,9 +170,9 @@ namespace Minecraft
 				Chunk& chunk = m.chunks[i];
 				if (chunk.loaded)
 				{
-					NShader::uploadIVec2(m.shader, "uChunkPos", chunk.chunkCoordinates);
-					NShader::uploadVec3(m.shader, "uPlayerPosition", playerPosition);
-					NShader::uploadInt(m.shader, "uChunkRadius", World::ChunkRadius);
+					m.shader.uploadIVec2("uChunkPos", chunk.chunkCoordinates);
+					m.shader.uploadVec3("uPlayerPosition", playerPosition);
+					m.shader.uploadInt("uChunkRadius", World::ChunkRadius);
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
@@ -325,7 +325,7 @@ namespace Minecraft
 			// Upload the world texture
 			glActiveTexture(GL_TEXTURE0);
 			m.worldTexture.bind();
-			NShader::uploadInt(m.shader, "uTexture", 0);
+			m.shader.uploadInt("uTexture", 0);
 
 			glUseProgram(m.shader.programId);
 		}

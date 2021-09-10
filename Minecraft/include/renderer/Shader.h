@@ -2,8 +2,6 @@
 #define MINECRAFT_SHADER_H
 #include "core.h"
 
-typedef unsigned int GLuint;
-
 namespace Minecraft
 {
 	struct Shader
@@ -11,32 +9,27 @@ namespace Minecraft
 		uint32 programId;
 		uint32 startIndex;
 		std::filesystem::path filepath;
-	};
 
-	namespace NShader
-	{
-		Shader createShader();
-		Shader createShader(const std::filesystem::path& resourceName);
+		void compile(const std::filesystem::path& shaderFilepath);
+		void bind() const;
+		void unbind() const;
+		void destroy();
 
-		Shader compile(const std::filesystem::path& filepath);
-		void bind(const Shader& shader);
-		void unbind(const Shader& shader);
-		void destroy(Shader& shader);
+		void uploadVec4(const char* varName, const glm::vec4& vec4) const;
+		void uploadVec3(const char* varName, const glm::vec3& vec3) const;
+		void uploadVec2(const char* varName, const glm::vec2& vec2) const;
+		void uploadIVec4(const char* varName, const glm::ivec4& vec4) const;
+		void uploadIVec3(const char* varName, const glm::ivec3& vec3) const;
+		void uploadIVec2(const char* varName, const glm::ivec2& vec2) const;
+		void uploadFloat(const char* varName, float value) const;
+		void uploadInt(const char* varName, int value) const;
+		void uploadIntArray(const char* varName, int length, const int* array) const;
+		void uploadUInt(const char* varName, uint32 value) const;
 
-		void uploadVec4(const Shader& shader, const char* varName, const glm::vec4& vec4);
-		void uploadVec3(const Shader& shader, const char* varName, const glm::vec3& vec3);
-		void uploadVec2(const Shader& shader, const char* varName, const glm::vec2& vec2);
-		void uploadIVec2(const Shader& shader, const char* varName, const glm::ivec2& vec2);
-		void uploadFloat(const Shader& shader, const char* varName, float value);
-		void uploadInt(const Shader& shader, const char* varName, int value);
-		void uploadIntArray(const Shader& shader, const char* varName, int length, const int* array);
-		void uploadUInt(const Shader& shader, const char* varName, uint32 value);
+		void uploadMat4(const char* varName, const glm::mat4& mat4) const;
+		void uploadMat3(const char* varName, const glm::mat3& mat3) const;
 
-		void uploadMat4(const Shader& shader, const char* varName, const glm::mat4& mat4);
-		void uploadMat3(const Shader& shader, const char* varName, const glm::mat3& mat3);
-
-		bool isNull(const Shader& shader);
-		void clearAllShaderVariables();
+		bool isNull() const;
 	};
 }
 
