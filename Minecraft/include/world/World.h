@@ -2,24 +2,22 @@
 #define MINECRAFT_WORLD_H
 #include "core.h"
 #include "Chunk.h"
+#include "core/Ecs.h"
 
 namespace Minecraft
 {
 	struct PlayerController;
+	struct Camera;
 
 	namespace World
 	{
-		void init();
-
+		void init(Ecs::Registry& registry);
 		void update(float dt);
+		void cleanup();
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
-
 		Block getBlock(const glm::vec3& worldPosition);
-
 		Chunk& getChunk(const glm::vec3& worldPosition);
-
-		void cleanup();
 
 		// Area of circle is PI * r^2, we'll round PI up to 4
 		const uint16 ChunkRadius = 8;

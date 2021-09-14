@@ -12,18 +12,21 @@ namespace Minecraft
 		glViewport(0, 0, newWidth, newHeight);
 	}
 
+	void Window::init()
+	{
+		glfwInit();
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_SAMPLES, 16);
+	}
+
 	Window* Window::create(int width, int height, const char* title)
 	{
 		Window* res = new Window();
 		res->width = width;
 		res->height = height;
 		res->title = title;
-
-		glfwInit();
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		glfwWindowHint(GLFW_SAMPLES, 16);
 
 		res->windowPtr = (void*)glfwCreateWindow(width, height, title, nullptr, nullptr);
 		if (res->windowPtr == nullptr)
@@ -41,7 +44,6 @@ namespace Minecraft
 		glfwSetKeyCallback((GLFWwindow*)res->windowPtr, Input::keyCallback);
 		glfwSetFramebufferSizeCallback((GLFWwindow*)res->windowPtr, resizeCallback);
 
-
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 		int monitorX, monitorY;
@@ -53,21 +55,6 @@ namespace Minecraft
 		glfwSetWindowPos((GLFWwindow*)res->windowPtr,
 			monitorX + (mode->width - windowWidth) / 2,
 			monitorY + (mode->height - windowHeight) / 2);
-
-		// TODO: Move this to renderer initialization
-		// Load OpenGL functions using Glad
-		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-		{
-			g_logger_error("Failed to initialize glad.");
-			return nullptr;
-		}
-		g_logger_info("GLAD initialized.");
-		g_logger_info("Hello OpenGL %d.%d", GLVersion.major, GLVersion.minor);
-
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-
-		glViewport(0, 0, width, height);
 
 		return res;
 	}

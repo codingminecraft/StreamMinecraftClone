@@ -8,6 +8,8 @@ namespace Minecraft
 		void run();
 
 		void lockCursor(bool lock);
+
+		float getAspectRatio();
 	}
 }
 

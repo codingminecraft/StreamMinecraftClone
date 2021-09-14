@@ -38,6 +38,7 @@ namespace Minecraft
 
 		static Window* create(int width, int height, const char* title);
 		static void free(Window* window);
+		static void init();
 	};
 }
 

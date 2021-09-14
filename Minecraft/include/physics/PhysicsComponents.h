@@ -13,6 +13,7 @@ namespace Minecraft
 	struct BoxCollider
 	{
 		glm::vec3 size;
+		glm::vec3 offset;
 	};
 }
 

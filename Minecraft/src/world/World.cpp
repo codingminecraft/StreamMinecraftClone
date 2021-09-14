@@ -5,6 +5,7 @@
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
+#include "renderer/Renderer.h"
 #include "core/Input.h"
 #include "core/Application.h"
 #include "core/File.h"
@@ -39,16 +40,19 @@ namespace Minecraft
 			std::unordered_set<glm::ivec2> loadedChunkPositions;
 			Chunk chunks[World::ChunkCapacity];
 			std::string worldSavePath;
-			Ecs::Registry registry;
+			Ecs::Registry* registry;
 
 			int32 seed;
 		};
 
+		static RandomController ctlr;
+
 		static Members& obj();
 
-		void init()
+		void init(Ecs::Registry& registry)
 		{
 			Members& m = obj();
+			m.registry = &registry;
 			m.worldSavePath = "world";
 
 			srand((unsigned long)time(NULL));
@@ -73,28 +77,47 @@ namespace Minecraft
 			Chunk::info();
 
 			// Setup camera
-			Ecs::EntityId cameraEntity = m.registry.createEntity();
-			m.registry.addComponent<Transform>(cameraEntity);
-			Transform& cameraTransform = m.registry.getComponent<Transform>(cameraEntity);
+			Ecs::EntityId cameraEntity = m.registry->createEntity();
+			m.registry->addComponent<Transform>(cameraEntity);
+			Transform& cameraTransform = m.registry->getComponent<Transform>(cameraEntity);
 			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
 			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
 			m.camera.fov = 45.0f;
 			m.camera.cameraEntity = cameraEntity;
 
+			Renderer::setCamera(m.camera);
+
 			// Setup player
-			Ecs::EntityId player = m.registry.createEntity();
-			m.registry.addComponent<Transform>(player);
-			m.registry.addComponent<BoxCollider>(player);
-			m.registry.addComponent<Rigidbody>(player);
-			BoxCollider& boxCollider = m.registry.getComponent<BoxCollider>(player);
-			boxCollider.size.x = 0.5f;
-			boxCollider.size.y = 3.0f;
-			boxCollider.size.z = 0.75f;
-			Transform& transform = m.registry.getComponent<Transform>(player);
+			Ecs::EntityId player = m.registry->createEntity();
+			m.registry->addComponent<Transform>(player);
+			//m.registry->addComponent<BoxCollider>(player);
+			//m.registry->addComponent<Rigidbody>(player);
+			//BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
+			//boxCollider.size.x = 0.5f;
+			//boxCollider.size.y = 3.0f;
+			//boxCollider.size.z = 0.75f;
+			Transform& transform = m.registry->getComponent<Transform>(player);
 			transform.position.y = 255;
 			transform.position.x = 45.0f;
 			transform.position.z = -45.0f;
 			m.playerController.init(player);
+
+			// Setup random physics entity
+			Ecs::EntityId randomEntity = m.registry->createEntity();
+			m.registry->addComponent<Transform>(randomEntity);
+			m.registry->addComponent<BoxCollider>(randomEntity);
+			m.registry->addComponent<Rigidbody>(randomEntity);
+			m.registry->addComponent<RandomController>(randomEntity);
+			BoxCollider& boxCollider2 = m.registry->getComponent<BoxCollider>(randomEntity);
+			boxCollider2.size.x = 0.5f;
+			boxCollider2.size.y = 3.0f;
+			boxCollider2.size.z = 0.75f;
+			Transform& transform2 = m.registry->getComponent<Transform>(randomEntity);
+			transform2.position.y = 255;
+			transform2.position.x = 45.0f;
+			transform2.position.z = -45.0f;
+			m.registry->getComponent<RandomController>(randomEntity).init(randomEntity);
+			ctlr = m.registry->getComponent<RandomController>(randomEntity);
 
 			ChunkManager::init(m.seed);
 			checkChunkRadius();
@@ -140,18 +163,23 @@ namespace Minecraft
 			Members& m = obj();
 
 			// Update all systems
-			Physics::update(m.registry, dt);
-			m.playerController.update(dt, m.registry);
-			m.registry.getComponent<Transform>(m.camera.cameraEntity).position = 
-				m.registry.getComponent<Transform>(m.playerController.playerId).position;
-			m.registry.getComponent<Transform>(m.camera.cameraEntity).orientation = 
-				m.registry.getComponent<Transform>(m.playerController.playerId).orientation;
+			Physics::update(*m.registry, dt);
+			m.playerController.update(dt, *m.registry);
+			ctlr.update(dt, *m.registry);
+			m.registry->getComponent<Transform>(m.camera.cameraEntity).position = 
+				m.registry->getComponent<Transform>(m.playerController.playerId).position;
+			m.registry->getComponent<Transform>(m.camera.cameraEntity).orientation = 
+				m.registry->getComponent<Transform>(m.playerController.playerId).orientation;
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(dt, m.registry);
+			TransformSystem::update(dt, *m.registry);
+
+			// Do line rendering type stuff
+			Renderer::render();
 
 			// Update camera calculations
-			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(m.registry) );
-			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(m.registry));
+			m.shader.bind();
+			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(*m.registry) );
+			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(*m.registry));
 			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
 			if (Input::isKeyPressed(GLFW_KEY_F1))
@@ -163,7 +191,7 @@ namespace Minecraft
 				Application::lockCursor(true);
 			}
 
-			const glm::vec3& playerPosition = m.registry.getComponent<Transform>(m.playerController.playerId).position;
+			const glm::vec3& playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
@@ -204,7 +232,7 @@ namespace Minecraft
 				}
 			}
 
-			m.registry.free();
+			m.registry->free();
 		}
 
 		static bool exists(const glm::ivec2& position)
@@ -224,7 +252,7 @@ namespace Minecraft
 		static void checkChunkRadius()
 		{
 			Members& m = obj();
-			const glm::vec3 playerPosition = m.registry.getComponent<Transform>(m.playerController.playerId).position;
+			const glm::vec3 playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
 
 			// Position changes as we circle out
 			// See switch statement below

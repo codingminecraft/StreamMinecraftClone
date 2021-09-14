@@ -1,5 +1,6 @@
 #include "renderer/Camera.h"
 #include "core/Components.h"
+#include "core/Application.h"
 #include "physics/PhysicsComponents.h"
 
 namespace Minecraft
@@ -22,7 +23,7 @@ namespace Minecraft
 	{
 		return glm::perspective(
 			glm::radians(fov),
-			1920.0f / 1080.0f,
+			Application::getAspectRatio(),
 			0.1f,
 			2000.0f
 		);

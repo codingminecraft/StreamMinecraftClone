@@ -87,12 +87,20 @@ namespace Minecraft
 						if (chunk.loaded)
 						{
 							g_logger_info("Deleting on CPU Chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+							chunk.serialize("world");
 							chunk.freeCpu();
 						}
 						else
 						{
 							g_logger_info("Creating on CPU Chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-							chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
+							if (Chunk::exists("world", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
+							{
+								chunk.deserialize("world", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
+							}
+							else
+							{
+								chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
+							}
 							chunk.generateRenderData();
 						}
 
@@ -144,7 +152,7 @@ namespace Minecraft
 						vectorMtx.unlock();
 					}
 				}
-				
+
 				return {};
 			}
 

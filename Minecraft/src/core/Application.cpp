@@ -1,8 +1,10 @@
 #include "core.h"
 #include "core/Window.h"
 #include "core/Input.h"
+#include "core/Ecs.h"
 #include "world/World.h"
 #include "renderer/Shader.h"
+#include "renderer/Renderer.h"
 
 namespace Minecraft
 {
@@ -18,21 +20,23 @@ namespace Minecraft
 		void run()
 		{
 			// Initiaize GLFW/Glad
-			bool isRunning = true;
-
+			Ecs::Registry registry = Ecs::Registry();
+			Window::init();
 			window = Window::create(windowWidth, windowHeight, windowTitle);
+			Renderer::init(registry);
+
 			if (!window)
 			{
 				return;
 			}
 
 			window->setVSync(true);
-
-			World::init();
+			World::init(registry);
 
 			// Run game loop
 			// Start with a 60 fps frame rate
 			float previousTime = glfwGetTime() - 0.16f;
+			bool isRunning = true;
 			while (isRunning && !window->shouldClose())
 			{
 				float deltaTime = glfwGetTime() - previousTime;
@@ -40,8 +44,7 @@ namespace Minecraft
 				std::string title = "Minecraft -- dt " + std::to_string(deltaTime);
 				window->setTitle(title.c_str());
 
-				glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				Renderer::clearColor(clearColor);
 
 				World::update(deltaTime);
 
@@ -66,6 +69,11 @@ namespace Minecraft
 				CursorMode::Locked :
 				CursorMode::Normal;
 			window->setCursorMode(mode);
+		}
+
+		float getAspectRatio()
+		{
+			return (float)window->width / (float)window->height;
 		}
 	}
 }

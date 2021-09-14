@@ -111,7 +111,8 @@ void main()
 	vec3 diffuse = diff * lightColor;
 
 	float distanceToPlayer = length(fFragPosition - uPlayerPosition);
-	float d = distanceToPlayer / (float(uChunkRadius) * 16.0);
+	float d = (distanceToPlayer / (float(uChunkRadius) * 16.0)) - 0.5;
+	d = clamp(d, 0, 1);
 	vec4 fogColor = vec4(153.0 / 255.0, 204.0 / 255.0, 1.0, 1.0);
 
 	vec3 objectColor = texture(uTexture, fTexCoords).rgb;
