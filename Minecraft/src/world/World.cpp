@@ -90,12 +90,12 @@ namespace Minecraft
 			// Setup player
 			Ecs::EntityId player = m.registry->createEntity();
 			m.registry->addComponent<Transform>(player);
-			//m.registry->addComponent<BoxCollider>(player);
-			//m.registry->addComponent<Rigidbody>(player);
-			//BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
-			//boxCollider.size.x = 0.5f;
-			//boxCollider.size.y = 3.0f;
-			//boxCollider.size.z = 0.75f;
+			m.registry->addComponent<BoxCollider>(player);
+			m.registry->addComponent<Rigidbody>(player);
+			BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
+			boxCollider.size.x = 0.5f;
+			boxCollider.size.y = 3.0f;
+			boxCollider.size.z = 0.75f;
 			Transform& transform = m.registry->getComponent<Transform>(player);
 			transform.position.y = 255;
 			transform.position.x = 45.0f;
@@ -152,7 +152,7 @@ namespace Minecraft
 			Chunk& chunk = getChunk(worldPosition);
 			if (chunk.chunkData)
 			{
-				glm::ivec3 localPosition = glm::ivec3(worldPosition) - glm::ivec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f);
+				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f));
 				return chunk.getLocalBlock(localPosition);
 			}
 			return BlockMap::NULL_BLOCK;

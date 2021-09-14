@@ -41,24 +41,24 @@ namespace Minecraft
 
 			if (Input::isKeyPressed(GLFW_KEY_W))
 			{
-				transform.position += transform.forward * speed;
-				//transform.position += glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
+				//transform.position += transform.forward * speed;
+				transform.position += glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_S))
 			{
-				transform.position -= transform.forward * speed;
-				//transform.position -= glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
+				//transform.position -= transform.forward * speed;
+				transform.position -= glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
 			}
 
 			if (Input::isKeyPressed(GLFW_KEY_A))
 			{
-				transform.position -= transform.right * speed;
-				//transform.position -= glm::vec3(transform.right.x, 0, transform.right.z)* speed;
+				//transform.position -= transform.right * speed;
+				transform.position -= glm::vec3(transform.right.x, 0, transform.right.z)* speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_D))
 			{
-				transform.position += transform.right * speed;
-				//transform.position += glm::vec3(transform.right.x, 0, transform.right.z)* speed;
+				//transform.position += transform.right * speed;
+				transform.position += glm::vec3(transform.right.x, 0, transform.right.z)* speed;
 			}
 		}
 	}
@@ -96,23 +96,23 @@ namespace Minecraft
 			if (Input::isKeyPressed(GLFW_KEY_UP))
 			{
 				//transform.position += transform.forward * speed;
-				transform.position += glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
+				transform.position += glm::vec3(1, 0, 0)* speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_DOWN))
 			{
 				//transform.position -= transform.forward * speed;
-				transform.position -= glm::vec3(transform.forward.x, 0, transform.forward.z)* speed;
+				transform.position -= glm::vec3(1, 0, 0)* speed;
 			}
 
 			if (Input::isKeyPressed(GLFW_KEY_LEFT))
 			{
 				//transform.position -= transform.right * speed;
-				transform.position -= glm::vec3(transform.right.x, 0, transform.right.z)* speed;
+				transform.position -= glm::vec3(0, 0, 1)* speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_RIGHT))
 			{
 				//transform.position += transform.right * speed;
-				transform.position += glm::vec3(transform.right.x, 0, transform.right.z)* speed;
+				transform.position += glm::vec3(0, 0, 1)* speed;
 			}
 		}
 	}

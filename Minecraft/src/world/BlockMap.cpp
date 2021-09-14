@@ -33,6 +33,10 @@ namespace Minecraft
 
 		const BlockFormat& getBlock(int blockId)
 		{
+			if (blockId <= 0 || blockId > blockFormats.size())
+			{
+				return blockFormats[0];
+			}
 			return blockFormats.at(blockId);
 		}
 
