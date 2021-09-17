@@ -44,9 +44,11 @@ namespace Minecraft
 		static bool isColliding(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
 		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis);
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis);
+		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res, CollisionFace xFace, CollisionFace yFace, CollisionFace zFace);
 
 		static bool singleStepPhysics = false;
 		static bool stepPhysics = false;
+		static bool stepMovePhysics = false;
 		static float debounce = 0.0f;
 
 		void update(Ecs::Registry& registry, float dt)
@@ -59,6 +61,12 @@ namespace Minecraft
 				debounce = 0.2f;
 			}
 
+			if (singleStepPhysics && Input::isKeyPressed(GLFW_KEY_Z) && debounce < 0)
+			{
+				stepMovePhysics = true;
+				debounce = 0.2f;
+			}
+
 
 			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 			{
@@ -66,38 +74,34 @@ namespace Minecraft
 				Transform& transform = registry.getComponent<Transform>(entity);
 				BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);
 
-				//if (stepPhysics || !singleStepPhysics)
-				//{
-				transform.position += rb.velocity * dt;
-				rb.velocity += rb.acceleration * dt;
-				rb.velocity -= gravity * dt;
-				rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
-				//}
+				if (stepMovePhysics || !singleStepPhysics)
+				{
+					transform.position += rb.velocity * dt;
+					rb.velocity += rb.acceleration * dt;
+					rb.velocity -= gravity * dt;
+					rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
+				}
 
-				//Style redStyle = Styles::defaultStyle;
-				//redStyle.color = "#FF0000"_hex;
-				//redStyle.strokeWidth = 0.3f;
-				//Renderer::drawBox(transform.position, boxCollider.size, redStyle);
-				//redStyle.strokeWidth = 0.05f;
-				//Renderer::drawLine(transform.position, transform.position + glm::vec3(1, 0, 0), redStyle);
-				//redStyle.color = "#00FF00"_hex;
-				//Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 1, 0), redStyle);
-				//redStyle.color = "#0000FF"_hex;
-				//Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 0, 1), redStyle);
+				Style redStyle = Styles::defaultStyle;
+				redStyle.color = "#FF0000"_hex;
+				redStyle.strokeWidth = 0.3f;
+				Renderer::drawBox(transform.position, boxCollider.size, redStyle);
+				redStyle.strokeWidth = 0.05f;
+				Renderer::drawLine(transform.position, transform.position + glm::vec3(1, 0, 0), redStyle);
+				redStyle.color = "#00FF00"_hex;
+				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 1, 0), redStyle);
+				redStyle.color = "#0000FF"_hex;
+				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 0, 1), redStyle);
 
 				resolveStaticCollision(rb, transform, boxCollider);
-
-				if (rb.onGround)
-				{
-					rb.velocity.y = 0;
-					rb.acceleration.y = 0;
-				}
 			}
 
 			if (Input::isKeyPressed(GLFW_KEY_C))
 			{
 				singleStepPhysics = false;
 			}
+
+			stepMovePhysics = false;
 		}
 
 		static void resolveStaticCollision(Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
@@ -141,20 +145,19 @@ namespace Minecraft
 
 						if (blockFormat.isSolid && isColliding(boxCollider, transform, defaultBlockCollider, blockTransform))
 						{
-							CollisionManifold collision = 
+							CollisionManifold collision =
 								staticCollisionInformation(rb, boxCollider, transform, defaultBlockCollider, blockTransform);
 							Style green = Styles::defaultStyle;
 							green.color = "#00FFF0"_hex;
-							//Renderer::drawLine(blockTransform.position, blockTransform.position + collision.overlap, green);
+							Renderer::drawLine(blockTransform.position, blockTransform.position + collision.overlap, green);
 
 							//if (stepPhysics || !singleStepPhysics)
 							//{
-							transform.position -= collision.overlap;
-							rb.acceleration = glm::vec3();
-							rb.velocity = glm::vec3();
-							//rb.onGround = true;
+								transform.position -= collision.overlap;
+								rb.acceleration = glm::vec3();
+								rb.velocity = glm::vec3();
 							//}
-							//Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, green);
+							Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, green);
 						}
 						else
 						{
@@ -167,101 +170,128 @@ namespace Minecraft
 
 		static CollisionManifold staticCollisionInformation(const Rigidbody& r1, const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2)
 		{
-			//glm::vec3 b2ToB1 = t1.position - t2.position;
-			//glm::vec3 combinedHalfSize = (b1.size * 0.5f) + (b2.size * 0.5f);
-			//CollisionManifold res;
-			//res.didCollide = false;
-			//res.face = CollisionFace::NONE;
-			//res.overlap = glm::vec3();
-
-			//if (glm::abs(b2ToB1.x) < combinedHalfSize.x)
-			//{
-			//	if (glm::abs(b2ToB1.y) < combinedHalfSize.y)
-			//	{
-			//		if (glm::abs(b2ToB1.z) < combinedHalfSize.z)
-			//		{
-			//			// Collision has occured, now we have to find out which face the collision
-			//			// is happening on
-			//			res.didCollide = true;
-			//			glm::vec3 overlap = combinedHalfSize - glm::abs(b2ToB1);
-
-			//			if (overlap.y >= overlap.x && overlap.y >= overlap.z)
-			//			{
-			//				// Collision is happening on the front-back faces, or the right-left faces
-			//				if (overlap.x < overlap.z)
-			//				{
-			//					// Collision is happening on left-right faces
-			//					// Figure out which face to resolve to
-			//					if (b2ToB1.x > 0)
-			//					{
-			//						res.overlap = glm::vec3(overlap.x, 0, 0);
-			//						res.face = CollisionFace::RIGHT;
-			//					}
-			//					else
-			//					{
-			//						res.overlap = glm::vec3(-overlap.x, 0, 0);
-			//						res.face = CollisionFace::LEFT;
-			//					}
-			//				}
-			//				else
-			//				{
-			//					// Collision is happening on front-back faces
-			//					// Figure out which face to resolve to
-			//					if (b2ToB1.z > 0)
-			//					{
-			//						res.overlap = glm::vec3(0, 0, overlap.z);
-			//						res.face = CollisionFace::FRONT;
-			//					}
-			//					else
-			//					{
-			//						res.overlap = glm::vec3(0, 0, -overlap.z);
-			//						res.face = CollisionFace::BACK;
-			//					}
-			//				}
-			//			}
-			//			else
-			//			{
-			//				// Collision is happening on top-bottom faces, figure out which one
-			//				if (b2ToB1.y > 0)
-			//				{
-			//					res.overlap = glm::vec3(0, overlap.y, 0);
-			//					res.face = CollisionFace::TOP;
-			//				}
-			//				else
-			//				{
-			//					res.overlap = glm::vec3(0, -overlap.y, 0);
-			//					res.face = CollisionFace::BOTTOM;
-			//				}
-			//			}
-			//		}
-			//	}
-			//}
-
-			// Let's resolve along the axis of the velocity
 			CollisionManifold res;
-			glm::vec3 normalVelocity = glm::normalize(r1.velocity);
-			if (r1.velocity.x * r1.velocity.x + r1.velocity.y * r1.velocity.y + r1.velocity.z * r1.velocity.z <= 0.01f)
-			{
-				normalVelocity = glm::vec3(0, -1, 0);
-			}
-			float penetrationAmountAlongVelocity = penetrationAmount(b1, t1, b2, t2, normalVelocity);
-			res.overlap = -normalVelocity * penetrationAmountAlongVelocity;
 			res.didCollide = true;
-			res.face = CollisionFace::TOP;
+			BoxCollider b2Expanded = b2;
+			b2Expanded.size += b1.size;
+			Renderer::drawBox(t2.position, b2Expanded.size, Styles::defaultStyle);
+			// Figure out which quadrant the collision is in and resolve it there
+			glm::vec3 b1ToB2 = t1.position - t2.position;
+			if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
+			{
+				// We are in the top-right-front quadrant
+				// Figure out if the collision is on the front-face top-face or right-face
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::FRONT);
+			}
+			else if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
+			{
+				// We are in the top-right-back quadrant
+				// Figure out which face we are colliding with
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::BACK);
+			}
+			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
+			{
+				// We are in the bottom-right-front quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::FRONT);
+			}
+			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
+			{
+				// We are in the bottom-right-back quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::BACK);
+			}
+			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
+			{
+				// We are in the top-left-front quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::FRONT);
+			}
+			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
+			{
+				// We are in the top-left-back quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::BACK);
+			}
+			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
+			{
+				// We are in the bottom-left-front quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::FRONT);
+			}
+			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
+			{
+				// We are in the bottom-left-back quadrant
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::BACK);
+			}
 
 			return res;
+		}
+
+		static float getDirection(CollisionFace face)
+		{
+			switch (face)
+			{
+			case CollisionFace::BACK:
+				return -1;
+			case CollisionFace::FRONT:
+				return 1;
+			case CollisionFace::RIGHT:
+				return 1;
+			case CollisionFace::LEFT:
+				return -1;
+			case CollisionFace::TOP:
+				return 1;
+			case CollisionFace::BOTTOM:
+				return -1;
+			}
+			return 1;
+		}
+
+		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res,
+			CollisionFace xFace, CollisionFace yFace, CollisionFace zFace)
+		{
+			float xDirection = getDirection(xFace);
+			float yDirection = getDirection(yFace);
+			float zDirection = getDirection(zFace);
+
+			glm::vec3 b2ExpandedSizeByDirection = {
+				b2Expanded.size.x * xDirection,
+				b2Expanded.size.y * yDirection,
+				b2Expanded.size.z * zDirection
+			};
+			glm::vec3 quadrant = (b2ExpandedSizeByDirection * 0.5f) + t2.position;
+			//Style redStyle = Styles::defaultStyle;
+			//redStyle.color = "#FB0203"_hex;
+			//Renderer::drawBox(t2.position + b2ExpandedSizeByDirection * 0.25f, b2ExpandedSizeByDirection * 0.5f, redStyle);
+			glm::vec3 delta = t1.position - quadrant;
+			glm::vec3 absDelta = glm::abs(delta);
+
+			if (absDelta.x < absDelta.y && absDelta.x < absDelta.z)
+			{
+				// We are colliding with the right-face
+				res->overlap = delta.x * glm::vec3(1, 0, 0);
+				res->face = xFace;
+			}
+			else if (absDelta.y < absDelta.x && absDelta.y < absDelta.z)
+			{
+				// We are colliding with the top-face
+				res->overlap = delta.y * glm::vec3(0, 1, 0);
+				res->face = yFace;
+			}
+			else
+			{
+				// We are colliding with the front-face
+				res->overlap = delta.z * glm::vec3(0, 0, 1);
+				res->face = zFace;
+			}
 		}
 
 		static bool isColliding(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2)
 		{
 			glm::vec3 testAxes[3];
-			testAxes[0] = glm::vec3(0, 1, 0);
+			testAxes[0] = glm::vec3(1, 0, 0);
 			testAxes[1] = glm::vec3(0, 1, 0);
-			testAxes[2] = glm::vec3(0, 0, 0);
+			testAxes[2] = glm::vec3(0, 0, 1);
 
 			float minPenetration = FLT_MAX;
 			glm::vec3 axisOfPenetration = glm::vec3();
-			for (int i = 0; i < 1; i++)
+			for (int i = 0; i < 3; i++)
 			{
 				float penetration = penetrationAmount(b1, t1, b2, t2, testAxes[i]);
 				if (glm::abs(penetration) <= 0.01f)
@@ -280,13 +310,38 @@ namespace Minecraft
 
 		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis)
 		{
-			Interval a = getInterval(b1, t1, axis);
-			Interval b = getInterval(b2, t2, axis);
-			if ((b.min <= a.max) && (a.min <= b.max))
+			//Interval a = getInterval(b1, t1, axis);
+			//Interval b = getInterval(b2, t2, axis);
+			glm::vec3 min1 = t1.position - (b1.size * 0.5f);
+			glm::vec3 max1 = t1.position + (b1.size * 0.5f);
+			glm::vec3 min2 = t2.position - (b2.size * 0.5f);
+			glm::vec3 max2 = t2.position + (b2.size * 0.5f);
+
+			if (axis == glm::vec3(1, 0, 0))
 			{
-				// We have penetration
-				return b.min - a.max;
+				if ((min2.x <= max1.x) && (min1.x <= max2.x))
+				{
+					// We have penetration
+					return min2.x - max1.x;
+				}
 			}
+			else if (axis == glm::vec3(0, 1, 0))
+			{
+				if ((min2.y <= max1.y) && (min1.y <= max2.y))
+				{
+					// We have penetration
+					return max2.y - min1.y;
+				}
+			}
+			else if (axis == glm::vec3(0, 0, 1))
+			{
+				if ((min2.z <= max1.z) && (min1.z <= max2.z))
+				{
+					// We have penetration
+					return min2.z - max1.z;
+				}
+			}
+
 			return 0.0f;
 		}
 
