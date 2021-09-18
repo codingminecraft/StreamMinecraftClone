@@ -124,7 +124,7 @@ namespace Minecraft
 			ChunkManager::init(m.seed);
 			checkChunkRadius();
 
-			Fonts::loadFont("assets/fonts/Pixels.ttf", 16_px);
+			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 		}
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
@@ -167,23 +167,23 @@ namespace Minecraft
 			static uint32 numDrawCalls = 0;
 			Members& m = obj();
 
-			Style transparentSquare = Styles::defaultStyle;
-			transparentSquare.color = "#00000055"_hex;
-			Font* font = Fonts::getFont("assets/fonts/Pixels.ttf", 16_px);
+			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
 			if (font)
 			{
+				std::string drawCallStr = std::string("Draw calls: " + std::to_string(numDrawCalls));
+				glm::vec2 strSize = font->getSize(drawCallStr, 0.5f);
 				Renderer::drawString(
-					std::string("Draw calls: ") + std::to_string(numDrawCalls), 
+					drawCallStr,
 					*font, 
 					glm::vec2(-3.0f, 0.2f), 
-					2.0f, 
+					0.5f, 
 					Styles::defaultStyle);
+
+				Style transparentSquare = Styles::defaultStyle;
+				transparentSquare.color = "#00000055"_hex;
+				Renderer::drawFilledSquare2D(glm::vec2(-3.0f, 0.2f), strSize, transparentSquare, -1);
 			}
 			numDrawCalls = 0;
-
-			Renderer::drawFilledSquare2D(glm::vec2(-3.0f, 0.2f), glm::vec2(2.0f, 1.0f), transparentSquare, -1);
-			transparentSquare.color = "#F2030155"_hex;
-			Renderer::drawFilledSquare2D(glm::vec2(-1.1f, 0.5f), glm::vec2(0.5f, 0.5f), transparentSquare, 1);
 
 			// Update all systems
 			Physics::update(*m.registry, dt);

@@ -28,11 +28,36 @@ namespace Minecraft
 		return (float)(kerning.x >> 6);
 	}
 
+	glm::vec2 Font::getSize(const std::string& str, float scale) const
+	{
+		float x = 0;
+		float y = 0;
+		float minY = 0;
+		float maxY = 0;
+
+		for (int i = 0; i < str.length(); i++)
+		{
+			char c = str[i];
+			RenderableChar renderableChar = getCharInfo(c);
+			float charWidth = renderableChar.texCoordSize.x * fontSize * scale;
+			float charHeight = renderableChar.texCoordSize.y * fontSize * scale;
+			float adjustedY = y - renderableChar.bearingY * fontSize * scale;
+			minY = glm::min(adjustedY, minY);
+			maxY = glm::max(charHeight, maxY);
+
+			char nextC = i < str.length() - 1 ? str[i + 1] : '\0';
+			//x += font.getKerning(c, nextC) * scale * font.fontSize;
+			x += renderableChar.advance.x * scale * fontSize;
+		}
+
+		return glm::vec2(x, maxY - minY);
+	}
+
 	namespace Fonts
 	{
 		static bool initialized = false;
-		static const int hzPadding = 2;
-		static const int vtPadding = 2;
+		static const int hzPadding = 0;
+		static const int vtPadding = 0;
 		static FT_Library library;
 		static std::unordered_map<std::string, Font> loadedFonts;
 
@@ -151,6 +176,7 @@ namespace Minecraft
 		static void generateDefaultCharset(Font& font, CharRange defaultCharset)
 		{
 			uint8* fontBuffer = (uint8*)g_memory_allocate(sizeof(uint8) * font.texture.width * font.texture.height);
+			g_memory_zeroMem(fontBuffer, sizeof(uint8) * font.texture.width * font.texture.height);
 			uint32 currentLineHeight = 0;
 			uint32 currentX = 0;
 			uint32 currentY = 0;
