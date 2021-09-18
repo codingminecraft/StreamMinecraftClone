@@ -18,6 +18,7 @@
 #include "physics/PhysicsComponents.h"
 #include "gameplay/PlayerController.h"
 #include "utils/TexturePacker.h"
+#include "utils/DebugStats.h"
 
 namespace Minecraft
 {
@@ -30,6 +31,7 @@ namespace Minecraft
 		static Chunk* findChunk(const glm::ivec2& chunkCoords);
 		static void setUnloadedChunk(const Chunk& chunkVal);
 		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal);
+		static void drawDebugStats();
 
 		// Members
 		struct Members
@@ -164,26 +166,15 @@ namespace Minecraft
 
 		void update(float dt)
 		{
-			static uint32 numDrawCalls = 0;
 			Members& m = obj();
 
-			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
-			if (font)
+			static bool showDebugStats = false;
+			if (showDebugStats)
 			{
-				std::string drawCallStr = std::string("Draw calls: " + std::to_string(numDrawCalls));
-				glm::vec2 strSize = font->getSize(drawCallStr, 0.5f);
-				Renderer::drawString(
-					drawCallStr,
-					*font, 
-					glm::vec2(-3.0f, 0.2f), 
-					0.5f, 
-					Styles::defaultStyle);
-
-				Style transparentSquare = Styles::defaultStyle;
-				transparentSquare.color = "#00000055"_hex;
-				Renderer::drawFilledSquare2D(glm::vec2(-3.0f, 0.2f), strSize, transparentSquare, -1);
+				drawDebugStats();
 			}
-			numDrawCalls = 0;
+			DebugStats::numDrawCalls = 0;
+			DebugStats::lastFrameTime = dt;
 
 			// Update all systems
 			Physics::update(*m.registry, dt);
@@ -202,19 +193,20 @@ namespace Minecraft
 			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(*m.registry));
 			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
-			if (Input::isKeyPressed(GLFW_KEY_F1))
+			if (Input::keyBeginPress(GLFW_KEY_F2))
 			{
-				Application::lockCursor(false);
+				static bool lockCursor = false;
+				lockCursor = !lockCursor;
+				Application::lockCursor(lockCursor);
 			}
-			else if (Input::isKeyPressed(GLFW_KEY_F2))
+			if (Input::keyBeginPress(GLFW_KEY_F3))
 			{
-				Application::lockCursor(true);
+				showDebugStats = !showDebugStats;
 			}
 
 			glActiveTexture(GL_TEXTURE0);
 			m.worldTexture.bind();
 			m.shader.uploadInt("uTexture", 0);
-
 
 			const glm::vec3& playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
@@ -236,15 +228,12 @@ namespace Minecraft
 						m.loadedChunkPositions.erase(chunk.chunkCoordinates);
 					}
 
-					numDrawCalls++;
+					DebugStats::numDrawCalls++;
 				}
 			}
 
 			// Do line rendering type stuff
 			Renderer::render();
-
-			numDrawCalls += Renderer::getNumberOfDrawCalls();
-			Renderer::endFrame();
 
 			checkChunkRadius();
 			synchronizeChunks();
@@ -433,6 +422,47 @@ namespace Minecraft
 			}
 
 			g_logger_warning("Tried to set chunk<%d, %d> but could not find matching chunk.", chunkCoords.x, chunkCoords.y);
+		}
+
+		static void drawDebugStats()
+		{
+			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
+			if (font)
+			{
+				float textScale = 0.4f;
+				float textHzPadding = 0.1f;
+				Style transparentSquare = Styles::defaultStyle;
+				transparentSquare.color = "#00000055"_hex;
+
+				glm::vec2 drawCallPos = glm::vec2(-2.95f, 1.35f);
+				std::string drawCallStr = std::string("Draw calls: " + std::to_string(DebugStats::numDrawCalls));
+				Renderer::drawString(
+					drawCallStr,
+					*font,
+					drawCallPos,
+					textScale,
+					Styles::defaultStyle);
+				
+				glm::vec2 fpsPos = glm::vec2(-2.1f, 1.35f);
+				std::string fpsStr = std::string("FPS: " + std::to_string(1.0f / DebugStats::lastFrameTime));
+				Renderer::drawString(
+					fpsStr,
+					*font,
+					fpsPos,
+					textScale,
+					Styles::defaultStyle);
+
+				glm::vec2 frameTimePos = glm::vec2(-1.25f, 1.35f);;
+				std::string frameTimeStr = std::string("1/FPS: " + std::to_string(DebugStats::lastFrameTime));
+				Renderer::drawString(
+					frameTimeStr,
+					*font,
+					frameTimePos,
+					textScale,
+					Styles::defaultStyle);
+
+				Renderer::drawFilledSquare2D(drawCallPos - glm::vec2(0.02f, 0.01f), glm::vec2(2.6f, 0.1f), transparentSquare, -1);
+			}
 		}
 
 		static Members& obj()

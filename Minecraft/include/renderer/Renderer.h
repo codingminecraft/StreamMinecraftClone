@@ -34,8 +34,6 @@ namespace Minecraft
 		void setShader2D(const Shader& shader);
 		void setShader(const Shader& shader);
 		void setCamera(const Camera& camera);
-		uint32 getNumberOfDrawCalls();
-		void endFrame();
 
 		// 2D Rendering stuff
 		void drawSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style, int zIndex = 0);

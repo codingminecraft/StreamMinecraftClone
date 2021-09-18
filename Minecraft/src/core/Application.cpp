@@ -43,8 +43,6 @@ namespace Minecraft
 			{
 				float deltaTime = glfwGetTime() - previousTime;
 				previousTime = glfwGetTime();
-				std::string title = "Minecraft -- dt " + std::to_string(deltaTime);
-				window->setTitle(title.c_str());
 
 				Renderer::clearColor(clearColor);
 

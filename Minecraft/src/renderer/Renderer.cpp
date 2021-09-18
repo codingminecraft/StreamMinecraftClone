@@ -9,6 +9,7 @@
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
+#include "utils/DebugStats.h"
 
 namespace Minecraft
 {
@@ -118,7 +119,7 @@ namespace Minecraft
 
 				batch2D.flush();
 
-				numDrawCalls++;
+				DebugStats::numDrawCalls++;
 			}
 
 			glEnable(GL_CULL_FACE);
@@ -142,17 +143,7 @@ namespace Minecraft
 
 			glEnable(GL_CULL_FACE);
 
-			numDrawCalls++;
-		}
-
-		void endFrame()
-		{
-			numDrawCalls = 0;
-		}
-
-		uint32 getNumberOfDrawCalls()
-		{
-			return numDrawCalls;
+			DebugStats::numDrawCalls++;
 		}
 
 		void setShader2D(const Shader& newShader)
