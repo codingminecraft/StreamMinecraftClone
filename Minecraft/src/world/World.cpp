@@ -5,6 +5,7 @@
 #include "renderer/Shader.h"
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
+#include "renderer/Font.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "core/Input.h"
@@ -122,6 +123,8 @@ namespace Minecraft
 
 			ChunkManager::init(m.seed);
 			checkChunkRadius();
+
+			Fonts::loadFont("assets/fonts/Pixels.ttf", 16_px);
 		}
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
@@ -161,10 +164,23 @@ namespace Minecraft
 
 		void update(float dt)
 		{
+			static uint32 numDrawCalls = 0;
 			Members& m = obj();
 
 			Style transparentSquare = Styles::defaultStyle;
 			transparentSquare.color = "#00000055"_hex;
+			Font* font = Fonts::getFont("assets/fonts/Pixels.ttf", 16_px);
+			if (font)
+			{
+				Renderer::drawString(
+					std::string("Draw calls: ") + std::to_string(numDrawCalls), 
+					*font, 
+					glm::vec2(-3.0f, 0.2f), 
+					2.0f, 
+					Styles::defaultStyle);
+			}
+			numDrawCalls = 0;
+
 			Renderer::drawFilledSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), transparentSquare);
 			Renderer::drawSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), Styles::defaultStyle);
 
@@ -172,16 +188,16 @@ namespace Minecraft
 			Physics::update(*m.registry, dt);
 			m.playerController.update(dt, *m.registry);
 			ctlr.update(dt, *m.registry);
-			m.registry->getComponent<Transform>(m.camera.cameraEntity).position = 
+			m.registry->getComponent<Transform>(m.camera.cameraEntity).position =
 				m.registry->getComponent<Transform>(m.playerController.playerId).position;
-			m.registry->getComponent<Transform>(m.camera.cameraEntity).orientation = 
+			m.registry->getComponent<Transform>(m.camera.cameraEntity).orientation =
 				m.registry->getComponent<Transform>(m.playerController.playerId).orientation;
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(dt, *m.registry);
 
 			// Update camera calculations
 			m.shader.bind();
-			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(*m.registry) );
+			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(*m.registry));
 			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(*m.registry));
 			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
@@ -193,6 +209,11 @@ namespace Minecraft
 			{
 				Application::lockCursor(true);
 			}
+
+			glActiveTexture(GL_TEXTURE0);
+			m.worldTexture.bind();
+			m.shader.uploadInt("uTexture", 0);
+
 
 			const glm::vec3& playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
@@ -213,11 +234,16 @@ namespace Minecraft
 						ChunkManager::queueDeleteChunk(chunk);
 						m.loadedChunkPositions.erase(chunk.chunkCoordinates);
 					}
+
+					numDrawCalls++;
 				}
 			}
 
 			// Do line rendering type stuff
 			Renderer::render();
+
+			numDrawCalls += Renderer::getNumberOfDrawCalls();
+			Renderer::endFrame();
 
 			checkChunkRadius();
 			synchronizeChunks();

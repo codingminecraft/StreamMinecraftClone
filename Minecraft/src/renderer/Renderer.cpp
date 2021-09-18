@@ -4,6 +4,7 @@
 #include "renderer/Framebuffer.h"
 #include "renderer/Camera.h"
 #include "renderer/Styles.h"
+#include "renderer/Font.h"
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
@@ -38,6 +39,8 @@ namespace Minecraft
 		static uint32 vao;
 		static uint32 vbo;
 		static uint32 numVertices;
+
+		static uint32 numDrawCalls;
 
 		static const int maxNumTrianglesPerBatch = 300;
 		static const int maxNumVerticesPerBatch = maxNumTrianglesPerBatch * 3;
@@ -202,6 +205,8 @@ namespace Minecraft
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
+			numDrawCalls = 0;
+
 			registry = &sceneRegistry;
 			camera = nullptr;
 			numVertices2D = 0;
@@ -245,6 +250,16 @@ namespace Minecraft
 		{
 			flushBatch();
 			flushBatch2D();
+		}
+
+		void endFrame()
+		{
+			numDrawCalls = 0;
+		}
+
+		uint32 getNumberOfDrawCalls()
+		{
+			return numDrawCalls;
 		}
 
 		void renderFramebuffer(const Framebuffer& framebuffer)
@@ -389,55 +404,65 @@ namespace Minecraft
 		{
 			uint32 texId = getTexId(*renderable.texture);
 
+			glm::vec2 v0 = renderable.start;
+			glm::vec2 v1 = renderable.start + glm::vec2{ 0, renderable.size.y };
+			glm::vec2 v2 = renderable.start + renderable.size;
+			glm::vec2 v3 = renderable.start + glm::vec2{ renderable.size.x, 0 };
+
+			glm::vec2 uv0 = renderable.texCoordStart;
+			glm::vec2 uv1 = renderable.texCoordStart + glm::vec2{ 0, renderable.texCoordSize.y };
+			glm::vec2 uv2 = renderable.texCoordStart + renderable.texCoordSize;
+			glm::vec2 uv3 = renderable.texCoordStart + glm::vec2{ renderable.texCoordSize.x, 0 };
+
 			drawTexturedTriangle2D(
-				renderable.start,
-				renderable.start + glm::vec2{ 0, renderable.size.y },
-				renderable.start + renderable.size,
-				renderable.texCoordStart,
-				renderable.texCoordStart + glm::vec2{ 0, renderable.texCoordSize.y },
-				renderable.texCoordStart + renderable.texCoordSize,
+				v0,
+				v2,
+				v1,
+				uv0,
+				uv2,
+				uv1,
 				renderable.texture,
 				style
 			);
 			drawTexturedTriangle2D(
-				renderable.start,
-				renderable.start + glm::vec2{ renderable.size.x, 0 },
-				renderable.start + renderable.size,
-				renderable.texCoordStart,
-				renderable.texCoordStart + glm::vec2{ renderable.texCoordSize.x, 0 },
-				renderable.texCoordStart + renderable.texCoordSize,
+				v0,
+				v3,
+				v2,
+				uv0,
+				uv3,
+				uv2,
 				renderable.texture,
 				style
 			);
 		}
 
 		// TODO: Implement some font rendering
-		//void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const glm::vec4& color)
-		//{
-		//	float x = position.x;
-		//	float y = position.y;
+		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style)
+		{
+			float x = position.x;
+			float y = position.y;
 
-		//	for (int i = 0; i < string.length(); i++)
-		//	{
-		//		char c = string[i];
-		//		RenderableChar renderableChar = font.getCharInfo(c);
-		//		float charWidth = renderableChar.texCoordSize.x * font.fontSize * scale;
-		//		float charHeight = renderableChar.texCoordSize.y * font.fontSize * scale;
-		//		float adjustedY = y - renderableChar.bearingY * font.fontSize * scale;
+			for (int i = 0; i < string.length(); i++)
+			{
+				char c = string[i];
+				RenderableChar renderableChar = font.getCharInfo(c);
+				float charWidth = renderableChar.texCoordSize.x * font.fontSize * scale;
+				float charHeight = renderableChar.texCoordSize.y * font.fontSize * scale;
+				float adjustedY = y - renderableChar.bearingY * font.fontSize * scale;
 
-		//		drawTexture(RenderableTexture{
-		//			&font.texture,
-		//			{ x, adjustedY },
-		//			{ charWidth, charHeight },
-		//			renderableChar.texCoordStart,
-		//			renderableChar.texCoordSize
-		//			}, color);
+				drawTexture2D(RenderableTexture{
+					&font.texture,
+					{ x, adjustedY },
+					{ charWidth, charHeight },
+					renderableChar.texCoordStart,
+					renderableChar.texCoordSize
+					}, style);
 
-		//		char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
-		//		//x += font.getKerning(c, nextC) * scale * font.fontSize;
-		//		x += renderableChar.advance.x * scale * font.fontSize;
-		//	}
-		//}
+				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
+				//x += font.getKerning(c, nextC) * scale * font.fontSize;
+				x += renderableChar.advance.x * scale * font.fontSize;
+			}
+		}
 
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style)
 		{
@@ -572,6 +597,8 @@ namespace Minecraft
 			// Clear the batch
 			numVertices2D = 0;
 			numFontTextures = 0;
+
+			numDrawCalls++;
 		}
 
 		void flushBatch()
@@ -599,6 +626,8 @@ namespace Minecraft
 			numVertices = 0;
 
 			glEnable(GL_CULL_FACE);
+
+			numDrawCalls++;
 		}
 
 		void clearColor(const glm::vec4& color)

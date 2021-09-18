@@ -10,6 +10,7 @@ namespace Minecraft
 	struct Texture;
 	struct Shader;
 	struct Camera;
+	struct Font;
 
 	struct RenderableTexture
 	{
@@ -33,7 +34,7 @@ namespace Minecraft
 		void drawFilledCircle2D(const glm::vec2& position, float radius, int numSegments, const Style& style);
 		void drawFilledTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const Style& style);
 		void drawTexture2D(const RenderableTexture& renderable, const Style& color);
-		//void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const glm::vec4& color);
+		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style);
 
 		// 3D Rendering stuff
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style);
@@ -46,6 +47,10 @@ namespace Minecraft
 		void flushBatch2D();
 		void flushBatch();
 		void clearColor(const glm::vec4& color);
+
+		uint32 getNumberOfDrawCalls();
+
+		void endFrame();
 	}
 }
 

@@ -5,6 +5,7 @@
 #include "world/World.h"
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
+#include "renderer/Font.h"
 
 namespace Minecraft
 {
@@ -24,6 +25,7 @@ namespace Minecraft
 			Window::init();
 			window = Window::create(windowWidth, windowHeight, windowTitle);
 			Renderer::init(registry);
+			Fonts::init();
 
 			if (!window)
 			{

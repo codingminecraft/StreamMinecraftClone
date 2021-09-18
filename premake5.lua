@@ -55,7 +55,16 @@ project "Minecraft"
         "Minecraft/vendor/stb/",
         "Minecraft/vendor/yamlCpp/include",
         "Minecraft/vendor/simplex/src",
-        "Minecraft/vendor/cppUtils/single_include"
+        "Minecraft/vendor/cppUtils/single_include",
+        "Minecraft/vendor/freetype/include"
+    }
+
+    libdirs {
+        "\"./Minecraft/vendor/freetype/release dll/win64\""
+    }
+
+    links {
+        "freetype.lib"
     }
 
     filter "system:windows"
