@@ -5,6 +5,8 @@
 
 namespace Minecraft
 {
+	const glm::vec2 projectionSize = glm::vec2(6.0f, 3.0f);
+
 	glm::mat4 Camera::calculateViewMatrix(Ecs::Registry& registry) const
 	{
 		if (registry.hasComponent<Transform>(cameraEntity))
@@ -28,4 +30,19 @@ namespace Minecraft
 			2000.0f
 		);
 	};
+
+	glm::mat4 Camera::calculateHUDViewMatrix() const
+	{
+		return glm::lookAt(
+			glm::vec3(),
+			glm::vec3(0, 0, -1),
+			glm::vec3(0, 1, 0)
+		);
+	}
+
+	glm::mat4 Camera::calculateHUDProjectionMatrix() const
+	{
+		glm::vec2 halfSize = projectionSize / 2.0f;
+		return glm::ortho(-halfSize.x, halfSize.x, -halfSize.y, halfSize.y);
+	}
 }

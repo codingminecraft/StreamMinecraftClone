@@ -12,6 +12,9 @@ namespace Minecraft
 
 		glm::mat4 calculateViewMatrix(Ecs::Registry& registry) const;
 		glm::mat4 calculateProjectionMatrix(Ecs::Registry& registry) const;
+
+		glm::mat4 calculateHUDViewMatrix() const;
+		glm::mat4 calculateHUDProjectionMatrix() const;
 	};
 }
 

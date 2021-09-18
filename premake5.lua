@@ -90,3 +90,64 @@ project "Minecraft"
         runtime "Release"
         optimize "on"
 
+
+
+project "Bootstrap"
+    kind "ConsoleApp"
+    language "C++"
+    cppdialect "C++17"
+    staticruntime "off"
+
+    targetdir("_bin/" .. outputdir .. "/%{prj.name}")
+    objdir("_bin-int/" .. outputdir .. "/%{prj.name}")
+
+    files {
+        "Bootstrap/src/**.cpp",
+        "Bootstrap/include/**.h",
+        "Bootstrap/vendor/bit7z/include/**.hpp"
+    }
+
+    includedirs {
+        "Bootstrap/include",
+        "Bootstrap/vendor/curl/include",
+        "Minecraft/vendor/cppUtils/single_include/",
+        "Bootstrap/vendor/bit7z/include/"
+    }
+
+    filter "system:windows"
+        buildoptions { "-lgdi32" }
+        systemversion "latest"
+
+        libdirs {
+            "./Bootstrap/vendor/curl/lib",
+            "./Bootstrap/vendor/bit7z/lib"
+        }
+
+        links {
+            "libcurl.dll.lib",
+            "oleaut32",
+            "user32"
+        }
+
+        filter { "configurations:Debug" }
+            links {
+                "bit7z64_d"
+            }
+        filter { "configurations:Release" }
+            links {
+                "bit7z64"
+            }
+
+        defines  {
+            "_CRT_SECURE_NO_WARNINGS"
+        }
+
+    filter { "configurations:Debug" }
+        buildoptions "/MTd"
+        runtime "Debug"
+        symbols "on"
+
+    filter { "configurations:Release" }
+        buildoptions "/MT"
+        runtime "Release"
+        optimize "on"

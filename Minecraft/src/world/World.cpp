@@ -6,6 +6,7 @@
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
 #include "renderer/Renderer.h"
+#include "renderer/Styles.h"
 #include "core/Input.h"
 #include "core/Application.h"
 #include "core/File.h"
@@ -90,12 +91,12 @@ namespace Minecraft
 			// Setup player
 			Ecs::EntityId player = m.registry->createEntity();
 			m.registry->addComponent<Transform>(player);
-			m.registry->addComponent<BoxCollider>(player);
-			m.registry->addComponent<Rigidbody>(player);
-			BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
-			boxCollider.size.x = 0.5f;
-			boxCollider.size.y = 3.0f;
-			boxCollider.size.z = 0.75f;
+			//m.registry->addComponent<BoxCollider>(player);
+			//m.registry->addComponent<Rigidbody>(player);
+			//BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
+			//boxCollider.size.x = 0.5f;
+			//boxCollider.size.y = 3.0f;
+			//boxCollider.size.z = 0.75f;
 			Transform& transform = m.registry->getComponent<Transform>(player);
 			transform.position.y = 255;
 			transform.position.x = 45.0f;
@@ -162,6 +163,11 @@ namespace Minecraft
 		{
 			Members& m = obj();
 
+			Style transparentSquare = Styles::defaultStyle;
+			transparentSquare.color = "#00000055"_hex;
+			Renderer::drawFilledSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), transparentSquare);
+			Renderer::drawSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), Styles::defaultStyle);
+
 			// Update all systems
 			Physics::update(*m.registry, dt);
 			m.playerController.update(dt, *m.registry);
@@ -172,9 +178,6 @@ namespace Minecraft
 				m.registry->getComponent<Transform>(m.playerController.playerId).orientation;
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(dt, *m.registry);
-
-			// Do line rendering type stuff
-			Renderer::render();
 
 			// Update camera calculations
 			m.shader.bind();
@@ -212,6 +215,9 @@ namespace Minecraft
 					}
 				}
 			}
+
+			// Do line rendering type stuff
+			Renderer::render();
 
 			checkChunkRadius();
 			synchronizeChunks();

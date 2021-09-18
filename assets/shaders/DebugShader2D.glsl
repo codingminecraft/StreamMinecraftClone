@@ -15,8 +15,8 @@ uniform mat4 uView;
 void main()
 {
 	fColor = aColor;
-    fTexCoord = aTexCoord;
-    fTexId = aTexId;
+  fTexCoord = aTexCoord;
+  fTexId = aTexId;
 	gl_Position = uProjection * uView * vec4(aPos.x, aPos.y, 0.0, 1.0);
 }
 

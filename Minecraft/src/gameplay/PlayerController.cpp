@@ -12,17 +12,17 @@ namespace Minecraft
 	void PlayerController::init(Ecs::EntityId inPlayerId)
 	{
 		playerId = inPlayerId;
-		playerSpeed = 2.2f;
+		playerSpeed = 0.2f;
 		movementSensitivity = 0.1f;
 		runSpeed = playerSpeed * 2.0f;
 	}
 
 	void PlayerController::update(float dt, Ecs::Registry& registry)
 	{
-		if (registry.hasComponent<Transform>(playerId) && registry.hasComponent<Rigidbody>(playerId))
+		if (registry.hasComponent<Transform>(playerId))// && registry.hasComponent<Rigidbody>(playerId))
 		{
 			Transform& transform = registry.getComponent<Transform>(playerId);
-			Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
+			//Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
 
 			float mx = Input::deltaMouseX;
 			float my = Input::deltaMouseY;
@@ -42,32 +42,32 @@ namespace Minecraft
 
 			if (Input::isKeyPressed(GLFW_KEY_W))
 			{
-				//transform.position += transform.forward * speed;
-				rb.velocity.x = transform.forward.x * speed;
-				rb.velocity.z = transform.forward.z * speed;
+				transform.position += transform.forward * speed;
+				//rb.velocity.x = transform.forward.x * speed;
+				//rb.velocity.z = transform.forward.z * speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_S))
 			{
-				//transform.position -= transform.forward * speed;
-				rb.velocity.x = transform.forward.x * -speed;
-				rb.velocity.z = transform.forward.z * -speed;
+				transform.position -= transform.forward * speed;
+				//rb.velocity.x = transform.forward.x * -speed;
+				//rb.velocity.z = transform.forward.z * -speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_A))
 			{
-				//transform.position -= transform.right * speed;
-				rb.velocity.x = transform.right.x * -speed;
-				rb.velocity.z = transform.right.z * -speed;
+				transform.position -= transform.right * speed;
+				//rb.velocity.x = transform.right.x * -speed;
+				//rb.velocity.z = transform.right.z * -speed;
 			}
 			else if (Input::isKeyPressed(GLFW_KEY_D))
 			{
-				//transform.position += transform.right * speed;
-				rb.velocity.x = transform.right.x * speed;
-				rb.velocity.z = transform.right.z * speed;
+				transform.position += transform.right * speed;
+				//rb.velocity.x = transform.right.x * speed;
+				//rb.velocity.z = transform.right.z * speed;
 			}
 			else
 			{
-				rb.velocity.x = 0;
-				rb.velocity.z = 0;
+				//rb.velocity.x = 0;
+				//rb.velocity.z = 0;
 			}
 		}
 	}

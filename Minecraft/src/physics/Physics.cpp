@@ -151,13 +151,13 @@ namespace Minecraft
 							green.color = "#00FFF0"_hex;
 							Renderer::drawLine(blockTransform.position, blockTransform.position + collision.overlap, green);
 
-							//if (stepPhysics || !singleStepPhysics)
-							//{
+							if (stepPhysics || !singleStepPhysics)
+							{
 								transform.position -= collision.overlap;
 								rb.acceleration = glm::vec3();
 								rb.velocity = glm::vec3();
-							//}
-							Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, green);
+							}
+							//Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, green);
 						}
 						else
 						{
@@ -174,7 +174,7 @@ namespace Minecraft
 			res.didCollide = true;
 			BoxCollider b2Expanded = b2;
 			b2Expanded.size += b1.size;
-			Renderer::drawBox(t2.position, b2Expanded.size, Styles::defaultStyle);
+			//Renderer::drawBox(t2.position, b2Expanded.size, Styles::defaultStyle);
 			// Figure out which quadrant the collision is in and resolve it there
 			glm::vec3 b1ToB2 = t1.position - t2.position;
 			if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z > 0)

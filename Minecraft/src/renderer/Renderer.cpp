@@ -157,19 +157,6 @@ namespace Minecraft
 			glBindBuffer(GL_ARRAY_BUFFER, vbo);
 			glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maxNumVerticesPerBatch, NULL, GL_DYNAMIC_DRAW);
 
-			/*uint32 ebo;
-			glGenBuffers(1, &ebo);
-
-			std::array<uint32, maxNumTrianglesPerBatch * 3> elements;
-			for (int i = 0; i < elements.size(); i += 3)
-			{
-				elements[i] = i + 0;
-				elements[i + 1] = i + 1;
-				elements[i + 2] = i + 2;
-			}
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * maxNumTrianglesPerBatch * 3, elements.data(), GL_DYNAMIC_DRAW);*/
-
 			// Set up the batched vao attributes
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, start)));
 			glEnableVertexAttribArray(0);
@@ -283,7 +270,7 @@ namespace Minecraft
 
 		void drawFilledSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style)
 		{
-			drawFilledTriangle2D(start, start + glm::vec2{ 0, size.y }, start + size, style);
+			drawFilledTriangle2D(start, start + size, start + glm::vec2{ 0, size.y }, style);
 			drawFilledTriangle2D(start, start + glm::vec2{ size.x, 0 }, start + size, style);
 		}
 
@@ -300,8 +287,7 @@ namespace Minecraft
 			drawFilledTriangle2D(v0, v1, v2, style);
 			
 			glm::vec2 v3 = v0 - (perpVector * style.strokeWidth);
-			glm::vec2 v4 = v3 + direction;
-			drawFilledTriangle2D(v0, v3, v4, style);
+			drawFilledTriangle2D(v0, v2, v3, style);
 
 			// Draw the cap type
 			if (style.lineEnding == CapType::Arrow)
@@ -566,8 +552,8 @@ namespace Minecraft
 			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2D), vertices2D, GL_DYNAMIC_DRAW);
 
 			shader2D.bind();
-			shader2D.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
-			shader2D.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+			shader2D.uploadMat4("uProjection", camera->calculateHUDProjectionMatrix());
+			shader2D.uploadMat4("uView", camera->calculateHUDViewMatrix());
 
 			for (int i = 0; i < numTextureGraphicsIds; i++)
 			{
@@ -580,7 +566,8 @@ namespace Minecraft
 			shader2D.uploadIntArray("uFontTextures[0]", 8, uTextures);
 
 			glBindVertexArray(vao2D);
-			glDrawElements(GL_TRIANGLES, numVertices2D, GL_UNSIGNED_INT, NULL);
+			//glDrawElements(GL_TRIANGLES, numVertices2D, GL_UNSIGNED_INT, NULL);
+			glDrawArrays(GL_TRIANGLES, 0, numVertices2D);
 
 			// Clear the batch
 			numVertices2D = 0;

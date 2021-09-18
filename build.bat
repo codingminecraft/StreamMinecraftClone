@@ -7,6 +7,11 @@ IF "%~1" == "create" GOTO Create
 
 REM Build the project files
 vendor\premake5.exe %1
+
+if not exist Minecraft\vendor\freetype (
+    .\vendor\Bootstrap\Bootstrap.exe
+)
+
 GOTO Done
 
 :PrintHelp
