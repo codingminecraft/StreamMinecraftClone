@@ -62,6 +62,7 @@ namespace Minecraft
 			}
 
 			World::cleanup();
+			Renderer::free();
 			Window::cleanup();
 		}
 

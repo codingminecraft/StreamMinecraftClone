@@ -181,8 +181,9 @@ namespace Minecraft
 			}
 			numDrawCalls = 0;
 
-			Renderer::drawFilledSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), transparentSquare);
-			Renderer::drawSquare2D(glm::vec2(0, 0), glm::vec2(2.0f, 1.0f), Styles::defaultStyle);
+			Renderer::drawFilledSquare2D(glm::vec2(-3.0f, 0.2f), glm::vec2(2.0f, 1.0f), transparentSquare, -1);
+			transparentSquare.color = "#F2030155"_hex;
+			Renderer::drawFilledSquare2D(glm::vec2(-1.1f, 0.5f), glm::vec2(0.5f, 0.5f), transparentSquare, 1);
 
 			// Update all systems
 			Physics::update(*m.registry, dt);

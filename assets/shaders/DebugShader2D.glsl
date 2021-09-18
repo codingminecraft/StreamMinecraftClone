@@ -11,13 +11,14 @@ out vec2 fTexCoord;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
+uniform int uZIndex;
 
 void main()
 {
 	fColor = aColor;
   fTexCoord = aTexCoord;
   fTexId = aTexId;
-	gl_Position = uProjection * uView * vec4(aPos.x, aPos.y, 0.0, 1.0);
+	gl_Position = uProjection * uView * vec4(aPos.x, aPos.y, float(uZIndex), 1.0);
 }
 
 #type fragment

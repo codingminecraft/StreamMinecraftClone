@@ -5,203 +5,31 @@
 #include "renderer/Camera.h"
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
+#include "renderer/Batch.hpp"
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
 
 namespace Minecraft
 {
-	struct RenderVertex2D
-	{
-		glm::vec2 position;
-		glm::vec4 color;
-		uint32 textureId;
-		glm::vec2 textureCoords;
-	};
-
-	struct RenderVertex
-	{
-		glm::vec3 start;
-		glm::vec3 end;
-		float isStart;
-		float direction;
-		float strokeWidth;
-		glm::vec4 color;
-	};
-
 	namespace Renderer
 	{
-		// Internal variables
-		static uint32 vao2D;
-		static uint32 vbo2D;
-		static uint32 numVertices2D;
-
-		static uint32 vao;
-		static uint32 vbo;
-		static uint32 numVertices;
-
-		static uint32 numDrawCalls;
-
-		static const int maxNumTrianglesPerBatch = 300;
-		static const int maxNumVerticesPerBatch = maxNumTrianglesPerBatch * 3;
-		static RenderVertex2D vertices2D[maxNumVerticesPerBatch];
-		static RenderVertex vertices[maxNumVerticesPerBatch];
+		// Internal variables		
+		static std::vector<Batch<RenderVertex2D>> batches2D;
+		static Batch<RenderVertex> batch;
+		static uint32 numDrawCalls = 0;
 
 		static Shader shader2D;
 		static Shader shader;
-		static Shader screenShader;
 
 		static Ecs::Registry* registry;
 		static const Camera* camera;
 
-		// Default screen rectangle
-		static float defaultScreenQuad[] = {
-			-1.0f, -1.0f,   0.0f, 0.0f, // Bottom-left
-			 1.0f,  1.0f,   1.0f, 1.0f, // Top-right
-			-1.0f,  1.0f,   0.0f, 1.0f, // Top-left
-
-			-1.0f, -1.0f,   0.0f, 0.0f, // Bottom-left
-			 1.0f, -1.0f,   1.0f, 0.0f, // Bottom-right
-			 1.0f,  1.0f,   1.0f, 1.0f  // Top-right
-		};
-
-		static uint32 screenVao;
-		static const uint32 numTextureGraphicsIds = 8;
-		static uint32 numFontTextures = 0;
-		static Texture textureGraphicIds[numTextureGraphicsIds];
-		static int32 uTextures[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
-		static uint32 getTexId(const Texture& texture)
-		{
-			for (int i = 0; i < numTextureGraphicsIds; i++)
-			{
-				if (texture.graphicsId == textureGraphicIds[i].graphicsId || i >= numFontTextures)
-				{
-					textureGraphicIds[i].graphicsId = texture.graphicsId;
-					numFontTextures++;
-					return i + 1;
-				}
-			}
-
-			g_logger_warning("Could not find texture id in Renderer::drawTexture.");
-			return 0;
-		}
-
-		static void setupScreenVao()
-		{
-			// Create the screen vao2D
-			glCreateVertexArrays(1, &screenVao);
-			glBindVertexArray(screenVao);
-
-			uint32 screenVbo;
-			glGenBuffers(1, &screenVbo);
-
-			// Allocate space for the screen vao2D
-			glBindBuffer(GL_ARRAY_BUFFER, screenVbo);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(defaultScreenQuad), defaultScreenQuad, GL_STATIC_DRAW);
-
-			// Set up the screen vao2D attributes
-			// The position doubles as the texture coordinates so we can use the same floats for that
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-			glEnableVertexAttribArray(0);
-
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
-			glEnableVertexAttribArray(1);
-		}
-
-		static void setupBatchedVao2D()
-		{
-			// Create the batched vao2D
-			glCreateVertexArrays(1, &vao2D);
-			glBindVertexArray(vao2D);
-
-			glGenBuffers(1, &vbo2D);
-
-			// Allocate space for the batched vao2D
-			glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(RenderVertex2D) * maxNumVerticesPerBatch, NULL, GL_DYNAMIC_DRAW);
-
-			uint32 ebo;
-			glGenBuffers(1, &ebo);
-
-			std::array<uint32, maxNumTrianglesPerBatch * 3> elements;
-			for (int i = 0; i < elements.size(); i += 3)
-			{
-				elements[i] = i + 0;
-				elements[i + 1] = i + 1;
-				elements[i + 2] = i + 2;
-			}
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32) * maxNumTrianglesPerBatch * 3, elements.data(), GL_DYNAMIC_DRAW);
-
-			// Set up the batched vao2D attributes
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex2D), (void*)(offsetof(RenderVertex2D, position)));
-			glEnableVertexAttribArray(0);
-
-			glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex2D), (void*)(offsetof(RenderVertex2D, color)));
-			glEnableVertexAttribArray(1);
-
-			glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(RenderVertex2D), (void*)(offsetof(RenderVertex2D, textureId)));
-			glEnableVertexAttribArray(2);
-
-			glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(RenderVertex2D), (void*)(offsetof(RenderVertex2D, textureCoords)));
-			glEnableVertexAttribArray(3);
-		}
-
-		static void setupBatchedVao()
-		{
-			// Create the batched vao
-			glCreateVertexArrays(1, &vao);
-			glBindVertexArray(vao);
-
-			glGenBuffers(1, &vbo);
-
-			// Allocate space for the batched vao
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maxNumVerticesPerBatch, NULL, GL_DYNAMIC_DRAW);
-
-			// Set up the batched vao attributes
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, start)));
-			glEnableVertexAttribArray(0);
-
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, end)));
-			glEnableVertexAttribArray(1);
-
-			glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, isStart)));
-			glEnableVertexAttribArray(2);
-
-			glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, direction)));
-			glEnableVertexAttribArray(3);
-
-			glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, strokeWidth)));
-			glEnableVertexAttribArray(4);
-
-			glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(RenderVertex), (void*)(offsetof(RenderVertex, color)));
-			glEnableVertexAttribArray(5);
-		}
-
-		static void GLAPIENTRY
-			messageCallback(GLenum source,
-				GLenum type,
-				GLuint id,
-				GLenum severity,
-				GLsizei length,
-				const GLchar* message,
-				const void* userParam)
-		{
-			if (type == GL_DEBUG_TYPE_ERROR)
-			{
-				g_logger_error("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s",
-					(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
-					type, severity, message);
-
-				GLenum err;
-				while ((err = glGetError()) != GL_NO_ERROR)
-				{
-					g_logger_error("Error Code: 0x%8x", err);
-				}
-			}
-		}
+		// Internal functions
+		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture);
+		static Batch<RenderVertex2D>& createBatch2D(int zIndex);
+		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex);
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
@@ -209,8 +37,7 @@ namespace Minecraft
 
 			registry = &sceneRegistry;
 			camera = nullptr;
-			numVertices2D = 0;
-			numVertices = 0;
+			batch.numVertices = 0;
 
 			// Load OpenGL functions using Glad
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -236,20 +63,86 @@ namespace Minecraft
 			shader2D.compile("assets/shaders/DebugShader2D.glsl");
 			shader.compile("assets/shaders/DebugShader3D.glsl");
 
-			setupBatchedVao2D();
-			setupBatchedVao();
-			setupScreenVao();
+			batch.init(
+				{
+					{0, 3, AttributeType::Float, offsetof(RenderVertex, start)},
+					{1, 3, AttributeType::Float, offsetof(RenderVertex, end)},
+					{2, 1, AttributeType::Float, offsetof(RenderVertex, isStart)},
+					{3, 1, AttributeType::Float, offsetof(RenderVertex, direction)},
+					{4, 1, AttributeType::Float, offsetof(RenderVertex, strokeWidth)},
+					{5, 4, AttributeType::Float, offsetof(RenderVertex, color)}
+				}
+			);
+		}
 
-			for (int i = 0; i < numTextureGraphicsIds; i++)
+		void free()
+		{
+			for (Batch<RenderVertex2D> batch2D : batches2D)
 			{
-				textureGraphicIds[i] = Texture{};
+				batch2D.free();
 			}
+			batch.free();
 		}
 
 		void render()
 		{
-			flushBatch();
-			flushBatch2D();
+			flushBatches3D();
+			flushBatches2D();
+		}
+
+		void flushBatches2D()
+		{
+			glDisable(GL_CULL_FACE);
+
+			shader2D.bind();
+			shader2D.uploadMat4("uProjection", camera->calculateHUDProjectionMatrix());
+			shader2D.uploadMat4("uView", camera->calculateHUDViewMatrix());
+
+			for (Batch<RenderVertex2D>& batch2D : batches2D)
+			{
+				if (batch2D.numVertices <= 0)
+				{
+					return;
+				}
+
+				for (int i = 0; i < batch.textureGraphicsIds.size(); i++)
+				{
+					if (batch2D.textureGraphicsIds[i] != UINT32_MAX)
+					{
+						glActiveTexture(GL_TEXTURE0 + i);
+						glBindTexture(GL_TEXTURE_2D, batch2D.textureGraphicsIds[i]);
+					}
+				}
+				shader2D.uploadIntArray("uFontTextures[0]", _Batch::textureIndices().size(), _Batch::textureIndices().data());
+				shader2D.uploadInt("uZIndex", batch2D.zIndex);
+
+				batch2D.flush();
+
+				numDrawCalls++;
+			}
+
+			glEnable(GL_CULL_FACE);
+		}
+
+		void flushBatches3D()
+		{
+			if (batch.numVertices <= 0)
+			{
+				return;
+			}
+
+			glDisable(GL_CULL_FACE);
+
+			shader.bind();
+			shader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
+			shader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+			shader.uploadFloat("uAspectRatio", Application::getAspectRatio());
+
+			batch.flush();
+
+			glEnable(GL_CULL_FACE);
+
+			numDrawCalls++;
 		}
 
 		void endFrame()
@@ -262,34 +155,45 @@ namespace Minecraft
 			return numDrawCalls;
 		}
 
-		void renderFramebuffer(const Framebuffer& framebuffer)
+		void setShader2D(const Shader& newShader)
 		{
-			screenShader.bind();
-
-			const Texture& texture = framebuffer.getColorAttachment(0);
-			glActiveTexture(GL_TEXTURE0);
-			texture.bind();
-			screenShader.uploadInt("uTexture", 0);
-
-			glBindVertexArray(screenVao);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
+			shader2D = newShader;
 		}
 
-		void drawSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style)
+		void setShader(const Shader& newShader)
 		{
-			drawLine2D(start, start + glm::vec2{ size.x, 0 }, style);
-			drawLine2D(start + glm::vec2{ 0, size.y }, start + size, style);
-			drawLine2D(start, start + glm::vec2{ 0, size.y }, style);
-			drawLine2D(start + glm::vec2{ size.x, 0 }, start + size, style);
+			shader = newShader;
 		}
 
-		void drawFilledSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style)
+		void setCamera(const Camera& cameraRef)
 		{
-			drawFilledTriangle2D(start, start + size, start + glm::vec2{ 0, size.y }, style);
-			drawFilledTriangle2D(start, start + glm::vec2{ size.x, 0 }, start + size, style);
+			camera = &cameraRef;
 		}
 
-		void drawLine2D(const glm::vec2& start, const glm::vec2& end, const Style& style)
+		void clearColor(const glm::vec4& color)
+		{
+			glClearColor(color.r, color.g, color.b, color.a);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
+
+		// =========================================================
+		// Draw 2D Functions
+		// =========================================================
+		void drawSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style, int zIndex)
+		{
+			drawLine2D(start, start + glm::vec2{ size.x, 0 }, style, zIndex);
+			drawLine2D(start + glm::vec2{ 0, size.y }, start + size, style, zIndex);
+			drawLine2D(start, start + glm::vec2{ 0, size.y }, style, zIndex);
+			drawLine2D(start + glm::vec2{ size.x, 0 }, start + size, style, zIndex);
+		}
+
+		void drawFilledSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style, int zIndex)
+		{
+			drawFilledTriangle2D(start, start + size, start + glm::vec2{ 0, size.y }, style, zIndex);
+			drawFilledTriangle2D(start, start + glm::vec2{ size.x, 0 }, start + size, style, zIndex);
+		}
+
+		void drawLine2D(const glm::vec2& start, const glm::vec2& end, const Style& style, int zIndex)
 		{
 			// Draw the line
 			glm::vec2 direction = end - start;
@@ -299,10 +203,10 @@ namespace Minecraft
 			glm::vec2 v0 = start + (perpVector * style.strokeWidth * 0.5f);
 			glm::vec2 v1 = v0 + direction;
 			glm::vec2 v2 = v1 - (perpVector * style.strokeWidth);
-			drawFilledTriangle2D(v0, v1, v2, style);
-			
+			drawFilledTriangle2D(v0, v1, v2, style, zIndex);
+
 			glm::vec2 v3 = v0 - (perpVector * style.strokeWidth);
-			drawFilledTriangle2D(v0, v2, v3, style);
+			drawFilledTriangle2D(v0, v2, v3, style, zIndex);
 
 			// Draw the cap type
 			if (style.lineEnding == CapType::Arrow)
@@ -315,13 +219,13 @@ namespace Minecraft
 				glm::vec2 bottomRight = centerDot - oVectorToCenter * style.strokeWidth * 4.0f;
 				glm::vec2 top = centerDot + normalDirection * style.strokeWidth * 4.0f;
 
-				drawFilledTriangle2D(centerDot, bottomLeft, top, style);
-				drawFilledTriangle2D(top, centerDot, bottomRight, style);
-				drawFilledTriangle2D(centerDot, end + perpVector * style.strokeWidth * 0.5f, end - perpVector * style.strokeWidth * 0.5f, style);
+				drawFilledTriangle2D(centerDot, bottomLeft, top, style, zIndex);
+				drawFilledTriangle2D(top, centerDot, bottomRight, style, zIndex);
+				drawFilledTriangle2D(centerDot, end + perpVector * style.strokeWidth * 0.5f, end - perpVector * style.strokeWidth * 0.5f, style, zIndex);
 			}
 		}
 
-		void drawFilledCircle2D(const glm::vec2& position, float radius, int numSegments, const Style& style)
+		void drawFilledCircle2D(const glm::vec2& position, float radius, int numSegments, const Style& style, int zIndex)
 		{
 			float t = 0;
 			float sectorSize = 360.0f / (float)numSegments;
@@ -333,77 +237,39 @@ namespace Minecraft
 				float nextX = radius * glm::cos(glm::radians(nextT));
 				float nextY = radius * glm::sin(glm::radians(nextT));
 
-				drawFilledTriangle2D(position, position + glm::vec2{ x, y }, position + glm::vec2{ nextX, nextY }, style);
+				drawFilledTriangle2D(position, position + glm::vec2{ x, y }, position + glm::vec2{ nextX, nextY }, style, zIndex);
 
 				t += sectorSize;
 			}
 		}
 
-		void drawFilledTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const Style& style)
+		void drawFilledTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const Style& style, int zIndex)
 		{
-			if (numVertices2D + 3 >= maxNumVerticesPerBatch)
+			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, {}, false);
+			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
-				flushBatch2D();
+				batch2D = createBatch2D(zIndex);
 			}
 
-			vertices2D[numVertices2D].position = p0;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = 0;
-			numVertices2D++;
+			RenderVertex2D v;
+			v.position = p0;
+			v.color = style.color;
+			v.textureSlot = 0;
+			batch2D.addVertex(v);
 
-			vertices2D[numVertices2D].position = p1;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = 0;
-			numVertices2D++;
+			v.position = p1;
+			v.color = style.color;
+			v.textureSlot = 0;
+			batch2D.addVertex(v);
 
-			vertices2D[numVertices2D].position = p2;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = 0;
-			numVertices2D++;
+			v.position = p2;
+			v.color = style.color;
+			v.textureSlot = 0;
+			batch2D.addVertex(v);
 		}
 
-		// Internal function
-		static void drawTexturedTriangle2D(
-			const glm::vec2& p0, 
-			const glm::vec2& p1, 
-			const glm::vec2& p2, 
-			const glm::vec2& uv0, 
-			const glm::vec2& uv1, 
-			const glm::vec2& uv2, 
-			const Texture* texture,
-			const Style& style)
+		void drawTexture2D(const RenderableTexture& renderable, const Style& style, int zIndex)
 		{
-			if (numVertices2D + 3 >= maxNumVerticesPerBatch)
-			{
-				flushBatch2D();
-			}
-
-			uint32 texId = getTexId(*texture);
-
-			// One triangle per sector
-			vertices2D[numVertices2D].position = p0;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = texId;
-			vertices2D[numVertices2D].textureCoords = uv0;
-			numVertices2D++;
-
-			vertices2D[numVertices2D].position = p1;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = texId;
-			vertices2D[numVertices2D].textureCoords = uv1;
-			numVertices2D++;
-
-			vertices2D[numVertices2D].position = p2;
-			vertices2D[numVertices2D].color = style.color;
-			vertices2D[numVertices2D].textureId = texId;
-			vertices2D[numVertices2D].textureCoords = uv2;
-			numVertices2D++;
-		}
-
-		void drawTexture2D(const RenderableTexture& renderable, const Style& style)
-		{
-			uint32 texId = getTexId(*renderable.texture);
-
 			glm::vec2 v0 = renderable.start;
 			glm::vec2 v1 = renderable.start + glm::vec2{ 0, renderable.size.y };
 			glm::vec2 v2 = renderable.start + renderable.size;
@@ -422,7 +288,8 @@ namespace Minecraft
 				uv2,
 				uv1,
 				renderable.texture,
-				style
+				style,
+				zIndex
 			);
 			drawTexturedTriangle2D(
 				v0,
@@ -432,12 +299,12 @@ namespace Minecraft
 				uv3,
 				uv2,
 				renderable.texture,
-				style
+				style,
+				zIndex
 			);
 		}
 
-		// TODO: Implement some font rendering
-		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style)
+		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style, int zIndex)
 		{
 			float x = position.x;
 			float y = position.y;
@@ -456,7 +323,7 @@ namespace Minecraft
 					{ charWidth, charHeight },
 					renderableChar.texCoordStart,
 					renderableChar.texCoordSize
-					}, style);
+					}, style, zIndex);
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
 				//x += font.getKerning(c, nextC) * scale * font.fontSize;
@@ -464,62 +331,66 @@ namespace Minecraft
 			}
 		}
 
+		// =========================================================
+		// Draw 3D Functions
+		// ===================================================
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style)
 		{
-			if (numVertices + 6 >= maxNumVerticesPerBatch)
+			if (batch.numVertices + 6 >= _Batch::maxBatchSize)
 			{
-				flushBatch();
+				flushBatches3D();
 			}
 
 			// First triangle
-			vertices[numVertices].isStart = 1.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = -1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			RenderVertex v;
+			v.isStart = 1.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = -1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 
-			vertices[numVertices].isStart = 1.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = 1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			v.isStart = 1.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = 1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 
-			vertices[numVertices].isStart = 0.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = 1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			v.isStart = 0.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = 1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 
 			// Second triangle
-			vertices[numVertices].isStart = 1.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = -1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			v.isStart = 1.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = -1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 
-			vertices[numVertices].isStart = 0.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = 1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			v.isStart = 0.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = 1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 
-			vertices[numVertices].isStart = 0.0f;
-			vertices[numVertices].start = start;
-			vertices[numVertices].end = end;
-			vertices[numVertices].direction = -1.0f;
-			vertices[numVertices].color = style.color;
-			vertices[numVertices].strokeWidth = style.strokeWidth;
-			numVertices++;
+			v.isStart = 0.0f;
+			v.start = start;
+			v.end = end;
+			v.direction = -1.0f;
+			v.color = style.color;
+			v.strokeWidth = style.strokeWidth;
+			batch.addVertex(v);
 		}
 
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style)
@@ -550,90 +421,109 @@ namespace Minecraft
 			drawLine(v3, v7, style);
 		}
 
-		void setShader2D(const Shader& newShader)
+		// =========================================================
+		// Internal Functions
+		// =========================================================
+		static void GLAPIENTRY
+			messageCallback(GLenum source,
+				GLenum type,
+				GLuint id,
+				GLenum severity,
+				GLsizei length,
+				const GLchar* message,
+				const void* userParam)
 		{
-			shader2D = newShader;
-		}
-
-		void setShader(const Shader& newShader)
-		{
-			shader = newShader;
-		}
-
-		void setCamera(const Camera& cameraRef)
-		{
-			camera = &cameraRef;
-		}
-
-		void flushBatch2D()
-		{
-			if (numVertices2D <= 0)
+			if (type == GL_DEBUG_TYPE_ERROR)
 			{
-				return;
-			}
+				g_logger_error("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s",
+					(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+					type, severity, message);
 
-			// Draw the 2D screen space stuff
-			glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2D), vertices2D, GL_DYNAMIC_DRAW);
-
-			shader2D.bind();
-			shader2D.uploadMat4("uProjection", camera->calculateHUDProjectionMatrix());
-			shader2D.uploadMat4("uView", camera->calculateHUDViewMatrix());
-
-			for (int i = 0; i < numTextureGraphicsIds; i++)
-			{
-				if (textureGraphicIds[i].graphicsId != 0)
+				GLenum err;
+				while ((err = glGetError()) != GL_NO_ERROR)
 				{
-					glActiveTexture(GL_TEXTURE0 + i);
-					textureGraphicIds[i].bind();
+					g_logger_error("Error Code: 0x%8x", err);
 				}
 			}
-			shader2D.uploadIntArray("uFontTextures[0]", 8, uTextures);
-
-			glBindVertexArray(vao2D);
-			//glDrawElements(GL_TRIANGLES, numVertices2D, GL_UNSIGNED_INT, NULL);
-			glDrawArrays(GL_TRIANGLES, 0, numVertices2D);
-
-			// Clear the batch
-			numVertices2D = 0;
-			numFontTextures = 0;
-
-			numDrawCalls++;
 		}
 
-		void flushBatch()
+		static void drawTexturedTriangle2D(
+			const glm::vec2& p0,
+			const glm::vec2& p1,
+			const glm::vec2& p2,
+			const glm::vec2& uv0,
+			const glm::vec2& uv1,
+			const glm::vec2& uv2,
+			const Texture* texture,
+			const Style& style,
+			int zIndex)
 		{
-			if (numVertices <= 0)
+			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true);
+			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
-				return;
+				batch2D = createBatch2D(zIndex);
 			}
 
-			glDisable(GL_CULL_FACE);
+			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId);
 
-			// Draw the 3D screen space stuff
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+			// One triangle per sector
+			RenderVertex2D v;
+			v.position = p0;
+			v.color = style.color;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv0;
+			batch2D.addVertex(v);
 
-			shader.bind();
-			shader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
-			shader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
-			shader.uploadFloat("uAspectRatio", Application::getAspectRatio());
+			v.position = p1;
+			v.color = style.color;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv1;
+			batch2D.addVertex(v);
 
-			glBindVertexArray(vao);
-			glDrawArrays(GL_TRIANGLES, 0, numVertices);
-
-			// Clear the batch
-			numVertices = 0;
-
-			glEnable(GL_CULL_FACE);
-
-			numDrawCalls++;
+			v.position = p2;
+			v.color = style.color;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv2;
+			batch2D.addVertex(v);
 		}
 
-		void clearColor(const glm::vec4& color)
+		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture)
 		{
-			glClearColor(color.r, color.g, color.b, color.a);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			for (Batch<RenderVertex2D>& batch : batches2D)
+			{
+				if (batch.hasRoom() && batch.zIndex == zIndex && 
+					(!useTexture || batch.hasTexture(texture.graphicsId) || batch.hasTextureRoom()))
+				{
+					return batch;
+				}
+			}
+
+			return createBatch2D(zIndex);
+		}
+
+		static Batch<RenderVertex2D>& createBatch2D(int zIndex)
+		{
+			// No batch found, create a new one and sort the batches
+			Batch<RenderVertex2D> newBatch;
+			newBatch.init(
+				{
+					{0, 2, AttributeType::Float, offsetof(RenderVertex2D, position)},
+					{1, 4, AttributeType::Float, offsetof(RenderVertex2D, color)},
+					{2, 1, AttributeType::Uint, offsetof(RenderVertex2D, textureSlot)},
+					{3, 2, AttributeType::Float, offsetof(RenderVertex2D, textureCoords)}
+				}
+			);
+			newBatch.zIndex = zIndex;
+			batches2D.push_back(newBatch);
+			std::sort(batches2D.begin(), batches2D.end(),
+				[](const Batch<RenderVertex2D>& a, const Batch<RenderVertex2D>& b)
+				{
+					return a.zIndex < b.zIndex;
+				});
+
+			// Since we added stuff to the vector and everything recursively call this function
+			// so that we get the appropriate reference
+			return getBatch2D(zIndex, {}, false);
 		}
 	}
 }
