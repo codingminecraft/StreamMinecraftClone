@@ -8,7 +8,8 @@
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
-#include "core/Input.h"
+#include "input/Input.h"
+#include "input/KeyHandler.h"
 #include "core/Application.h"
 #include "core/File.h"
 #include "core/Ecs.h"
@@ -26,7 +27,6 @@ namespace Minecraft
 	namespace World
 	{
 		// Internal declarations
-		static void loadWorldTexture();
 		static void checkChunkRadius();
 		static void synchronizeChunks();
 		static Chunk* findChunk(const glm::ivec2& chunkCoords);
@@ -46,40 +46,40 @@ namespace Minecraft
 			Chunk chunks[World::ChunkCapacity];
 			std::string worldSavePath;
 			Ecs::Registry* registry;
+			RandomController ctlr;
 
 			int32 seed;
 		};
-
-		static RandomController ctlr;
 
 		static Members& obj();
 
 		void init(Ecs::Registry& registry)
 		{
 			Members& m = obj();
+
+			// Initialize memory
 			m.registry = &registry;
 			m.worldSavePath = "world";
+			File::createDirIfNotExists(m.worldSavePath.c_str());
+			g_memory_zeroMem(m.chunks, sizeof(Chunk) * ChunkCapacity);
 
+			// Generate a seed if needed
 			srand((unsigned long)time(NULL));
 			m.seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
 			g_logger_info("World seed: %d", m.seed);
 
 			// Initialize blocks
-			//TexturePacker::packTextures("C:/dev/C++/MinecraftClone/assets/images/block", "textureFormat.yaml");
-			g_memory_zeroMem(m.chunks, sizeof(Chunk) * ChunkCapacity);
-
+			TexturePacker::packTextures("assets/images/block", "textureFormat.yaml");
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
-			m.shader.compile("C:/dev/C++/MinecraftClone/assets/shaders/default.glsl");
-			loadWorldTexture();
 
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
-			m.shader.uploadInt("uTexCoordTexture", 1);
-
-			// Create a chunk
-			File::createDirIfNotExists(m.worldSavePath.c_str());
-			Chunk::info();
+			m.shader.compile("assets/shaders/default.glsl");
+			m.worldTexture = TextureBuilder()
+				.setFormat(ByteFormat::RGBA8_UI)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
+				.setFilepath("test.png")
+				.generate(true);
 
 			// Setup camera
 			Ecs::EntityId cameraEntity = m.registry->createEntity();
@@ -122,65 +122,40 @@ namespace Minecraft
 			transform2.position.x = 45.0f;
 			transform2.position.z = -45.0f;
 			m.registry->getComponent<RandomController>(randomEntity).init(randomEntity);
-			ctlr = m.registry->getComponent<RandomController>(randomEntity);
+			m.ctlr = m.registry->getComponent<RandomController>(randomEntity);
 
 			ChunkManager::init(m.seed);
 			checkChunkRadius();
-
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 		}
 
-		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
-		{
-			return {
-				glm::floor(worldCoordinates.x / 16.0f),
-				glm::floor(worldCoordinates.z / 16.0f)
-			};
-		}
-
-		Chunk& getChunk(const glm::vec3& worldPosition)
+		void free()
 		{
 			Members& m = obj();
-			glm::ivec2 chunkPosition = toChunkCoords(worldPosition);
-			for (Chunk& chunk : m.chunks)
+			ChunkManager::free();
+
+			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				if (chunk.chunkCoordinates == chunkPosition)
+				Chunk& chunk = m.chunks[i];
+				if (chunk.loaded)
 				{
-					return chunk;
+					chunk.freeCpu();
+					chunk.freeGpu();
 				}
 			}
 
-			return Chunk{};
-		}
-
-		Block getBlock(const glm::vec3& worldPosition)
-		{
-			Members& m = obj();
-			Chunk& chunk = getChunk(worldPosition);
-			if (chunk.chunkData)
-			{
-				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f));
-				return chunk.getLocalBlock(localPosition);
-			}
-			return BlockMap::NULL_BLOCK;
+			m.registry->free();
 		}
 
 		void update(float dt)
 		{
 			Members& m = obj();
 
-			static bool showDebugStats = false;
-			if (showDebugStats)
-			{
-				drawDebugStats();
-			}
-			DebugStats::numDrawCalls = 0;
-			DebugStats::lastFrameTime = dt;
-
 			// Update all systems
+			KeyHandler::update(dt);
 			Physics::update(*m.registry, dt);
 			m.playerController.update(dt, *m.registry);
-			ctlr.update(dt, *m.registry);
+			m.ctlr.update(dt, *m.registry);
 			m.registry->getComponent<Transform>(m.camera.cameraEntity).position =
 				m.registry->getComponent<Transform>(m.playerController.playerId).position;
 			m.registry->getComponent<Transform>(m.camera.cameraEntity).orientation =
@@ -188,31 +163,30 @@ namespace Minecraft
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(dt, *m.registry);
 
-			// Update camera calculations
+			DebugStats::numDrawCalls = 0;
+			static uint32 ticks = 0;
+			ticks++;
+			if (ticks > 10)
+			{
+				DebugStats::lastFrameTime = dt;
+				ticks = 0;
+			}
+
+			// Upload shader variables
 			m.shader.bind();
 			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(*m.registry));
 			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(*m.registry));
 			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
-			if (Input::keyBeginPress(GLFW_KEY_F2))
-			{
-				static bool lockCursor = false;
-				lockCursor = !lockCursor;
-				Application::getWindow().setCursorMode(lockCursor ? CursorMode::Locked : CursorMode::Normal);
-			}
-			if (Input::keyBeginPress(GLFW_KEY_F3))
-			{
-				showDebugStats = !showDebugStats;
-			}
-			if (Input::keyBeginPress(GLFW_KEY_ESCAPE))
-			{
-				Application::getWindow().close();
-			}
-
 			glActiveTexture(GL_TEXTURE0);
 			m.worldTexture.bind();
 			m.shader.uploadInt("uTexture", 0);
 
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
+			m.shader.uploadInt("uTexCoordTexture", 1);
+
+			// Render all the loaded chunks
 			const glm::vec3& playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
 			for (int i = 0; i < ChunkCapacity; i++)
@@ -244,22 +218,40 @@ namespace Minecraft
 			synchronizeChunks();
 		}
 
-		void free()
+		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
+		{
+			return {
+				glm::floor(worldCoordinates.x / 16.0f),
+				glm::floor(worldCoordinates.z / 16.0f)
+			};
+		}
+
+		Chunk& getChunk(const glm::vec3& worldPosition)
 		{
 			Members& m = obj();
-			ChunkManager::free();
-
-			for (int i = 0; i < ChunkCapacity; i++)
+			glm::ivec2 chunkPosition = toChunkCoords(worldPosition);
+			for (Chunk& chunk : m.chunks)
 			{
-				Chunk& chunk = m.chunks[i];
-				if (chunk.loaded)
+				if (chunk.chunkCoordinates == chunkPosition)
 				{
-					chunk.freeCpu();
-					chunk.freeGpu();
+					return chunk;
 				}
 			}
 
-			m.registry->free();
+			static Chunk defaultChunk = {};
+			return defaultChunk;
+		}
+
+		Block getBlock(const glm::vec3& worldPosition)
+		{
+			Members& m = obj();
+			Chunk& chunk = getChunk(worldPosition);
+			if (chunk.chunkData)
+			{
+				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f));
+				return chunk.getLocalBlock(localPosition);
+			}
+			return BlockMap::NULL_BLOCK;
 		}
 
 		static bool exists(const glm::ivec2& position)
@@ -367,24 +359,6 @@ namespace Minecraft
 			}
 		}
 
-		static void loadWorldTexture()
-		{
-			Members& m = obj();
-			m.worldTexture = TextureBuilder()
-				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
-				.setFilepath("test.png")
-				.generate(true);
-
-			// Upload the world texture
-			glActiveTexture(GL_TEXTURE0);
-			m.worldTexture.bind();
-			m.shader.uploadInt("uTexture", 0);
-
-			glUseProgram(m.shader.programId);
-		}
-
 		static Chunk* findChunk(const glm::ivec2& chunkCoords)
 		{
 			Members& m = obj();
@@ -427,47 +401,6 @@ namespace Minecraft
 			}
 
 			g_logger_warning("Tried to set chunk<%d, %d> but could not find matching chunk.", chunkCoords.x, chunkCoords.y);
-		}
-
-		static void drawDebugStats()
-		{
-			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
-			if (font)
-			{
-				float textScale = 0.4f;
-				float textHzPadding = 0.1f;
-				Style transparentSquare = Styles::defaultStyle;
-				transparentSquare.color = "#00000055"_hex;
-
-				glm::vec2 drawCallPos = glm::vec2(-2.95f, 1.35f);
-				std::string drawCallStr = std::string("Draw calls: " + std::to_string(DebugStats::numDrawCalls));
-				Renderer::drawString(
-					drawCallStr,
-					*font,
-					drawCallPos,
-					textScale,
-					Styles::defaultStyle);
-				
-				glm::vec2 fpsPos = glm::vec2(-2.1f, 1.35f);
-				std::string fpsStr = std::string("FPS: " + std::to_string(1.0f / DebugStats::lastFrameTime));
-				Renderer::drawString(
-					fpsStr,
-					*font,
-					fpsPos,
-					textScale,
-					Styles::defaultStyle);
-
-				glm::vec2 frameTimePos = glm::vec2(-1.25f, 1.35f);;
-				std::string frameTimeStr = std::string("1/FPS: " + std::to_string(DebugStats::lastFrameTime));
-				Renderer::drawString(
-					frameTimeStr,
-					*font,
-					frameTimePos,
-					textScale,
-					Styles::defaultStyle);
-
-				Renderer::drawFilledSquare2D(drawCallPos - glm::vec2(0.02f, 0.01f), glm::vec2(2.6f, 0.1f), transparentSquare, -1);
-			}
 		}
 
 		static Members& obj()

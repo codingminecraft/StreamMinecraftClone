@@ -39,7 +39,7 @@ namespace Minecraft
 
 	namespace _Batch
 	{
-		const uint32 maxBatchSize = 500;
+		const uint32 maxBatchSize = 501;
 		const uint32 numTextureGraphicsIds = 8;
 		constexpr std::array<int32, numTextureGraphicsIds> textureIndices()
 		{

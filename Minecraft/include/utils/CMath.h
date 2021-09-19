@@ -42,6 +42,17 @@ namespace Minecraft
 
 		// Hash Strings
 		uint32 hashString(const char* str);
+
+		// To String stuff
+		std::string toString(const glm::vec4& vec4, int precision = 2);
+		std::string toString(const glm::vec3& vec3, int precision = 2);
+		std::string toString(const glm::vec2& vec2, int precision = 2);
+
+		std::string toString(const glm::ivec4& vec4);
+		std::string toString(const glm::ivec3& vec3);
+		std::string toString(const glm::ivec2& vec2);
+
+		std::string toString(float value, int precision = 2);
 	}
 }
 

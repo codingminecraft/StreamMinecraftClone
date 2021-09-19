@@ -106,5 +106,60 @@ namespace Minecraft
 
 			return hash;
 		}
+
+		std::string toString(const glm::vec4& vec4, int precision)
+		{
+			return std::string("(w: ")
+				+ toString(vec4.w, precision) + ",x: "
+				+ toString(vec4.x, precision) + ",y: "
+				+ toString(vec4.y, precision) + ",z: "
+				+ toString(vec4.z, precision) + ")";
+		}
+
+		std::string toString(const glm::vec3& vec3, int precision)
+		{
+			return std::string("(x: ")
+				+ toString(vec3.x, precision) + ",y: "
+				+ toString(vec3.y, precision) + ",z: "
+				+ toString(vec3.z, precision) + ")";
+		}
+
+		std::string toString(const glm::vec2& vec2, int precision)
+		{
+			return std::string("(x: ")
+				+ toString(vec2.x, precision) + ",y: "
+				+ toString(vec2.y, precision) + ")";
+		}
+
+		std::string toString(const glm::ivec4& vec4)
+		{
+			return std::string("(w: ")
+				+ std::to_string(vec4.w) + ",x: "
+				+ std::to_string(vec4.x) + ",y: "
+				+ std::to_string(vec4.y) + ",z: "
+				+ std::to_string(vec4.z) + ")";
+		}
+
+		std::string toString(const glm::ivec3& vec3)
+		{
+			return std::string("(x: ")
+				+ std::to_string(vec3.x) + ",y: "
+				+ std::to_string(vec3.y) + ",z: "
+				+ std::to_string(vec3.z) + ")";
+		}
+
+		std::string toString(const glm::ivec2& vec2)
+		{
+			return std::string("(x: ")
+				+ std::to_string(vec2.x) + ",y: "
+				+ std::to_string(vec2.y) + ")";
+		}
+
+		std::string toString(float value, int precision)
+		{
+			const std::string str = std::to_string(value);
+			const int precisionIndex = str.find(".") + precision + 1;
+			return str.substr(0, precisionIndex);
+		}
 	}
 }

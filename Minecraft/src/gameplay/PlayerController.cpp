@@ -1,10 +1,11 @@
 #include "gameplay/PlayerController.h"
-#include "core/Input.h"
+#include "input/Input.h"
 #include "core/Ecs.h"
 #include "core/Components.h"
 #include "renderer/Camera.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
+#include "utils/DebugStats.h"
 #include "physics/PhysicsComponents.h"
 
 namespace Minecraft
@@ -22,6 +23,7 @@ namespace Minecraft
 		if (registry.hasComponent<Transform>(playerId))// && registry.hasComponent<Rigidbody>(playerId))
 		{
 			Transform& transform = registry.getComponent<Transform>(playerId);
+			DebugStats::playerPos = transform.position;
 			//Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
 
 			float mx = Input::deltaMouseX;

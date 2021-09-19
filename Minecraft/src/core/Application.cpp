@@ -1,12 +1,13 @@
 #include "core/Application.h"
 #include "core.h"
 #include "core/Window.h"
-#include "core/Input.h"
 #include "core/Ecs.h"
 #include "world/World.h"
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
+#include "input/Input.h"
+#include "input/KeyBindings.h"
 #include "utils/Settings.h"
 
 namespace Minecraft
@@ -33,6 +34,7 @@ namespace Minecraft
 			Renderer::init(registry);
 			Fonts::init();
 			World::init(registry);
+			KeyBindings::init();
 		}
 
 		void run()

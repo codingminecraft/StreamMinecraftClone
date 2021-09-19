@@ -13,6 +13,12 @@ namespace Minecraft
 	{
 		void packTextures(const char* filepath, const char* configFilepath)
 		{
+			// Return early if the texture packer has already packed the textures.
+			if (std::filesystem::exists(configFilepath))
+			{
+				return;
+			}
+
 			std::vector<Location> textureLocations;
 
 			int numFiles = 0;

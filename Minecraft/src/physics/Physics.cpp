@@ -6,7 +6,7 @@
 #include "world/BlockMap.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
-#include "core/Input.h"
+#include "input/Input.h"
 
 namespace Minecraft
 {

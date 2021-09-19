@@ -1,6 +1,6 @@
 #include "core.h"
 #include "core/Window.h"
-#include "core/Input.h"
+#include "input/Input.h"
 
 namespace Minecraft
 {

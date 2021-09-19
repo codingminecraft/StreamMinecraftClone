@@ -9,6 +9,7 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 // My libraries
 #include <cppUtils/cppUtils.hpp>
@@ -23,6 +24,8 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <format>
+#include <string_view>
 #include <unordered_set>
 #include <thread>
 #include <mutex>

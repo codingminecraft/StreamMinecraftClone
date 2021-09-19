@@ -8,6 +8,9 @@ namespace Minecraft
 	{
 		extern uint32 numDrawCalls;
 		extern float lastFrameTime;
+		extern glm::vec3 playerPos;
+
+		void render();
 	}
 }
 

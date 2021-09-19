@@ -1,4 +1,4 @@
-#include "core/Input.h"
+#include "input/Input.h"
 
 namespace Minecraft
 {

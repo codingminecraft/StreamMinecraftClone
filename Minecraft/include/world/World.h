@@ -12,8 +12,8 @@ namespace Minecraft
 	namespace World
 	{
 		void init(Ecs::Registry& registry);
-		void update(float dt);
 		void free();
+		void update(float dt);
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 		Block getBlock(const glm::vec3& worldPosition);
