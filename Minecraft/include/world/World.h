@@ -13,7 +13,7 @@ namespace Minecraft
 	{
 		void init(Ecs::Registry& registry);
 		void update(float dt);
-		void cleanup();
+		void free();
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 		Block getBlock(const glm::vec3& worldPosition);

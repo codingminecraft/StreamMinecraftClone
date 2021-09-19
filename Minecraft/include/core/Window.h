@@ -19,26 +19,20 @@ namespace Minecraft
 		void* windowPtr;
 
 		void makeContextCurrent();
-
 		void pollInput();
-
 		void swapBuffers();
-
-		void update(float dt);
-
-		void setCursorMode(CursorMode cursorMode);
-
 		bool shouldClose();
 
+		void close();
+		void destroy();
+		void setCursorMode(CursorMode cursorMode);
 		void setVSync(bool on);
-
 		void setTitle(const char* title);
-
-		static void cleanup();
+		float getAspectRatio() const;
 
 		static Window* create(int width, int height, const char* title);
-		static void free(Window* window);
 		static void init();
+		static void free();
 	};
 }
 

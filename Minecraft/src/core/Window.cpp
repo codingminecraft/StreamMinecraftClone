@@ -33,7 +33,7 @@ namespace Minecraft
 		{
 			glfwTerminate();
 			g_logger_error("Window creation failed.");
-			return nullptr;
+			return res;
 		}
 		g_logger_info("GLFW window created");
 
@@ -56,12 +56,9 @@ namespace Minecraft
 			monitorX + (mode->width - windowWidth) / 2,
 			monitorY + (mode->height - windowHeight) / 2);
 
-		return res;
-	}
+		res->setVSync(true);
 
-	void Window::free(Window* window)
-	{
-		delete window;
+		return res;
 	}
 
 	void Window::setTitle(const char* title)
@@ -91,6 +88,17 @@ namespace Minecraft
 		glfwPollEvents();
 	}
 
+	void Window::close()
+	{
+		glfwSetWindowShouldClose((GLFWwindow*)windowPtr, GLFW_TRUE);
+	}
+
+	void Window::destroy()
+	{
+		glfwDestroyWindow((GLFWwindow*)windowPtr);
+		windowPtr = nullptr;
+	}
+
 	bool Window::shouldClose()
 	{
 		return glfwWindowShouldClose((GLFWwindow*)windowPtr);
@@ -99,6 +107,11 @@ namespace Minecraft
 	void Window::swapBuffers()
 	{
 		glfwSwapBuffers((GLFWwindow*)windowPtr);
+	}
+
+	float Window::getAspectRatio() const
+	{
+		return (float)width / (float)height;
 	}
 
 	void Window::setVSync(bool on)
@@ -113,12 +126,7 @@ namespace Minecraft
 		}
 	}
 
-	void Window::update(float dt)
-	{
-
-	}
-
-	void Window::cleanup()
+	void Window::free()
 	{
 		// Clean up
 		glfwTerminate();

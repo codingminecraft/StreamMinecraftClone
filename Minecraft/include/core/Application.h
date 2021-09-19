@@ -3,13 +3,15 @@
 
 namespace Minecraft
 {
+	struct Window;
+
 	namespace Application
 	{
+		void init();
 		void run();
+		void free();
 
-		void lockCursor(bool lock);
-
-		float getAspectRatio();
+		Window& getWindow();
 	}
 }
 

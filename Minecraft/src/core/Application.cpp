@@ -1,3 +1,4 @@
+#include "core/Application.h"
 #include "core.h"
 #include "core/Window.h"
 #include "core/Input.h"
@@ -6,75 +7,87 @@
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
+#include "utils/Settings.h"
 
 namespace Minecraft
 {
 	namespace Application
 	{
-		// Settings
-		static const int windowWidth = 1920;
-		static const int windowHeight = 1080;
-		static const glm::vec4 clearColor = glm::vec4(153.0f / 255.0f, 204.0f / 255.0f, 1.0f, 1.0f);
-		static const char* windowTitle = "Minecraft Clone";
-		static Window* window = nullptr;
+		static Ecs::Registry& getRegistry();
+		static void freeWindow();
+		static void freeRegistry();
 
-		void run()
+		void init()
 		{
-			// Initiaize GLFW/Glad
-			Ecs::Registry registry = Ecs::Registry();
+			// Initialize GLFW/Glad
 			Window::init();
-			window = Window::create(windowWidth, windowHeight, windowTitle);
-			Renderer::init(registry);
-			Fonts::init();
-
-			if (!window)
+			Window& window = getWindow();
+			if (!window.windowPtr)
 			{
+				g_logger_error("Error: Could not create window.");
 				return;
 			}
 
-			window->setVSync(true);
+			// Initialize all other subsystems
+			Ecs::Registry& registry = getRegistry();
+			Renderer::init(registry);
+			Fonts::init();
 			World::init(registry);
+		}
 
+		void run()
+		{
 			// Run game loop
 			// Start with a 60 fps frame rate
+			Window& window = getWindow();
 			float previousTime = glfwGetTime() - 0.16f;
-			bool isRunning = true;
-			while (isRunning && !window->shouldClose())
+			while (!window.shouldClose())
 			{
 				float deltaTime = glfwGetTime() - previousTime;
 				previousTime = glfwGetTime();
 
-				Renderer::clearColor(clearColor);
-
+				Renderer::clearColor(Settings::Window::clearColor);
 				World::update(deltaTime);
 
-				// Render
-				window->swapBuffers();
-
-				if (Input::isKeyPressed(GLFW_KEY_ESCAPE))
-				{
-					isRunning = false;
-				}
-
-				window->pollInput();
+				window.swapBuffers();
+				window.pollInput();
 			}
+		}
 
-			World::cleanup();
+		void free()
+		{
+			// Free all resources
+			Window& window = getWindow();
+			window.destroy();
+			World::free();
 			Renderer::free();
-			Window::cleanup();
+			Window::free();
+
+			// Free the pointers now that everything should be cleaned up
+			freeWindow();
+			freeRegistry();
 		}
 
-		void lockCursor(bool lock)
+		Window& getWindow()
 		{
-			CursorMode mode = lock ?
-				CursorMode::Locked :
-				CursorMode::Normal;
-			window->setCursorMode(mode);
+			static Window* window = Window::create(Settings::Window::width, Settings::Window::height, Settings::Window::title);
+			return *window;
 		}
 
-		float getAspectRatio()
+		static Ecs::Registry& getRegistry()
 		{
-			return (float)window->width / (float)window->height;
+			static Ecs::Registry* registry = new Ecs::Registry();
+			return *registry;
+		}
+
+		static void freeWindow()
+		{
+			delete &getWindow();
+		}
+
+		static void freeRegistry()
+		{
+			delete &getRegistry();
 		}
 	}
 }

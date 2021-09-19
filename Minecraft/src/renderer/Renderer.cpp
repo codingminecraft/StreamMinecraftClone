@@ -9,6 +9,7 @@
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
+#include "core/Window.h"
 #include "utils/DebugStats.h"
 
 namespace Minecraft
@@ -137,7 +138,7 @@ namespace Minecraft
 			shader.bind();
 			shader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
 			shader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
-			shader.uploadFloat("uAspectRatio", Application::getAspectRatio());
+			shader.uploadFloat("uAspectRatio", Application::getWindow().getAspectRatio());
 
 			batch.flush();
 

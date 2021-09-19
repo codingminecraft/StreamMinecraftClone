@@ -14,6 +14,7 @@
 #include "core/Ecs.h"
 #include "core/Components.h"
 #include "core/TransformSystem.h"
+#include "core/Window.h"
 #include "physics/Physics.h"
 #include "physics/PhysicsComponents.h"
 #include "gameplay/PlayerController.h"
@@ -197,11 +198,15 @@ namespace Minecraft
 			{
 				static bool lockCursor = false;
 				lockCursor = !lockCursor;
-				Application::lockCursor(lockCursor);
+				Application::getWindow().setCursorMode(lockCursor ? CursorMode::Locked : CursorMode::Normal);
 			}
 			if (Input::keyBeginPress(GLFW_KEY_F3))
 			{
 				showDebugStats = !showDebugStats;
+			}
+			if (Input::keyBeginPress(GLFW_KEY_ESCAPE))
+			{
+				Application::getWindow().close();
 			}
 
 			glActiveTexture(GL_TEXTURE0);
@@ -239,7 +244,7 @@ namespace Minecraft
 			synchronizeChunks();
 		}
 
-		void cleanup()
+		void free()
 		{
 			Members& m = obj();
 			ChunkManager::free();
