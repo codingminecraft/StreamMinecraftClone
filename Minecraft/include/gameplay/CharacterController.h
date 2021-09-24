@@ -9,11 +9,13 @@ namespace Minecraft
 		float controllerBaseSpeed;
 		float controllerRunSpeed;
 		float movementSensitivity;
+		float jumpForce;
 
 		glm::vec3 movementAxis;
 		glm::vec2 viewAxis;
 		bool isRunning;
 		bool lockedToCamera;
+		bool applyJumpForce;
 	};
 }
 

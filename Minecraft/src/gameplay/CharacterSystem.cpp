@@ -27,16 +27,25 @@ namespace Minecraft
 				rb.velocity.z = 0;
 				if (controller.movementAxis.x)
 				{
-					rb.velocity.x += transform.forward.x * controller.movementAxis.x;
-					rb.velocity.z += transform.forward.z * controller.movementAxis.x;
+					glm::vec2 normalDir = glm::normalize(glm::vec2(transform.forward.x, transform.forward.z));
+					rb.velocity.x += normalDir.x * controller.movementAxis.x;
+					rb.velocity.z += normalDir.y * controller.movementAxis.x;
 				}
 				if (controller.movementAxis.z)
 				{
-					rb.velocity.x += transform.right.x * controller.movementAxis.z;
-					rb.velocity.z += transform.right.z * controller.movementAxis.z;
+					glm::vec2 normalDir = glm::normalize(glm::vec2(transform.right.x, transform.right.z));
+					rb.velocity.x += normalDir.x * controller.movementAxis.z;
+					rb.velocity.z += normalDir.y * controller.movementAxis.z;
 				}
-				rb.velocity.x *= speed;
-				rb.velocity.z *= speed;
+
+				if (rb.velocity.x > 0 || rb.velocity.z > 0)
+				{
+					float normalDir = glm::inversesqrt(rb.velocity.x * rb.velocity.x + rb.velocity.z * rb.velocity.z);
+					rb.velocity.x *= normalDir;
+					rb.velocity.z *= normalDir;
+					rb.velocity.x *= speed;
+					rb.velocity.z *= speed;
+				}
 
 				float mx = controller.viewAxis.x;
 				float my = controller.viewAxis.y;
@@ -47,6 +56,12 @@ namespace Minecraft
 				transform.orientation.y += mx;
 				transform.orientation.x = glm::clamp(transform.orientation.x, -89.9f, 89.9f);
 				transform.orientation.z = glm::clamp(transform.orientation.z, -89.9f, 89.9f);
+
+				if (controller.applyJumpForce)
+				{
+					rb.velocity.y = controller.jumpForce;
+					controller.applyJumpForce = false;
+				}
 
 				if (controller.lockedToCamera)
 				{

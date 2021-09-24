@@ -36,75 +36,42 @@ namespace Minecraft
 
 	namespace Physics
 	{
-		static glm::vec3 gravity = glm::vec3(0.0f, 11.2f, 0.0f);
-		static glm::vec3 terminalVelocity = glm::vec3(55.0f, 55.0f, 55.0f);
+		static glm::vec3 gravity = glm::vec3(0.0f, 18.2f, 0.0f);
+		static glm::vec3 terminalVelocity = glm::vec3(30.0f, 30.0f, 30.0f);
 
-		static void resolveStaticCollision(Rigidbody& rb, Transform& transform, BoxCollider& boxCollider);
+		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider);
 		static CollisionManifold staticCollisionInformation(const Rigidbody& r1, const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
 		static bool isColliding(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
 		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis);
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis);
 		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res, CollisionFace xFace, CollisionFace yFace, CollisionFace zFace);
 
-		static bool singleStepPhysics = false;
-		static bool stepPhysics = false;
-		static bool stepMovePhysics = false;
-		static float debounce = 0.0f;
-
 		void update(Ecs::Registry& registry, float dt)
 		{
-			debounce -= dt;
-			stepPhysics = false;
-			if (singleStepPhysics && Input::isKeyPressed(GLFW_KEY_SPACE) && debounce < 0)
-			{
-				stepPhysics = true;
-				debounce = 0.2f;
-			}
-
-			if (singleStepPhysics && Input::isKeyPressed(GLFW_KEY_Z) && debounce < 0)
-			{
-				stepMovePhysics = true;
-				debounce = 0.2f;
-			}
-
-
 			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 			{
 				Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
 				Transform& transform = registry.getComponent<Transform>(entity);
 				BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);
 
-				if (stepMovePhysics || !singleStepPhysics)
+				transform.position += rb.velocity * dt;
+				rb.velocity += rb.acceleration * dt;
+				rb.velocity -= gravity * dt;
+				rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
+
+				resolveStaticCollision(entity, rb, transform, boxCollider);
+
+				if (registry.getComponent<Tag>(entity).type != TagType::Player)
 				{
-					transform.position += rb.velocity * dt;
-					rb.velocity += rb.acceleration * dt;
-					rb.velocity -= gravity * dt;
-					rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
+					Style redStyle = Styles::defaultStyle;
+					redStyle.color = "#FF0000"_hex;
+					redStyle.strokeWidth = 0.3f;
+					Renderer::drawBox(transform.position, boxCollider.size, redStyle);
 				}
-
-				resolveStaticCollision(rb, transform, boxCollider);
-
-				Style redStyle = Styles::defaultStyle;
-				redStyle.color = "#FF0000"_hex;
-				redStyle.strokeWidth = 0.3f;
-				Renderer::drawBox(transform.position, boxCollider.size, redStyle);
-				redStyle.strokeWidth = 0.05f;
-				Renderer::drawLine(transform.position, transform.position + glm::vec3(1, 0, 0), redStyle);
-				redStyle.color = "#00FF00"_hex;
-				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 1, 0), redStyle);
-				redStyle.color = "#0000FF"_hex;
-				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 0, 1), redStyle);
 			}
-
-			if (Input::isKeyPressed(GLFW_KEY_C))
-			{
-				singleStepPhysics = false;
-			}
-
-			stepMovePhysics = false;
 		}
 
-		static void resolveStaticCollision(Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
+		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
 		{
 			int32 leftX = (int32)glm::ceil(transform.position.x - boxCollider.size.x * 0.5f);
 			int32 rightX = (int32)glm::ceil(transform.position.x + boxCollider.size.x * 0.5f);
@@ -113,6 +80,7 @@ namespace Minecraft
 			int32 bottomY = (int32)glm::ceil(transform.position.y - boxCollider.size.y * 0.5f);
 			int32 topY = (int32)glm::ceil(transform.position.y + boxCollider.size.y * 0.5f);
 
+			bool didCollide = false;
 			for (int32 y = bottomY; y <= topY; y++)
 			{
 				for (int32 x = leftX; x <= rightX; x++)
@@ -133,38 +101,50 @@ namespace Minecraft
 						blockTransform.scale = glm::vec3(1, 1, 1);
 						blockTransform.position = boxPos;
 
-						//if (blockFormat.isSolid)
-						//{
-						//	static bool pause = false;
-						//	if (!pause)
-						//	{
-						//		pause = true;
-						//		singleStepPhysics = true;
-						//	}
-						//}
-
 						if (blockFormat.isSolid && isColliding(boxCollider, transform, defaultBlockCollider, blockTransform))
 						{
 							CollisionManifold collision =
 								staticCollisionInformation(rb, boxCollider, transform, defaultBlockCollider, blockTransform);
-							Style green = Styles::defaultStyle;
-							green.color = "#00FFF0"_hex;
-							Renderer::drawLine(blockTransform.position, blockTransform.position + collision.overlap, green);
 
-							if (stepPhysics || !singleStepPhysics)
+							float dotProduct = glm::dot(glm::normalize(collision.overlap), glm::normalize(rb.velocity));
+							if (dotProduct < 0)
 							{
-								transform.position -= collision.overlap;
-								rb.acceleration = glm::vec3();
-								rb.velocity = glm::vec3();
+								// We're already moving out of the collision, don't do anything
+								return;
 							}
-							//Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, green);
-						}
-						else
-						{
-							//Renderer::drawBox(blockTransform.position, defaultBlockCollider.size, Styles::defaultStyle);
+							transform.position -= collision.overlap;
+							switch (collision.face)
+							{
+							case CollisionFace::BOTTOM:
+							case CollisionFace::TOP:
+								rb.acceleration.y = 0;
+								rb.velocity.y = 0;
+								break;
+							case CollisionFace::RIGHT:
+							case CollisionFace::LEFT:
+								rb.velocity.x = 0;
+								rb.acceleration.x = 0;
+								break;
+							case CollisionFace::FRONT:
+							case CollisionFace::BACK:
+								rb.velocity.z = 0;
+								rb.acceleration.z = 0;
+								break;
+							}
+
+							// TODO: Is this hacky? Or should we have callbacks for this stuff??
+							// TODO: We need callbacks somehow when we collide with blocks...
+							rb.onGround = collision.face == CollisionFace::BOTTOM;
+							didCollide = true;
 						}
 					}
 				}
+			}
+
+			if (!didCollide && rb.onGround && rb.velocity.y > 0)
+			{
+				// If we're not colliding with any object it's impossible to be on the ground
+				rb.onGround = false;
 			}
 		}
 
@@ -174,50 +154,48 @@ namespace Minecraft
 			res.didCollide = true;
 			BoxCollider b2Expanded = b2;
 			b2Expanded.size += b1.size;
-			//Renderer::drawBox(t2.position, b2Expanded.size, Styles::defaultStyle);
+
 			// Figure out which quadrant the collision is in and resolve it there
 			glm::vec3 b1ToB2 = t1.position - t2.position;
 			if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
 			{
 				// We are in the top-right-front quadrant
-				// Figure out if the collision is on the front-face top-face or right-face
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::FRONT);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::BACK);
 			}
 			else if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
 			{
 				// We are in the top-right-back quadrant
-				// Figure out which face we are colliding with
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::BACK);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::FRONT);
 			}
 			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
 			{
 				// We are in the bottom-right-front quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::FRONT);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::BACK);
 			}
 			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
 			{
 				// We are in the bottom-right-back quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::BACK);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::FRONT);
 			}
 			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
 			{
 				// We are in the top-left-front quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::FRONT);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::BACK);
 			}
 			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
 			{
 				// We are in the top-left-back quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::BACK);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::FRONT);
 			}
 			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
 			{
 				// We are in the bottom-left-front quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::FRONT);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::BACK);
 			}
 			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
 			{
 				// We are in the bottom-left-back quadrant
-				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::BACK);
+				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::FRONT);
 			}
 
 			return res;
@@ -228,19 +206,19 @@ namespace Minecraft
 			switch (face)
 			{
 			case CollisionFace::BACK:
-				return -1;
+				return 1;
 			case CollisionFace::FRONT:
-				return 1;
+				return -1;
 			case CollisionFace::RIGHT:
-				return 1;
+				return -1;
 			case CollisionFace::LEFT:
-				return -1;
-			case CollisionFace::TOP:
 				return 1;
-			case CollisionFace::BOTTOM:
+			case CollisionFace::TOP:
 				return -1;
+			case CollisionFace::BOTTOM:
+				return 1;
 			}
-			return 1;
+			return 0;
 		}
 
 		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res,
@@ -256,9 +234,6 @@ namespace Minecraft
 				b2Expanded.size.z * zDirection
 			};
 			glm::vec3 quadrant = (b2ExpandedSizeByDirection * 0.5f) + t2.position;
-			//Style redStyle = Styles::defaultStyle;
-			//redStyle.color = "#FB0203"_hex;
-			//Renderer::drawBox(t2.position + b2ExpandedSizeByDirection * 0.25f, b2ExpandedSizeByDirection * 0.5f, redStyle);
 			glm::vec3 delta = t1.position - quadrant;
 			glm::vec3 absDelta = glm::abs(delta);
 

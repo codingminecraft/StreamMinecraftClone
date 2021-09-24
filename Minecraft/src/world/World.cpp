@@ -106,12 +106,14 @@ namespace Minecraft
 			transform.position.z = -45.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
 			controller.lockedToCamera = true;
-			controller.controllerBaseSpeed = 2.0f;
-			controller.controllerRunSpeed = 4.0f;
+			controller.controllerBaseSpeed = 4.0f;
+			controller.controllerRunSpeed = 7.0f;
 			controller.movementSensitivity = 0.1f;
 			controller.isRunning = false;
 			controller.movementAxis = glm::vec3();
 			controller.viewAxis = glm::vec2();
+			controller.applyJumpForce = false;
+			controller.jumpForce = 8.0f;
 			Tag& tag = registry->getComponent<Tag>(player);
 			tag.type = TagType::Player;
 
@@ -138,6 +140,8 @@ namespace Minecraft
 			controller2.movementAxis = glm::vec3();
 			controller2.viewAxis = glm::vec2();
 			controller2.movementSensitivity = 0.1f;
+			controller2.applyJumpForce = false;
+			controller2.jumpForce = 16.0f;
 			Tag& tag2 = registry->getComponent<Tag>(randomEntity);
 			tag2.type = TagType::None;
 

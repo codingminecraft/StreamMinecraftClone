@@ -22,10 +22,12 @@ namespace Minecraft
 				playerId = registry.find(TagType::Player);
 			}
 
-			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId))
+			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
+				&& registry.hasComponent<Rigidbody>(playerId))
 			{
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
+				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
 
 				controller.viewAxis.x = Input::deltaMouseX;
 				controller.viewAxis.y = Input::deltaMouseY;
@@ -43,6 +45,14 @@ namespace Minecraft
 					: Input::isKeyPressed(GLFW_KEY_A)
 					? -1.0f
 					: 0.0f;
+
+				if (rb.onGround)
+				{
+					if (Input::keyBeginPress(GLFW_KEY_SPACE))
+					{
+						controller.applyJumpForce = true;
+					}
+				}
 				DebugStats::playerPos = transform.position;
 			}
 		}
