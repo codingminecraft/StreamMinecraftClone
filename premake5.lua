@@ -18,8 +18,8 @@ project "Minecraft"
     cppdialect "C++17"
     staticruntime "on"
 
-    targetdir("bin/" .. outputdir .. "/%{prj.name}")
-    objdir("bin-int/" .. outputdir .. "/%{prj.name}")
+    targetdir("bin\\" .. outputdir .. "\\%{prj.name}")
+    objdir("bin-int\\" .. outputdir .. "\\%{prj.name}")
 
     files {
         "Minecraft/src/**.cpp",
@@ -86,6 +86,11 @@ project "Minecraft"
         defines  {
             "_GLFW_WIN32",
             "_CRT_SECURE_NO_WARNINGS"
+        }
+
+        postbuildcommands {
+            "copy /y \"Minecraft\\vendor\\freetype\\release dll\\win64\\freetype.dll\" \"%{cfg.targetdir}\\freetype.dll\"",
+            "copy /y \"Minecraft\\vendor\\freetype\\release dll\\win64\\freetype.lib\" \"%{cfg.targetdir}\\freetype.lib\""
         }
 
     filter { "configurations:Debug" }
