@@ -10,3 +10,6 @@
 [submodule "Minecraft/vendor/cppUtils"]
 	path = Minecraft/vendor/cppUtils
 	url = https://github.com/ambrosiogabe/CppUtils
+[submodule "Minecraft/vendor/GLFW"]
+	path = Minecraft/vendor/GLFW
+	url = https://github.com/glfw/glfw
