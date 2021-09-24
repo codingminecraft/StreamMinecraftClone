@@ -6,7 +6,7 @@ namespace Minecraft
 {
 	enum class TagType : uint8
 	{
-		None = 0,
+		None,
 		Player,
 		Camera
 	};

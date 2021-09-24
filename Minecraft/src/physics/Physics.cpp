@@ -82,6 +82,8 @@ namespace Minecraft
 					rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
 				}
 
+				resolveStaticCollision(rb, transform, boxCollider);
+
 				Style redStyle = Styles::defaultStyle;
 				redStyle.color = "#FF0000"_hex;
 				redStyle.strokeWidth = 0.3f;
@@ -92,8 +94,6 @@ namespace Minecraft
 				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 1, 0), redStyle);
 				redStyle.color = "#0000FF"_hex;
 				Renderer::drawLine(transform.position, transform.position + glm::vec3(0, 0, 1), redStyle);
-
-				resolveStaticCollision(rb, transform, boxCollider);
 			}
 
 			if (Input::isKeyPressed(GLFW_KEY_C))
@@ -294,7 +294,7 @@ namespace Minecraft
 			for (int i = 0; i < 3; i++)
 			{
 				float penetration = penetrationAmount(b1, t1, b2, t2, testAxes[i]);
-				if (glm::abs(penetration) <= 0.01f)
+				if (glm::abs(penetration) <= 0.001f)
 				{
 					return false;
 				}

@@ -171,7 +171,7 @@ namespace Minecraft
 			CharacterSystem::update(*registry, dt);
 			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(dt, *registry);
+			TransformSystem::update(*registry, dt);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;

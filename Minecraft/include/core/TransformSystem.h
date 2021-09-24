@@ -6,7 +6,7 @@ namespace Minecraft
 {
 	namespace TransformSystem
 	{
-		void update(float dt, Ecs::Registry& registry);
+		void update(Ecs::Registry& registry, float dt);
 	}
 }
 
