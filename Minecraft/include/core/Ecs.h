@@ -4,6 +4,8 @@
 
 namespace Minecraft
 {
+	enum class TagType : uint8;
+
 	namespace Ecs
 	{
 		template<typename... Components>
@@ -184,6 +186,8 @@ namespace Minecraft
 				entities[Internal::getEntityIndex(id)].mask.reset();
 				freeEntities.push_back(Internal::getEntityIndex(id));
 			}
+
+			EntityId find(TagType type);
 		};
 
 		template<typename... Components>

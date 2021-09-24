@@ -4,6 +4,18 @@
 
 namespace Minecraft
 {
+	enum class TagType : uint8
+	{
+		None = 0,
+		Player,
+		Camera
+	};
+
+	struct Tag
+	{
+		TagType type;
+	};
+
 	struct Transform
 	{
 		glm::vec3 position;

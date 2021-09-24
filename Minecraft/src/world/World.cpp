@@ -19,6 +19,8 @@
 #include "physics/Physics.h"
 #include "physics/PhysicsComponents.h"
 #include "gameplay/PlayerController.h"
+#include "gameplay/CharacterController.h"
+#include "gameplay/CharacterSystem.h"
 #include "utils/TexturePacker.h"
 #include "utils/DebugStats.h"
 
@@ -32,49 +34,40 @@ namespace Minecraft
 		static Chunk* findChunk(const glm::ivec2& chunkCoords);
 		static void setUnloadedChunk(const Chunk& chunkVal);
 		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal);
-		static void drawDebugStats();
 
 		// Members
-		struct Members
+		static Camera camera;
+		static Shader shader;
+		static Texture worldTexture;
+		static Ecs::EntityId playerId;
+		static Ecs::EntityId randomEntity;
+		static std::unordered_set<glm::ivec2> loadedChunkPositions;
+		static Chunk chunks[World::ChunkCapacity];
+		static std::string worldSavePath;
+		static Ecs::Registry* registry;
+
+		static int32 seed;
+
+		void init(Ecs::Registry& sceneRegistry)
 		{
-			RenderState renderState;
-			Camera camera;
-			PlayerController playerController;
-			Shader shader;
-			Texture worldTexture;
-			std::unordered_set<glm::ivec2> loadedChunkPositions;
-			Chunk chunks[World::ChunkCapacity];
-			std::string worldSavePath;
-			Ecs::Registry* registry;
-			RandomController ctlr;
-
-			int32 seed;
-		};
-
-		static Members& obj();
-
-		void init(Ecs::Registry& registry)
-		{
-			Members& m = obj();
-
 			// Initialize memory
-			m.registry = &registry;
-			m.worldSavePath = "world";
-			File::createDirIfNotExists(m.worldSavePath.c_str());
-			g_memory_zeroMem(m.chunks, sizeof(Chunk) * ChunkCapacity);
+			registry = &sceneRegistry;
+			worldSavePath = "world";
+			File::createDirIfNotExists(worldSavePath.c_str());
+			g_memory_zeroMem(chunks, sizeof(Chunk) * ChunkCapacity);
 
 			// Generate a seed if needed
 			srand((unsigned long)time(NULL));
-			m.seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
-			g_logger_info("World seed: %d", m.seed);
+			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
+			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
 			TexturePacker::packTextures("assets/images/block", "textureFormat.yaml");
 			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 
-			m.shader.compile("assets/shaders/default.glsl");
-			m.worldTexture = TextureBuilder()
+			shader.compile("assets/shaders/default.glsl");
+			worldTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
@@ -82,61 +75,84 @@ namespace Minecraft
 				.generate(true);
 
 			// Setup camera
-			Ecs::EntityId cameraEntity = m.registry->createEntity();
-			m.registry->addComponent<Transform>(cameraEntity);
-			Transform& cameraTransform = m.registry->getComponent<Transform>(cameraEntity);
+			Ecs::EntityId cameraEntity = registry->createEntity();
+			registry->addComponent<Transform>(cameraEntity);
+			registry->addComponent<Tag>(cameraEntity);
+			Transform& cameraTransform = registry->getComponent<Transform>(cameraEntity);
 			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
 			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
-			m.camera.fov = 45.0f;
-			m.camera.cameraEntity = cameraEntity;
+			camera.fov = 45.0f;
+			camera.cameraEntity = cameraEntity;
+			Tag& cameraTag = registry->getComponent<Tag>(cameraEntity);
+			cameraTag.type = TagType::Camera;
 
-			Renderer::setCamera(m.camera);
+			Renderer::setCamera(camera);
 
 			// Setup player
-			Ecs::EntityId player = m.registry->createEntity();
-			m.registry->addComponent<Transform>(player);
-			//m.registry->addComponent<BoxCollider>(player);
-			//m.registry->addComponent<Rigidbody>(player);
-			//BoxCollider& boxCollider = m.registry->getComponent<BoxCollider>(player);
-			//boxCollider.size.x = 0.5f;
-			//boxCollider.size.y = 3.0f;
-			//boxCollider.size.z = 0.75f;
-			Transform& transform = m.registry->getComponent<Transform>(player);
+			Ecs::EntityId player = registry->createEntity();
+			playerId = player;
+			registry->addComponent<Transform>(player);
+			registry->addComponent<CharacterController>(player);
+			registry->addComponent<BoxCollider>(player);
+			registry->addComponent<Rigidbody>(player);
+			registry->addComponent<Tag>(player);
+			BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
+			boxCollider.size.x = 0.5f;
+			boxCollider.size.y = 3.0f;
+			boxCollider.size.z = 0.75f;
+			Transform& transform = registry->getComponent<Transform>(player);
 			transform.position.y = 255;
 			transform.position.x = 45.0f;
 			transform.position.z = -45.0f;
-			m.playerController.init(player);
+			CharacterController& controller = registry->getComponent<CharacterController>(player);
+			controller.lockedToCamera = true;
+			controller.controllerBaseSpeed = 2.0f;
+			controller.controllerRunSpeed = 4.0f;
+			controller.movementSensitivity = 0.1f;
+			controller.isRunning = false;
+			controller.movementAxis = glm::vec3();
+			controller.viewAxis = glm::vec2();
+			Tag& tag = registry->getComponent<Tag>(player);
+			tag.type = TagType::Player;
 
 			// Setup random physics entity
-			Ecs::EntityId randomEntity = m.registry->createEntity();
-			m.registry->addComponent<Transform>(randomEntity);
-			m.registry->addComponent<BoxCollider>(randomEntity);
-			m.registry->addComponent<Rigidbody>(randomEntity);
-			m.registry->addComponent<RandomController>(randomEntity);
-			BoxCollider& boxCollider2 = m.registry->getComponent<BoxCollider>(randomEntity);
+			randomEntity = registry->createEntity();
+			registry->addComponent<Transform>(randomEntity);
+			registry->addComponent<BoxCollider>(randomEntity);
+			registry->addComponent<Rigidbody>(randomEntity);
+			registry->addComponent<CharacterController>(randomEntity);
+			registry->addComponent<Tag>(randomEntity);
+			BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
 			boxCollider2.size.x = 0.5f;
 			boxCollider2.size.y = 3.0f;
 			boxCollider2.size.z = 0.75f;
-			Transform& transform2 = m.registry->getComponent<Transform>(randomEntity);
+			Transform& transform2 = registry->getComponent<Transform>(randomEntity);
 			transform2.position.y = 255;
 			transform2.position.x = 45.0f;
 			transform2.position.z = -45.0f;
-			m.registry->getComponent<RandomController>(randomEntity).init(randomEntity);
-			m.ctlr = m.registry->getComponent<RandomController>(randomEntity);
+			CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
+			controller2.lockedToCamera = false;
+			controller2.controllerBaseSpeed = 4.2f;
+			controller2.controllerRunSpeed = 8.4f;
+			controller2.isRunning = false;
+			controller2.movementAxis = glm::vec3();
+			controller2.viewAxis = glm::vec2();
+			controller2.movementSensitivity = 0.1f;
+			Tag& tag2 = registry->getComponent<Tag>(randomEntity);
+			tag2.type = TagType::None;
 
-			ChunkManager::init(m.seed);
+			ChunkManager::init(seed);
 			checkChunkRadius();
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 		}
 
 		void free()
 		{
-			Members& m = obj();
 			ChunkManager::free();
 
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				Chunk& chunk = m.chunks[i];
+				Chunk& chunk = chunks[i];
 				if (chunk.loaded)
 				{
 					chunk.freeCpu();
@@ -144,24 +160,18 @@ namespace Minecraft
 				}
 			}
 
-			m.registry->free();
+			registry->free();
 		}
 
 		void update(float dt)
 		{
-			Members& m = obj();
-
 			// Update all systems
 			KeyHandler::update(dt);
-			Physics::update(*m.registry, dt);
-			m.playerController.update(dt, *m.registry);
-			m.ctlr.update(dt, *m.registry);
-			m.registry->getComponent<Transform>(m.camera.cameraEntity).position =
-				m.registry->getComponent<Transform>(m.playerController.playerId).position;
-			m.registry->getComponent<Transform>(m.camera.cameraEntity).orientation =
-				m.registry->getComponent<Transform>(m.playerController.playerId).orientation;
+			Physics::update(*registry, dt);
+			CharacterSystem::update(*registry, dt);
+			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(dt, *m.registry);
+			TransformSystem::update(dt, *registry);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
@@ -172,39 +182,52 @@ namespace Minecraft
 				ticks = 0;
 			}
 
+			// TODO: Remove me, I'm just here for testing purposes
+			if (Input::keyBeginPress(GLFW_KEY_F5))
+			{
+				CharacterController& c1 = registry->getComponent<CharacterController>(playerId);
+				CharacterController& c2 = registry->getComponent<CharacterController>(randomEntity);
+				c1.lockedToCamera = !c1.lockedToCamera;
+				c2.lockedToCamera = !c2.lockedToCamera;
+				Tag& t1 = registry->getComponent<Tag>(playerId);
+				Tag& t2 = registry->getComponent<Tag>(randomEntity);
+				t1.type = c1.lockedToCamera ? TagType::Player : TagType::None;
+				t2.type = c2.lockedToCamera ? TagType::Player : TagType::None;
+			}
+
 			// Upload shader variables
-			m.shader.bind();
-			m.shader.uploadMat4("uProjection", m.camera.calculateProjectionMatrix(*m.registry));
-			m.shader.uploadMat4("uView", m.camera.calculateViewMatrix(*m.registry));
-			m.shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
+			shader.bind();
+			shader.uploadMat4("uProjection", camera.calculateProjectionMatrix(*registry));
+			shader.uploadMat4("uView", camera.calculateViewMatrix(*registry));
+			shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
 
 			glActiveTexture(GL_TEXTURE0);
-			m.worldTexture.bind();
-			m.shader.uploadInt("uTexture", 0);
+			worldTexture.bind();
+			shader.uploadInt("uTexture", 0);
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
-			m.shader.uploadInt("uTexCoordTexture", 1);
+			shader.uploadInt("uTexCoordTexture", 1);
 
 			// Render all the loaded chunks
-			const glm::vec3& playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
+			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				Chunk& chunk = m.chunks[i];
+				Chunk& chunk = chunks[i];
 				if (chunk.loaded)
 				{
-					m.shader.uploadIVec2("uChunkPos", chunk.chunkCoordinates);
-					m.shader.uploadVec3("uPlayerPosition", playerPosition);
-					m.shader.uploadInt("uChunkRadius", World::ChunkRadius);
+					shader.uploadIVec2("uChunkPos", chunk.chunkCoordinates);
+					shader.uploadVec3("uPlayerPosition", playerPosition);
+					shader.uploadInt("uChunkRadius", World::ChunkRadius);
 					chunk.render();
 
 					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-					bool hasBeenQueued = m.loadedChunkPositions.find(chunk.chunkCoordinates) == m.loadedChunkPositions.end();
+					bool hasBeenQueued = loadedChunkPositions.find(chunk.chunkCoordinates) == loadedChunkPositions.end();
 					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= ChunkRadius * ChunkRadius)
 					{
 						ChunkManager::queueDeleteChunk(chunk);
-						m.loadedChunkPositions.erase(chunk.chunkCoordinates);
+						loadedChunkPositions.erase(chunk.chunkCoordinates);
 					}
 
 					DebugStats::numDrawCalls++;
@@ -228,9 +251,8 @@ namespace Minecraft
 
 		Chunk& getChunk(const glm::vec3& worldPosition)
 		{
-			Members& m = obj();
 			glm::ivec2 chunkPosition = toChunkCoords(worldPosition);
-			for (Chunk& chunk : m.chunks)
+			for (Chunk& chunk : chunks)
 			{
 				if (chunk.chunkCoordinates == chunkPosition)
 				{
@@ -244,7 +266,6 @@ namespace Minecraft
 
 		Block getBlock(const glm::vec3& worldPosition)
 		{
-			Members& m = obj();
 			Chunk& chunk = getChunk(worldPosition);
 			if (chunk.chunkData)
 			{
@@ -256,8 +277,7 @@ namespace Minecraft
 
 		static bool exists(const glm::ivec2& position)
 		{
-			Members& m = obj();
-			for (Chunk& chunk : m.chunks)
+			for (Chunk& chunk : chunks)
 			{
 				if (chunk.chunkCoordinates == position)
 				{
@@ -270,8 +290,7 @@ namespace Minecraft
 
 		static void checkChunkRadius()
 		{
-			Members& m = obj();
-			const glm::vec3 playerPosition = m.registry->getComponent<Transform>(m.playerController.playerId).position;
+			const glm::vec3 playerPosition = registry->getComponent<Transform>(playerId).position;
 
 			// Position changes as we circle out
 			// See switch statement below
@@ -290,11 +309,11 @@ namespace Minecraft
 				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < ChunkRadius * ChunkRadius)
 				{
 					bool alreadyExists = exists(position);
-					auto iter = m.loadedChunkPositions.find(position);
-					if (!alreadyExists && iter == m.loadedChunkPositions.end())
+					auto iter = loadedChunkPositions.find(position);
+					if (!alreadyExists && iter == loadedChunkPositions.end())
 					{
 						ChunkManager::queueCreateChunk(position.x, position.y);
-						m.loadedChunkPositions.insert(position);
+						loadedChunkPositions.insert(position);
 					}
 				}
 
@@ -337,7 +356,6 @@ namespace Minecraft
 
 		static void synchronizeChunks()
 		{
-			Members& m = obj();
 			std::vector<Chunk> readyChunks = ChunkManager::getReadyChunks();
 			if (readyChunks.size() > 0)
 			{
@@ -361,12 +379,11 @@ namespace Minecraft
 
 		static Chunk* findChunk(const glm::ivec2& chunkCoords)
 		{
-			Members& m = obj();
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				if (m.chunks[i].chunkCoordinates == chunkCoords)
+				if (chunks[i].chunkCoordinates == chunkCoords)
 				{
-					return &m.chunks[i];
+					return &chunks[i];
 				}
 			}
 
@@ -375,12 +392,11 @@ namespace Minecraft
 
 		static void setUnloadedChunk(const Chunk& chunkVal)
 		{
-			Members& m = obj();
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				if (!m.chunks[i].loaded)
+				if (!chunks[i].loaded)
 				{
-					m.chunks[i] = chunkVal;
+					chunks[i] = chunkVal;
 					return;
 				}
 			}
@@ -390,23 +406,16 @@ namespace Minecraft
 
 		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal)
 		{
-			Members& m = obj();
 			for (int i = 0; i < ChunkCapacity; i++)
 			{
-				if (m.chunks[i].chunkCoordinates == chunkCoords)
+				if (chunks[i].chunkCoordinates == chunkCoords)
 				{
-					m.chunks[i] = chunkVal;
+					chunks[i] = chunkVal;
 					return;
 				}
 			}
 
 			g_logger_warning("Tried to set chunk<%d, %d> but could not find matching chunk.", chunkCoords.x, chunkCoords.y);
-		}
-
-		static Members& obj()
-		{
-			static Members memberData{};
-			return memberData;
 		}
 	}
 }

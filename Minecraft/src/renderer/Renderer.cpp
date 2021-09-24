@@ -19,7 +19,6 @@ namespace Minecraft
 		// Internal variables		
 		static std::vector<Batch<RenderVertex2D>> batches2D;
 		static Batch<RenderVertex> batch;
-		static uint32 numDrawCalls = 0;
 
 		static Shader shader2D;
 		static Shader shader;
@@ -35,8 +34,6 @@ namespace Minecraft
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
-			numDrawCalls = 0;
-
 			registry = &sceneRegistry;
 			camera = nullptr;
 			batch.numVertices = 0;
@@ -459,6 +456,7 @@ namespace Minecraft
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId);
 
 			// One triangle per sector
+			// TODO: Why is this creating a memory leak???
 			RenderVertex2D v;
 			v.position = p0;
 			v.color = style.color;

@@ -6,7 +6,6 @@
 
 namespace Minecraft
 {
-	struct PlayerController;
 	struct Camera;
 
 	namespace World

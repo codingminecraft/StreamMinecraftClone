@@ -115,6 +115,11 @@ namespace Minecraft
 				g_logger_warning("Batch ran out of room. I have %d / %d vertices.", numVertices, _Batch::maxBatchSize);
 				return;
 			}
+			if (numVertices < 0)
+			{
+				g_logger_error("Invalid vertex number.");
+				return;
+			}
 
 			data[numVertices] = vertex;
 			numVertices++;
