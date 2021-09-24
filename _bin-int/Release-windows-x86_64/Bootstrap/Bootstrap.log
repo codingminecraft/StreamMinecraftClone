@@ -1,9 +1,0 @@
-﻿cl : command line warning D9025: overriding '/MD' with '/MT'
-cl : command line warning D9002: ignoring unknown option '-lgdi32'
-  Download.cpp
-  File.cpp
-  main.cpp
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\stdarg.h(20,1): warning C4005: 'va_start': macro redefinition
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30037\include\varargs.h(37): message : see previous definition of 'va_start'
-  Generating Code...
-  Bootstrap.vcxproj -> C:\dev\C++\MinecraftClone\_bin\Release-windows-x86_64\Bootstrap\Bootstrap.exe

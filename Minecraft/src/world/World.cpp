@@ -62,8 +62,8 @@ namespace Minecraft
 			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
-			TexturePacker::packTextures("assets/images/block", "textureFormat.yaml");
-			BlockMap::loadBlocks("textureFormat.yaml", "blockFormats.yaml");
+			TexturePacker::packTextures("assets/images/block", "assets/blockFormat/textureFormat.yaml", "assets/blockFormat/test.png");
+			BlockMap::loadBlocks("assets/blockFormat/textureFormat.yaml", "assets/blockFormat/blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 
 			shader.compile("assets/shaders/default.glsl");
@@ -71,7 +71,7 @@ namespace Minecraft
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
-				.setFilepath("test.png")
+				.setFilepath("assets/blockFormat/test.png")
 				.generate(true);
 
 			// Setup camera

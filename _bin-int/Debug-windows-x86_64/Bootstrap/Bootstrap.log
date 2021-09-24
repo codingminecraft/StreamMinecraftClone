@@ -1,5 +1,0 @@
-﻿cl : command line warning D9025: overriding '/MDd' with '/MTd'
-cl : command line warning D9002: ignoring unknown option '-lgdi32'
-  File.cpp
-C:\dev\C++\MinecraftClone\Bootstrap\src\File.cpp(13,2): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
-  Bootstrap.vcxproj -> C:\dev\C++\MinecraftClone\_bin\Debug-windows-x86_64\Bootstrap\Bootstrap.exe

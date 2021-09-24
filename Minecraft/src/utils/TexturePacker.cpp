@@ -11,10 +11,10 @@ namespace Minecraft
 
 	namespace TexturePacker
 	{
-		void packTextures(const char* filepath, const char* configFilepath)
+		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath)
 		{
 			// Return early if the texture packer has already packed the textures.
-			if (std::filesystem::exists(configFilepath))
+			if (std::filesystem::exists(configFilepath) && std::filesystem::exists(outputFilepath))
 			{
 				return;
 			}
@@ -86,7 +86,7 @@ namespace Minecraft
 			}
 
 			int pngOutputHeight = currentY + lineHeight;
-			stbi_write_png("test.png", pngOutputWidth, pngOutputHeight, 4, &pixels.begin()->r, pngOutputWidth * sizeof(Pixel));
+			stbi_write_png(outputFilepath, pngOutputWidth, pngOutputHeight, 4, &pixels.begin()->r, pngOutputWidth * sizeof(Pixel));
 		
 			YAML::Node textureFormat;
 			textureFormat["Blocks"];

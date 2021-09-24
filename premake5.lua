@@ -107,8 +107,8 @@ project "Bootstrap"
     cppdialect "C++17"
     staticruntime "off"
 
-    targetdir("_bin/" .. outputdir .. "/%{prj.name}")
-    objdir("_bin-int/" .. outputdir .. "/%{prj.name}")
+    targetdir("bin/" .. outputdir .. "/%{prj.name}")
+    objdir("bin-int/" .. outputdir .. "/%{prj.name}")
 
     files {
         "Bootstrap/src/**.cpp",
