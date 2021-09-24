@@ -34,7 +34,7 @@ namespace Minecraft
 
 			inline EntityVersion getEntityVersion(EntityId id)
 			{
-				return (EntityVersion)id >> 32;
+				return (EntityVersion)(id >> 32);
 			}
 
 			inline bool isEntityValid(EntityId id)
@@ -136,7 +136,7 @@ namespace Minecraft
 				}
 
 				// Get the component at this id and initialize it to 0
-				T& component = *componentPools[componentId].get<T>(id);
+				T& component = *componentPools[componentId].get<T>(Internal::getEntityIndex(id));
 				g_memory_zeroMem(&component, sizeof(T));
 
 				// Set the bitmask to indicate this entity has this component
@@ -162,7 +162,7 @@ namespace Minecraft
 			{
 				g_logger_assert(hasComponent<T>(id), "Entity %d does not have component", Internal::getEntityIndex(id));
 				int32 componentId = Ecs::componentId<T>();
-				return *componentPools[componentId].get<T>(id);
+				return *componentPools[componentId].get<T>(Internal::getEntityIndex(id));
 			}
 
 			template<typename T>
@@ -269,7 +269,7 @@ namespace Minecraft
 
 			const Iterator end() const
 			{
-				return Iterator(registry, registry.entities.size(), componentMask, all);
+				return Iterator(registry, (EntityIndex)registry.entities.size(), componentMask, all);
 			}
 
 		private:

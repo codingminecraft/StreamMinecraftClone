@@ -112,7 +112,7 @@ namespace Minecraft
 						glBindTexture(GL_TEXTURE_2D, batch2D.textureGraphicsIds[i]);
 					}
 				}
-				shader2D.uploadIntArray("uFontTextures[0]", _Batch::textureIndices().size(), _Batch::textureIndices().data());
+				shader2D.uploadIntArray("uFontTextures[0]", (int)_Batch::textureIndices().size(), _Batch::textureIndices().data());
 				shader2D.uploadInt("uZIndex", batch2D.zIndex);
 
 				batch2D.flush();

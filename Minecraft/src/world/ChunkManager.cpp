@@ -25,7 +25,7 @@ namespace Minecraft
 				chunkQueue = new Chunk[World::ChunkCapacity];
 				threadIndices = new ChunkThreadIndex[numThreads];
 
-				uint32 partitionSize = glm::ceil(World::ChunkCapacity / numThreads);
+				uint32 partitionSize = (uint32)glm::ceil(World::ChunkCapacity / numThreads);
 				uint32 startIndex = 0;
 				for (int i = 0; i < numThreads; i++)
 				{

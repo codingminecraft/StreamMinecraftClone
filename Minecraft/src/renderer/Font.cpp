@@ -8,10 +8,11 @@ namespace Minecraft
 		if (iter == characterMap.end())
 		{
 			g_logger_warning("Font does not contain character code '%d'. Defaulting to empty glyph.", c);
-			return {
+			static RenderableChar emptyGlyph = {
 				{0, 0},
 				{0, 0}
 			};
+			return emptyGlyph;
 		}
 		return iter->second;
 	}
@@ -208,29 +209,28 @@ namespace Minecraft
 				}
 
 				currentLineHeight = glm::max(currentLineHeight, font.fontFace->glyph->bitmap.rows);
-				if (currentX + font.fontFace->glyph->bitmap.width > font.texture.width)
+				if (currentX + font.fontFace->glyph->bitmap.width > (uint32)font.texture.width)
 				{
 					currentX = 0;
 					currentY += currentLineHeight + vtPadding;
 					currentLineHeight = font.fontFace->glyph->bitmap.rows;
 				}
 
-				if (currentY + currentLineHeight > font.texture.height)
+				if (currentY + currentLineHeight > (uint32)font.texture.height)
 				{
 					g_logger_error("Cannot continue adding to font. Stopped at char '%d' '%c' because we overran the texture height.", i, i);
 					break;
 				}
 
 				// Add the glyph to our texture map
-				for (int y = 0; y < font.fontFace->glyph->bitmap.rows; y++)
+				for (uint32 y = 0; y < font.fontFace->glyph->bitmap.rows; y++)
 				{
-					for (int x = 0; x < font.fontFace->glyph->bitmap.width; x++)
+					for (uint32 x = 0; x < font.fontFace->glyph->bitmap.width; x++)
 					{
 						// Copy the glyph data to our bitmap
-						int bufferX = x + currentX;
-						int bufferY = font.texture.height - (currentY + 1 + y);
-						g_logger_assert(bufferX < font.texture.width&& bufferY < font.texture.height, "Invalid bufferX, bufferY. Out of bounds greater than tex size.");
-						g_logger_assert(bufferX >= 0 && bufferY >= 0, "Invalid bufferX, bufferY. Out of bounds less than 0.");
+						uint32 bufferX = x + currentX;
+						uint32 bufferY = font.texture.height - (currentY + 1 + y);
+						g_logger_assert(bufferX < (uint32)font.texture.width && bufferY < (uint32)font.texture.height, "Invalid bufferX, bufferY. Out of bounds greater than tex size.");
 						fontBuffer[bufferX + (bufferY * font.texture.width)] =
 							font.fontFace->glyph->bitmap.buffer[x + (y * font.fontFace->glyph->bitmap.width)];
 					}

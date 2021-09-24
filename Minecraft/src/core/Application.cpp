@@ -42,11 +42,11 @@ namespace Minecraft
 			// Run game loop
 			// Start with a 60 fps frame rate
 			Window& window = getWindow();
-			float previousTime = glfwGetTime() - 0.16f;
+			float previousTime = (float)glfwGetTime() - 0.16f;
 			while (!window.shouldClose())
 			{
-				float deltaTime = glfwGetTime() - previousTime;
-				previousTime = glfwGetTime();
+				float deltaTime = (float)glfwGetTime() - previousTime;
+				previousTime = (float)glfwGetTime();
 
 				Renderer::clearColor(Settings::Window::clearColor);
 				World::update(deltaTime);

@@ -24,7 +24,6 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
-#include <format>
 #include <string_view>
 #include <unordered_set>
 #include <thread>

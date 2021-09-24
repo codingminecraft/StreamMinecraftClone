@@ -113,7 +113,7 @@ namespace Minecraft
 							0.0f,
 							1.0f
 						) * 255.0f;
-					int16 stoneHeight = (int16)(stoneHeightFloat * maxHeightFloat) / (127.0f);
+					int16 stoneHeight = (int16)((stoneHeightFloat * maxHeightFloat) / 127.0f);
 
 					if (y == 0)
 					{

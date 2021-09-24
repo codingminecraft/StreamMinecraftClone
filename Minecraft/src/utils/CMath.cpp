@@ -96,7 +96,7 @@ namespace Minecraft
 		uint32 hashString(const char* str)
 		{
 			uint32 hash = 2166136261u;
-			int length = strlen(str);
+			int length = (int)strlen(str);
 
 			for (int i = 0; i < length; i++)
 			{
@@ -158,7 +158,7 @@ namespace Minecraft
 		std::string toString(float value, int precision)
 		{
 			const std::string str = std::to_string(value);
-			const int precisionIndex = str.find(".") + precision + 1;
+			const int precisionIndex = (int)str.find(".") + precision + 1;
 			return str.substr(0, precisionIndex);
 		}
 	}

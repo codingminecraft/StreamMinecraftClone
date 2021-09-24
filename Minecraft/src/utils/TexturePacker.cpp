@@ -30,7 +30,7 @@ namespace Minecraft
 				}
 			}
 
-			int pngOutputWidth = sqrt(numFiles * 32 * 32);
+			int pngOutputWidth = (int)sqrt(numFiles * 32 * 32);
 			g_logger_info("Max Width: %d", pngOutputWidth);
 			int currentX = 0;
 			int currentY = 0;

@@ -20,6 +20,8 @@ namespace Minecraft
 				transform.up
 			);
 		}
+
+		return glm::mat4();
 	}
 
 	glm::mat4 Camera::calculateProjectionMatrix(Ecs::Registry& registry) const

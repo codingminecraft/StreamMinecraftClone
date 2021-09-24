@@ -53,6 +53,7 @@ namespace Minecraft
 	{
 		TextureType type;
 		uint32 graphicsId;
+		// TODO: Change these to uint32
 		int32 width;
 		int32 height;
 
