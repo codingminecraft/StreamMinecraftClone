@@ -9,6 +9,9 @@ namespace Minecraft
 		ShowHideDebugStats,
 		LockCursor,
 		Exit,
+		ShowChat,
+		ShowCommandLine,
+		Escape,
 		Length
 	};
 

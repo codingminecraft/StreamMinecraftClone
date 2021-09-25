@@ -4,6 +4,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "utils/DebugStats.h"
+#include "gameplay/CommandLine.h"
 
 namespace Minecraft
 {
@@ -15,6 +16,12 @@ namespace Minecraft
 			if (showDebugStats)
 			{
 				DebugStats::render();
+			}
+
+			static bool showCommandLine = false;
+			if (showCommandLine)
+			{
+				CommandLine::update(dt);
 			}
 
 			if (KeyBindings::keyBeginPress(KeyBind::LockCursor))
@@ -30,6 +37,14 @@ namespace Minecraft
 			if (KeyBindings::keyBeginPress(KeyBind::Exit))
 			{
 				Application::getWindow().close();
+			}
+			if (KeyBindings::keyBeginPress(KeyBind::ShowChat) || KeyBindings::keyBeginPress(KeyBind::ShowCommandLine))
+			{
+				showCommandLine = true;
+			}
+			if (KeyBindings::keyBeginPress(KeyBind::Escape))
+			{
+				showCommandLine = false;
 			}
 		}
 	}

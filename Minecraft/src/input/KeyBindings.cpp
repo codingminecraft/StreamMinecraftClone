@@ -14,7 +14,10 @@ namespace Minecraft
 			// TODO: Load this from a key-binding config file
 			bindings[KeyBind::LockCursor] = GLFW_KEY_F2;
 			bindings[KeyBind::ShowHideDebugStats] = GLFW_KEY_F3;
-			bindings[KeyBind::Exit] = GLFW_KEY_ESCAPE;
+			bindings[KeyBind::Exit] = GLFW_KEY_F12;
+			bindings[KeyBind::ShowCommandLine] = GLFW_KEY_SLASH;
+			bindings[KeyBind::ShowChat] = GLFW_KEY_T;
+			bindings[KeyBind::Escape] = GLFW_KEY_ESCAPE;
 		}
 
 		void setKeyBinding(KeyBind key, uint32 value)

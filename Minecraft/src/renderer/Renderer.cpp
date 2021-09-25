@@ -450,7 +450,8 @@ namespace Minecraft
 			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true);
 			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
-				batch2D = createBatch2D(zIndex);
+				// TODO: Fix this it's broken
+				//batch2D = createBatch2D(zIndex);
 			}
 
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId);
