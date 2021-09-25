@@ -6,6 +6,8 @@ namespace Minecraft
 {
 	namespace PlayerController
 	{
+		void init();
+
 		void update(Ecs::Registry& registry, float dt);
 	};
 }

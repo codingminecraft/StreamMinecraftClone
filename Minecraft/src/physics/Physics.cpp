@@ -46,6 +46,10 @@ namespace Minecraft
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis);
 		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res, CollisionFace xFace, CollisionFace yFace, CollisionFace zFace);
 
+		void init()
+		{
+		}
+
 		void update(Ecs::Registry& registry, float dt)
 		{
 			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
@@ -69,6 +73,77 @@ namespace Minecraft
 					Renderer::drawBox(transform.position, boxCollider.size, redStyle);
 				}
 			}
+		}
+
+		RaycastStaticResult raycastStatic(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw)
+		{
+			RaycastStaticResult result;
+			result.hit = false;
+
+			Style red = Styles::defaultStyle;
+			red.color = "#E90101"_hex;
+			if (draw)
+			{
+				Renderer::drawLine(origin, origin + normalDirection * maxDistance, red);
+			}
+
+			glm::vec3 currentOrigin = origin;
+			glm::vec3 pointOnRay = origin;
+			for (float i = 0.0f; i < maxDistance; i += 0.1f)
+			{
+				if (glm::ceil(pointOnRay) != currentOrigin)
+				{
+					currentOrigin = glm::ceil(pointOnRay);
+					BoxCollider currentBox;
+					currentBox.offset = glm::vec3();
+					currentBox.size = glm::vec3(1.0f, 1.0f, 1.0f);
+					Transform currentTransform;
+					currentTransform.position = currentOrigin - glm::vec3(0.5f, 0.5f, 0.5f);
+
+					Block block = World::getBlock(currentTransform.position);
+					BlockFormat blockFormat = BlockMap::getBlock(block.id);
+
+					if (blockFormat.isSolid)
+					{
+						glm::vec3 min = currentTransform.position - (currentBox.size * 0.5f) + currentBox.offset;
+						glm::vec3 max = currentTransform.position + (currentBox.size * 0.5f) + currentBox.offset;
+						float t1 = (min.x - origin.x) / normalDirection.x;
+						float t2 = (max.x - origin.x) / normalDirection.x;
+						float t3 = (min.y - origin.y) / normalDirection.y;
+						float t4 = (max.y - origin.y) / normalDirection.y;
+						float t5 = (min.z - origin.z) / normalDirection.z;						
+						float t6 = (max.z - origin.z) / normalDirection.z;
+						
+						float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
+						float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
+						if (tmax < 0 || tmin > tmax) 
+						{ 
+							// No intersection
+							return result;
+						}
+
+						float depth = 0.0f;
+						if (tmin < 0.0f)
+						{
+							// The ray's origin is inside the AABB
+							depth = tmax;
+						}
+						else
+						{
+							depth = tmin;
+						}
+
+						result.point = origin + normalDirection * depth;
+						result.hit = true;
+						result.blockCenter = currentTransform.position + currentBox.offset;
+						result.blockSize = currentBox.size;
+						return result;
+					}
+				}
+				pointOnRay += normalDirection * 0.1f;
+			}
+
+			return result;
 		}
 
 		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
@@ -110,7 +185,7 @@ namespace Minecraft
 							if (dotProduct < 0)
 							{
 								// We're already moving out of the collision, don't do anything
-								return;
+								continue;
 							}
 							transform.position -= collision.overlap;
 							switch (collision.face)

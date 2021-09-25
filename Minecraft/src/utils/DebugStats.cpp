@@ -13,6 +13,7 @@ namespace Minecraft
 		extern uint32 numDrawCalls = 0;
 		extern float lastFrameTime = 0.16f;
 		extern glm::vec3 playerPos = glm::vec3();
+		extern glm::vec3 playerOrientation = glm::vec3();
 
 		void render()
 		{
@@ -74,7 +75,16 @@ namespace Minecraft
 					textScale,
 					Styles::defaultStyle);
 
-				Renderer::drawFilledSquare2D(playerPosPos - glm::vec2(0.02f, 0.01f), glm::vec2(3.1f, 0.1f), transparentSquare, -1);
+				glm::vec2 playerOrientationPos = glm::vec2(0.05f, 1.23f);
+				std::string playerOrientationStr = std::string("Rot: " + CMath::toString(DebugStats::playerOrientation));
+				Renderer::drawString(
+					playerOrientationStr,
+					*font,
+					playerOrientationPos,
+					textScale,
+					Styles::defaultStyle);
+
+				Renderer::drawFilledSquare2D(playerPosPos - glm::vec2(0.02f, 0.01f), glm::vec2(5.1f, 0.1f), transparentSquare, -1);
 			}
 		}
 	}

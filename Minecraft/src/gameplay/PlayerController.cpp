@@ -7,6 +7,7 @@
 #include "renderer/Styles.h"
 #include "utils/DebugStats.h"
 #include "physics/PhysicsComponents.h"
+#include "physics/Physics.h"
 #include "gameplay/CharacterController.h"
 
 namespace Minecraft
@@ -14,6 +15,14 @@ namespace Minecraft
 	namespace PlayerController
 	{
 		static Ecs::EntityId playerId = Ecs::nullEntity;
+		static Style blockHighlight;
+
+		void init()
+		{
+			blockHighlight = Styles::defaultStyle;
+			blockHighlight.color = "#00000067"_hex;
+			blockHighlight.strokeWidth = 0.02f;
+		}
 
 		void update(Ecs::Registry& registry, float dt)
 		{
@@ -28,6 +37,13 @@ namespace Minecraft
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
+
+				RaycastStaticResult res = Physics::raycastStatic(transform.position, transform.forward, 5.0f);
+				if (res.hit)
+				{
+					Renderer::drawBox(res.blockCenter, res.blockSize, blockHighlight);
+					Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
+				}
 
 				controller.viewAxis.x = Input::deltaMouseX;
 				controller.viewAxis.y = Input::deltaMouseY;
@@ -54,6 +70,9 @@ namespace Minecraft
 					}
 				}
 				DebugStats::playerPos = transform.position;
+				DebugStats::playerOrientation = transform.orientation;
+
+				//Physics::raycastStatic(transform.position, transform.forward, 5.0f);
 			}
 		}
 	}

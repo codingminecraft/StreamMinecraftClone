@@ -2,6 +2,9 @@
 #include "gameplay/CharacterController.h"
 #include "core/Components.h"
 #include "physics/PhysicsComponents.h"
+#include "physics/Physics.h"
+#include "renderer/Renderer.h"
+#include "renderer/Styles.h"
 
 namespace Minecraft
 {
@@ -25,17 +28,19 @@ namespace Minecraft
 
 				rb.velocity.x = 0;
 				rb.velocity.z = 0;
+
+				float rotation = transform.orientation.y;
+				glm::vec2 forward = glm::vec2(glm::cos(glm::radians(rotation)), glm::sin(glm::radians(rotation)));
+				glm::vec2 right = glm::vec2(-forward.y, forward.x);
 				if (controller.movementAxis.x)
 				{
-					glm::vec2 normalDir = glm::normalize(glm::vec2(transform.forward.x, transform.forward.z));
-					rb.velocity.x += normalDir.x * controller.movementAxis.x;
-					rb.velocity.z += normalDir.y * controller.movementAxis.x;
+					rb.velocity.x += forward.x * controller.movementAxis.x;
+					rb.velocity.z += forward.y * controller.movementAxis.x;
 				}
 				if (controller.movementAxis.z)
 				{
-					glm::vec2 normalDir = glm::normalize(glm::vec2(transform.right.x, transform.right.z));
-					rb.velocity.x += normalDir.x * controller.movementAxis.z;
-					rb.velocity.z += normalDir.y * controller.movementAxis.z;
+					rb.velocity.x += right.x * controller.movementAxis.z;
+					rb.velocity.z += right.y * controller.movementAxis.z;
 				}
 
 				if (rb.velocity.x > 0 || rb.velocity.z > 0)
@@ -55,7 +60,11 @@ namespace Minecraft
 				transform.orientation.x += my;
 				transform.orientation.y += mx;
 				transform.orientation.x = glm::clamp(transform.orientation.x, -89.9f, 89.9f);
-				transform.orientation.z = glm::clamp(transform.orientation.z, -89.9f, 89.9f);
+				if (glm::abs(transform.orientation.y) > 360.0f)
+				{
+					float val = transform.orientation.y > 0 ? transform.orientation.y : -transform.orientation.y;
+					transform.orientation.y = val - (360 * (int)(transform.orientation.y / 360));
+				}
 
 				if (controller.applyJumpForce)
 				{

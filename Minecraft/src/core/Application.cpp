@@ -6,9 +6,11 @@
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
+#include "physics/Physics.h"
 #include "input/Input.h"
 #include "input/KeyBindings.h"
 #include "utils/Settings.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -33,8 +35,12 @@ namespace Minecraft
 			Ecs::Registry& registry = getRegistry();
 			Renderer::init(registry);
 			Fonts::init();
+			Physics::init();
 			World::init(registry);
 			KeyBindings::init();
+
+			// TODO: Should probably move this into World
+			PlayerController::init();
 		}
 
 		void run()
