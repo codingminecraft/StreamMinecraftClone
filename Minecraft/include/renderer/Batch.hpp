@@ -40,7 +40,7 @@ namespace Minecraft
 	namespace _Batch
 	{
 		const uint32 maxBatchSize = 501;
-		const uint32 numTextureGraphicsIds = 8;
+		const uint32 numTextureGraphicsIds = 16;
 		constexpr std::array<int32, numTextureGraphicsIds> textureIndices()
 		{
 			std::array<int32, numTextureGraphicsIds> res = {};
@@ -141,7 +141,7 @@ namespace Minecraft
 
 			// Clear the batch
 			numVertices = 0;
-			
+
 			for (int i = 0; i < textureGraphicsIds.size(); i++)
 			{
 				textureGraphicsIds[i] = UINT32_MAX;
@@ -184,14 +184,28 @@ namespace Minecraft
 			return false;
 		}
 
-		uint32 getTextureSlot(uint32 textureGraphicsId)
+		uint32 getTextureSlot(uint32 textureGraphicsId, bool isFont)
 		{
-			for (int i = 0; i < textureGraphicsIds.size(); i++)
+			if (isFont)
 			{
-				if (textureGraphicsId == textureGraphicsIds[i] || textureGraphicsIds[i] == UINT32_MAX)
+				for (int i = 0; i < 8; i++)
 				{
-					textureGraphicsIds[i] = textureGraphicsId;
-					return i + 1;
+					if (textureGraphicsId == textureGraphicsIds[i] || textureGraphicsIds[i] == UINT32_MAX)
+					{
+						textureGraphicsIds[i] = textureGraphicsId;
+						return i + 1;
+					}
+				}
+			}
+			else
+			{
+				for (int i = 8; i < 16; i++)
+				{
+					if (textureGraphicsId == textureGraphicsIds[i] || textureGraphicsIds[i] == UINT32_MAX)
+					{
+						textureGraphicsIds[i] = textureGraphicsId;
+						return i + 1;
+					}
 				}
 			}
 

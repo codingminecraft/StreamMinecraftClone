@@ -41,7 +41,7 @@ namespace Minecraft
 		void drawLine2D(const glm::vec2& start, const glm::vec2& end, const Style& style, int zIndex = 0);
 		void drawFilledCircle2D(const glm::vec2& position, float radius, int numSegments, const Style& style, int zIndex = 0);
 		void drawFilledTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const Style& style, int zIndex = 0);
-		void drawTexture2D(const RenderableTexture& renderable, const Style& color, int zIndex = 0);
+		void drawTexture2D(const RenderableTexture& renderable, const Style& color, int zIndex = 0, bool isFont = false);
 		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style, int zIndex = 0);
 
 		// 3D Rendering stuff

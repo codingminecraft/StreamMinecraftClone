@@ -186,6 +186,9 @@ namespace Minecraft
 			b1.color = "#fcba03"_hex;
 			b1.position = glm::vec2(0.0f, 0.0f);
 			b1.size = glm::vec2(0.5f, 0.25f);
+			b1.font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
+			b1.text = "Some text";
+			b1.textScale = 0.1f;
 			if (Gui::button(b1))
 			{
 				g_logger_info("Clicked me!");

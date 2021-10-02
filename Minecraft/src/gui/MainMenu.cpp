@@ -3,6 +3,9 @@
 #include "renderer/Texture.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
+#include "renderer/Styles.h"
+#include "core/Application.h"
+#include "core/Window.h"
 
 namespace Minecraft
 {
@@ -10,6 +13,7 @@ namespace Minecraft
 	{
 		static Texture menuTextures;
 		static TexturedButton button;
+		static RenderableTexture title;
 
 		void init()
 		{
@@ -37,21 +41,37 @@ namespace Minecraft
 			buttonClickSprite.uvSize = buttonSprite.uvSize;
 			buttonClickSprite.uvStart = glm::vec2(0, 66.0f / (float)menuTextures.height);
 
+			title.size = glm::vec2(2.0f, 0.5f);
+			title.start = glm::vec2(-1.0f, 0.6f);
+			title.texCoordSize = glm::vec2(88.0f / 512.0f, 19.0f / 512.0f);
+			title.texCoordStart = glm::vec2(0, 100.0f / 512.0f);
+			title.texture = &menuTextures;
+
 			button.sprite = buttonSprite;
 			button.hoverSprite = buttonHoverSprite;
 			button.clickSprite = buttonClickSprite;
 			button.font = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
-			button.textScale = 0.3f;
+			button.textScale = 0.5f;
 		}
 
 		void update(float dt)
 		{
+			Renderer::drawTexture2D(title, Styles::defaultStyle);
+
 			button.text = "Play Game";
-			button.position = glm::vec2(0, 0);
-			button.size = glm::vec2(2.0f, 1.0f);
+			button.position = glm::vec2(-1.25f, 0.2f);
+			button.size = glm::vec2(2.5f, 0.2f);
 			if (Gui::textureButton(button))
 			{
-				g_logger_info("PLAY GAME!!");
+				Application::setScene(GameScene::Game);
+			}
+
+			button.text = "Quit";
+			button.position = glm::vec2(-1.25f, -0.1f);
+			button.size = glm::vec2(2.5f, 0.2f);
+			if (Gui::textureButton(button))
+			{
+				Application::getWindow().close();
 			}
 
 			// Do line rendering type stuff

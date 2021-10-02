@@ -21,8 +21,12 @@ namespace Minecraft
 		static void freeWindow();
 		static void freeRegistry();
 
+		static GameScene scene;
+
 		void init()
 		{
+			scene = GameScene::MainMenu;
+
 			// Initialize GLFW/Glad
 			Window::init();
 			Window& window = getWindow();
@@ -56,7 +60,7 @@ namespace Minecraft
 
 				Renderer::clearColor(Settings::Window::clearColor);
 				// TODO: Come up with scene transition system or something??
-				if (inMainMenu)
+				if (scene == GameScene::MainMenu)
 				{
 					MainMenu::update(deltaTime);
 				}
@@ -68,6 +72,11 @@ namespace Minecraft
 				window.swapBuffers();
 				window.pollInput();
 			}
+		}
+
+		void setScene(GameScene inScene)
+		{
+			scene = inScene;
 		}
 
 		void free()

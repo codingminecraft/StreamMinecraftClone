@@ -30,7 +30,7 @@ namespace Minecraft
 		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture);
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex);
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
-		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex);
+		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
@@ -109,11 +109,11 @@ namespace Minecraft
 				{
 					if (batch2D.textureGraphicsIds[i] != UINT32_MAX)
 					{
-						glActiveTexture(GL_TEXTURE0 + i);
-						glBindTexture(GL_TEXTURE_2D, batch2D.textureGraphicsIds[i]);
+						glBindTextureUnit(i, batch2D.textureGraphicsIds[i]);
 					}
 				}
-				shader2D.uploadIntArray("uFontTextures[0]", (int)_Batch::textureIndices().size(), _Batch::textureIndices().data());
+				shader2D.uploadIntArray("uFontTextures[0]", (int)_Batch::textureIndices().size() / 2, _Batch::textureIndices().data());
+				shader2D.uploadIntArray("uTextures[0]", 8, _Batch::textureIndices().data() + 8);
 				shader2D.uploadInt("uZIndex", batch2D.zIndex);
 
 				batch2D.flush();
@@ -258,40 +258,73 @@ namespace Minecraft
 			batch2D.addVertex(v);
 		}
 
-		void drawTexture2D(const RenderableTexture& renderable, const Style& style, int zIndex)
+		void drawTexture2D(const RenderableTexture& renderable, const Style& style, int zIndex, bool isFont)
 		{
 			glm::vec2 v0 = renderable.start;
 			glm::vec2 v1 = renderable.start + glm::vec2{ 0, renderable.size.y };
 			glm::vec2 v2 = renderable.start + renderable.size;
 			glm::vec2 v3 = renderable.start + glm::vec2{ renderable.size.x, 0 };
 
-			glm::vec2 uv0 = renderable.texCoordStart;
-			glm::vec2 uv1 = renderable.texCoordStart + glm::vec2{ 0, renderable.texCoordSize.y };
-			glm::vec2 uv2 = renderable.texCoordStart + renderable.texCoordSize;
-			glm::vec2 uv3 = renderable.texCoordStart + glm::vec2{ renderable.texCoordSize.x, 0 };
+			glm::vec2 uv0 = renderable.texCoordStart + glm::vec2{ 0, renderable.texCoordSize.y };
+			glm::vec2 uv1 = renderable.texCoordStart;
+			glm::vec2 uv2 = renderable.texCoordStart + glm::vec2{ renderable.texCoordSize.x, 0 };
+			glm::vec2 uv3 = renderable.texCoordStart + renderable.texCoordSize;
 
-			drawTexturedTriangle2D(
-				v0,
-				v2,
-				v1,
-				uv0,
-				uv2,
-				uv1,
-				renderable.texture,
-				style,
-				zIndex
-			);
-			drawTexturedTriangle2D(
-				v0,
-				v3,
-				v2,
-				uv0,
-				uv3,
-				uv2,
-				renderable.texture,
-				style,
-				zIndex
-			);
+			if (!isFont)
+			{
+				drawTexturedTriangle2D(
+					v0,
+					v2,
+					v1,
+					uv0,
+					uv2,
+					uv1,
+					renderable.texture,
+					style,
+					zIndex,
+					isFont
+				);
+				drawTexturedTriangle2D(
+					v0,
+					v3,
+					v2,
+					uv0,
+					uv3,
+					uv2,
+					renderable.texture,
+					style,
+					zIndex,
+					isFont
+				);
+			}
+			else
+			{
+				// TODO: FIX ME! Font textures are flipped I need to put them into the texture image the correct orientation when generating the font
+				drawTexturedTriangle2D(
+					v1,
+					v3,
+					v0,
+					uv0,
+					uv2,
+					uv1,
+					renderable.texture,
+					style,
+					zIndex,
+					isFont
+				);
+				drawTexturedTriangle2D(
+					v1,
+					v2,
+					v3,
+					uv0,
+					uv3,
+					uv2,
+					renderable.texture,
+					style,
+					zIndex,
+					isFont
+				);
+			}
 		}
 
 		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style, int zIndex)
@@ -313,7 +346,7 @@ namespace Minecraft
 					{ charWidth, charHeight },
 					renderableChar.texCoordStart,
 					renderableChar.texCoordSize
-					}, style, zIndex);
+					}, style, zIndex, true);
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
 				//x += font.getKerning(c, nextC) * scale * font.fontSize;
@@ -446,7 +479,8 @@ namespace Minecraft
 			const glm::vec2& uv2,
 			const Texture* texture,
 			const Style& style,
-			int zIndex)
+			int zIndex,
+			bool isFont)
 		{
 			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true);
 			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
@@ -455,7 +489,7 @@ namespace Minecraft
 				batch2D = createBatch2D(zIndex);
 			}
 
-			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId);
+			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId, isFont);
 
 			// One triangle per sector
 			RenderVertex2D v;
@@ -482,7 +516,7 @@ namespace Minecraft
 		{
 			for (Batch<RenderVertex2D>& batch : batches2D)
 			{
-				if (batch.hasRoom() && batch.zIndex == zIndex && 
+				if (batch.hasRoom() && batch.zIndex == zIndex &&
 					(!useTexture || batch.hasTexture(texture.graphicsId) || batch.hasTextureRoom()))
 				{
 					return batch;

@@ -31,26 +31,21 @@ flat in uint fTexId;
 in vec2 fTexCoord;
 
 uniform usampler2D uFontTextures[numTextures];
-
-vec4 getSampleFromFont(int index, vec2 uv) {
-    uint rVal = uint(0);
-    for (int i = 0; i < numTextures; ++i) {
-      uint c = texture(uFontTextures[i], uv).r;
-      if (i == index) {
-        rVal += c;
-      }
-    }
-    return vec4(float(rVal) / 255.0, float(rVal) / 255.0, float(rVal) / 255.0, float(rVal) / 255.0);
-}
+uniform sampler2D uTextures[numTextures];
 
 void main()
 {
-    if (int(fTexId) != 0)
+    if (int(fTexId) == 0)
     {
-      FragColor = getSampleFromFont(int(fTexId) - 1, fTexCoord) * fColor;
+	    FragColor = fColor;
+    }
+    else if (int(fTexId) < 9)
+    {
+      float c = float(texture(uFontTextures[int(fTexId) - 1], fTexCoord).r);
+      FragColor = vec4(c / 255.0, c / 255.0, c / 255.0, c / 255.0) * fColor;
     }
     else
     {
-        FragColor = fColor;
+      FragColor = texture(uTextures[int(fTexId) - numTextures - 1], fTexCoord) * fColor;
     }
 }
