@@ -72,6 +72,7 @@ namespace Minecraft
 					{5, 4, AttributeType::Float, offsetof(RenderVertex, color)}
 				}
 			);
+			g_logger_info("Initializing the 3D debug batch succeeded.");
 		}
 
 		void free()
@@ -451,13 +452,12 @@ namespace Minecraft
 			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
 				// TODO: Fix this it's broken
-				//batch2D = createBatch2D(zIndex);
+				batch2D = createBatch2D(zIndex);
 			}
 
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId);
 
 			// One triangle per sector
-			// TODO: Why is this creating a memory leak???
 			RenderVertex2D v;
 			v.position = p0;
 			v.color = style.color;

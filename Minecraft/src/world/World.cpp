@@ -23,6 +23,7 @@
 #include "gameplay/CharacterSystem.h"
 #include "utils/TexturePacker.h"
 #include "utils/DebugStats.h"
+#include "gui/Gui.h"
 
 namespace Minecraft
 {
@@ -87,6 +88,7 @@ namespace Minecraft
 			cameraTag.type = TagType::Camera;
 
 			Renderer::setCamera(camera);
+			Input::setProjectionMatrix(camera.calculateHUDProjectionMatrix());
 
 			// Setup player
 			Ecs::EntityId player = registry->createEntity();
@@ -148,6 +150,7 @@ namespace Minecraft
 			ChunkManager::init(seed);
 			checkChunkRadius();
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
+			PlayerController::init();
 		}
 
 		void free()
@@ -176,6 +179,28 @@ namespace Minecraft
 			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry, dt);
+
+			static Button b1;
+			b1.clickColor = "#7a6528"_hex;
+			b1.hoverColor = "#ba9327"_hex;
+			b1.color = "#fcba03"_hex;
+			b1.position = glm::vec2(0.0f, 0.0f);
+			b1.size = glm::vec2(0.5f, 0.25f);
+			if (Gui::button(b1))
+			{
+				g_logger_info("Clicked me!");
+			}
+
+			static Slider s1;
+			s1.maxValue = 10.0f;
+			s1.minValue = -10.0f;
+			s1.position = glm::vec2(-1.0f, -1.0f);
+			s1.size = glm::vec2(1.0f, 0.05f);
+			static float value = -10.0f;
+			if (Gui::slider(s1, &value))
+			{
+				g_logger_info("Slider value: %2.3f", value);
+			}
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;

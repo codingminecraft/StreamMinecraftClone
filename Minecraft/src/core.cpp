@@ -40,6 +40,7 @@ float hexToFloat(char hexCode)
 	return (float)hexToInt(hexCode);
 }
 
+// TODO: Make this constexpr
 glm::vec4 operator""_hex(const char* rawHexColor, size_t inputLength)
 {
 	g_logger_assert(rawHexColor != nullptr, "Invalid hex color. Cannot be null.");

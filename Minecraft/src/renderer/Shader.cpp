@@ -165,6 +165,8 @@ namespace Minecraft
 			glDetachShader(program, id);
 
 		programId = program;
+
+		g_logger_info("Shader compilation succeeded %s", filepath.string().c_str());
 	}
 
 	void Shader::destroy()

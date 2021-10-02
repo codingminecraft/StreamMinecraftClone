@@ -3,6 +3,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "physics/PhysicsComponents.h"
+#include "input/Input.h"
 
 namespace Minecraft
 {

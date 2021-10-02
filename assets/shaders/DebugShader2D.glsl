@@ -45,12 +45,12 @@ vec4 getSampleFromFont(int index, vec2 uv) {
 
 void main()
 {
-    if (int(fTexId) == 0)
+    if (int(fTexId) != 0)
     {
-	    FragColor = fColor;
+      FragColor = getSampleFromFont(int(fTexId) - 1, fTexCoord) * fColor;
     }
     else
     {
-        FragColor = getSampleFromFont(int(fTexId) - 1, fTexCoord) * fColor;
+        FragColor = fColor;
     }
 }

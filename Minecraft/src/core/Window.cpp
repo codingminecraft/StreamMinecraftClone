@@ -9,6 +9,7 @@ namespace Minecraft
 		Window* userWindow = (Window*)glfwGetWindowUserPointer(windowPtr);
 		userWindow->width = newWidth;
 		userWindow->height = newHeight;
+		Input::setWindowSize(glm::vec2((float)newWidth, (float)newHeight));
 		glViewport(0, 0, newWidth, newHeight);
 	}
 
@@ -27,6 +28,7 @@ namespace Minecraft
 		res->width = width;
 		res->height = height;
 		res->title = title;
+		Input::setWindowSize(glm::vec2((float)width, (float)height));
 
 		res->windowPtr = (void*)glfwCreateWindow(width, height, title, nullptr, nullptr);
 		if (res->windowPtr == nullptr)
@@ -43,6 +45,7 @@ namespace Minecraft
 		glfwSetCursorPosCallback((GLFWwindow*)res->windowPtr, Input::mouseCallback);
 		glfwSetKeyCallback((GLFWwindow*)res->windowPtr, Input::keyCallback);
 		glfwSetFramebufferSizeCallback((GLFWwindow*)res->windowPtr, resizeCallback);
+		glfwSetMouseButtonCallback((GLFWwindow*)res->windowPtr, Input::mouseButtonCallback);
 
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 		const GLFWvidmode* mode = glfwGetVideoMode(monitor);

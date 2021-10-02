@@ -11,6 +11,7 @@
 #include "input/KeyBindings.h"
 #include "utils/Settings.h"
 #include "gameplay/PlayerController.h"
+#include "gui/MainMenu.h"
 
 namespace Minecraft
 {
@@ -38,9 +39,7 @@ namespace Minecraft
 			Physics::init();
 			World::init(registry);
 			KeyBindings::init();
-
-			// TODO: Should probably move this into World
-			PlayerController::init();
+			MainMenu::init();
 		}
 
 		void run()
@@ -49,13 +48,22 @@ namespace Minecraft
 			// Start with a 60 fps frame rate
 			Window& window = getWindow();
 			float previousTime = (float)glfwGetTime() - 0.16f;
+			bool inMainMenu = true;
 			while (!window.shouldClose())
 			{
 				float deltaTime = (float)glfwGetTime() - previousTime;
 				previousTime = (float)glfwGetTime();
 
 				Renderer::clearColor(Settings::Window::clearColor);
-				World::update(deltaTime);
+				// TODO: Come up with scene transition system or something??
+				if (inMainMenu)
+				{
+					MainMenu::update(deltaTime);
+				}
+				else
+				{
+					World::update(deltaTime);
+				}
 
 				window.swapBuffers();
 				window.pollInput();
@@ -90,12 +98,12 @@ namespace Minecraft
 
 		static void freeWindow()
 		{
-			delete &getWindow();
+			delete& getWindow();
 		}
 
 		static void freeRegistry()
 		{
-			delete &getRegistry();
+			delete& getRegistry();
 		}
 	}
 }
