@@ -8,10 +8,10 @@ namespace Minecraft
 	{
 		namespace Window
 		{
-			const int width = 1920;
-			const int height = 1080;
-			const glm::vec4 clearColor = "#99ccffff"_hex;
-			const char* title = "Minecraft Clone";
+			extern int width;
+			extern int height;
+			extern glm::vec4 clearColor;
+			extern const char* title;
 		}
 	}
 }

@@ -6,6 +6,7 @@
 #include "renderer/Styles.h"
 #include "core/Application.h"
 #include "core/Window.h"
+#include "core/Scene.h"
 
 namespace Minecraft
 {
@@ -52,6 +53,8 @@ namespace Minecraft
 			button.clickSprite = buttonClickSprite;
 			button.font = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			button.textScale = 0.5f;
+
+			g_logger_info("Initialized main menu scene.");
 		}
 
 		void update(float dt)
@@ -63,7 +66,7 @@ namespace Minecraft
 			button.size = glm::vec2(2.5f, 0.2f);
 			if (Gui::textureButton(button))
 			{
-				Application::setScene(GameScene::Game);
+				Scene::changeScene(SceneType::Game);
 			}
 
 			button.text = "Quit";
@@ -73,9 +76,11 @@ namespace Minecraft
 			{
 				Application::getWindow().close();
 			}
+		}
 
-			// Do line rendering type stuff
-			Renderer::render();
+		void free()
+		{
+			menuTextures.destroy();
 		}
 	}
 }

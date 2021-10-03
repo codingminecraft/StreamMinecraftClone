@@ -13,6 +13,7 @@
 #include "core/Application.h"
 #include "core/File.h"
 #include "core/Ecs.h"
+#include "core/Scene.h"
 #include "core/Components.h"
 #include "core/TransformSystem.h"
 #include "core/Window.h"
@@ -37,7 +38,6 @@ namespace Minecraft
 		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal);
 
 		// Members
-		static Camera camera;
 		static Shader shader;
 		static Texture worldTexture;
 		static Ecs::EntityId playerId;
@@ -74,21 +74,6 @@ namespace Minecraft
 				.setMinFilter(FilterMode::Nearest)
 				.setFilepath("assets/blockFormat/test.png")
 				.generate(true);
-
-			// Setup camera
-			Ecs::EntityId cameraEntity = registry->createEntity();
-			registry->addComponent<Transform>(cameraEntity);
-			registry->addComponent<Tag>(cameraEntity);
-			Transform& cameraTransform = registry->getComponent<Transform>(cameraEntity);
-			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
-			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
-			camera.fov = 45.0f;
-			camera.cameraEntity = cameraEntity;
-			Tag& cameraTag = registry->getComponent<Tag>(cameraEntity);
-			cameraTag.type = TagType::Camera;
-
-			Renderer::setCamera(camera);
-			Input::setProjectionMatrix(camera.calculateHUDProjectionMatrix());
 
 			// Setup player
 			Ecs::EntityId player = registry->createEntity();
@@ -166,8 +151,6 @@ namespace Minecraft
 					chunk.freeGpu();
 				}
 			}
-
-			registry->free();
 		}
 
 		void update(float dt)
@@ -229,6 +212,7 @@ namespace Minecraft
 
 			// Upload shader variables
 			shader.bind();
+			Camera& camera = Scene::getCamera();
 			shader.uploadMat4("uProjection", camera.calculateProjectionMatrix(*registry));
 			shader.uploadMat4("uView", camera.calculateViewMatrix(*registry));
 			shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
@@ -265,9 +249,6 @@ namespace Minecraft
 					DebugStats::numDrawCalls++;
 				}
 			}
-
-			// Do line rendering type stuff
-			Renderer::render();
 
 			checkChunkRadius();
 			synchronizeChunks();

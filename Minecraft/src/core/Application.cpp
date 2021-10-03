@@ -2,15 +2,13 @@
 #include "core.h"
 #include "core/Window.h"
 #include "core/Ecs.h"
-#include "world/World.h"
-#include "renderer/Shader.h"
+#include "core/Scene.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
 #include "physics/Physics.h"
 #include "input/Input.h"
 #include "input/KeyBindings.h"
 #include "utils/Settings.h"
-#include "gameplay/PlayerController.h"
 #include "gui/MainMenu.h"
 
 namespace Minecraft
@@ -21,12 +19,8 @@ namespace Minecraft
 		static void freeWindow();
 		static void freeRegistry();
 
-		static GameScene scene;
-
 		void init()
 		{
-			scene = GameScene::MainMenu;
-
 			// Initialize GLFW/Glad
 			Window::init();
 			Window& window = getWindow();
@@ -41,9 +35,8 @@ namespace Minecraft
 			Renderer::init(registry);
 			Fonts::init();
 			Physics::init();
-			World::init(registry);
+			Scene::init(SceneType::MainMenu, registry);
 			KeyBindings::init();
-			MainMenu::init();
 		}
 
 		void run()
@@ -58,33 +51,20 @@ namespace Minecraft
 				float deltaTime = (float)glfwGetTime() - previousTime;
 				previousTime = (float)glfwGetTime();
 
-				Renderer::clearColor(Settings::Window::clearColor);
-				// TODO: Come up with scene transition system or something??
-				if (scene == GameScene::MainMenu)
-				{
-					MainMenu::update(deltaTime);
-				}
-				else
-				{
-					World::update(deltaTime);
-				}
+				Scene::update(deltaTime);
 
 				window.swapBuffers();
 				window.pollInput();
 			}
 		}
 
-		void setScene(GameScene inScene)
-		{
-			scene = inScene;
-		}
-
 		void free()
 		{
 			// Free all resources
+			getRegistry().free();
 			Window& window = getWindow();
 			window.destroy();
-			World::free();
+			Scene::free();
 			Renderer::free();
 			Window::free();
 

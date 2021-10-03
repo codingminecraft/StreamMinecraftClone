@@ -6,18 +6,11 @@ namespace Minecraft
 {
 	struct Window;
 
-	enum class GameScene : uint8
-	{
-		MainMenu,
-		Game
-	};
-
 	namespace Application
 	{
 		void init();
 		void run();
 		void free();
-		void setScene(GameScene scene);
 
 		Window& getWindow();
 	}
