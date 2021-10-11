@@ -35,12 +35,14 @@ namespace Minecraft
 		return (x * World::ChunkDepth) + (y * World::ChunkHeight) + z;
 	}
 
-	static const Block& getBlockInternal(Block* data, int x, int y, int z)
+	static const Block& getBlockInternal(Block* data, int x, int y, int z, const Chunk& chunk)
 	{
 		int index = to1DArray(x, y, z);
-		return x >= 16 || x < 0 || z >= 16 || z < 0 || y >= 256 || y < 0 ?
-			BlockMap::NULL_BLOCK :
-			data[index];
+		return x >= 16 || x < 0 || z >= 16 || z < 0
+			? World::getBlock(glm::vec3(chunk.chunkCoordinates.x * 16.0f + x, y, chunk.chunkCoordinates.y * 16.0f + z))
+			: y >= 256 || y < 0
+			? BlockMap::NULL_BLOCK
+			: data[index];
 	}
 
 	static void loadBlock(
@@ -136,9 +138,15 @@ namespace Minecraft
 		}
 	}
 
+	Block Chunk::getBlock(glm::vec3 worldPosition)
+	{
+		glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoordinates.x * 16.0f, 0.0f, chunkCoordinates.y * 16.0f));
+		return getLocalBlock(localPosition);
+	}
+
 	Block Chunk::getLocalBlock(glm::ivec3 localPosition)
 	{
-		return getBlockInternal(chunkData, localPosition.x, localPosition.y, localPosition.z);
+		return getBlockInternal(chunkData, localPosition.x, localPosition.y, localPosition.z, *this);
 	}
 
 	void Chunk::generateRenderData(SubChunk* subChunks)
@@ -164,7 +172,7 @@ namespace Minecraft
 				for (int z = 0; z < World::ChunkWidth; z++)
 				{
 					// 24 Vertices per cube
-					const Block& block = getBlockInternal(chunkData, x, y, z);
+					const Block& block = getBlockInternal(chunkData, x, y, z, *this);
 					int blockId = block.id;
 
 					if (block == BlockMap::NULL_BLOCK)
@@ -193,7 +201,7 @@ namespace Minecraft
 					verts[7] = verts[3] + glm::ivec3(0, 1, 0);
 
 					// Top Face
-					const int topBlockId = getBlockInternal(chunkData, x, y + 1, z).id;
+					const int topBlockId = getBlockInternal(chunkData, x, y + 1, z, *this).id;
 					const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
 					if (!topBlockId || topBlock.isTransparent)
 					{
@@ -204,7 +212,7 @@ namespace Minecraft
 					}
 
 					// Bottom Face
-					const int bottomBlockId = getBlockInternal(chunkData, x, y - 1, z).id;
+					const int bottomBlockId = getBlockInternal(chunkData, x, y - 1, z, *this).id;
 					const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
 					if (!bottomBlockId || bottomBlock.isTransparent)
 					{
@@ -215,7 +223,7 @@ namespace Minecraft
 					}
 
 					// Right Face
-					const int rightBlockId = getBlockInternal(chunkData, x, y, z + 1).id;
+					const int rightBlockId = getBlockInternal(chunkData, x, y, z + 1, *this).id;
 					const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
 					if (!rightBlockId || rightBlock.isTransparent)
 					{
@@ -226,7 +234,7 @@ namespace Minecraft
 					}
 
 					// Left Face
-					const int leftBlockId = getBlockInternal(chunkData, x, y, z - 1).id;
+					const int leftBlockId = getBlockInternal(chunkData, x, y, z - 1, *this).id;
 					const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
 					if (!leftBlockId || leftBlock.isTransparent)
 					{
@@ -237,7 +245,7 @@ namespace Minecraft
 					}
 
 					// Forward Face
-					const int forwardBlockId = getBlockInternal(chunkData, x + 1, y, z).id;
+					const int forwardBlockId = getBlockInternal(chunkData, x + 1, y, z, *this).id;
 					const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
 					if (!forwardBlockId || forwardBlock.isTransparent)
 					{
@@ -248,7 +256,7 @@ namespace Minecraft
 					}
 
 					// Back Face
-					const int backBlockId = getBlockInternal(chunkData, x - 1, y, z).id;
+					const int backBlockId = getBlockInternal(chunkData, x - 1, y, z, *this).id;
 					const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
 					if (!backBlockId || backBlock.isTransparent)
 					{

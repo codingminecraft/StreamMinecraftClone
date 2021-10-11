@@ -27,6 +27,11 @@ namespace Minecraft
 				}
 
 				rb.velocity.x = 0;
+				if (rb.isSensor)
+				{
+					// TODO: Change this
+					rb.velocity.y = 0;
+				}
 				rb.velocity.z = 0;
 
 				float rotation = transform.orientation.y;
@@ -36,6 +41,11 @@ namespace Minecraft
 				{
 					rb.velocity.x += forward.x * controller.movementAxis.x;
 					rb.velocity.z += forward.y * controller.movementAxis.x;
+				}
+				if (rb.isSensor && controller.movementAxis.y)
+				{
+					// TODO: Change this
+					rb.velocity.y += controller.movementAxis.y * speed;
 				}
 				if (controller.movementAxis.z)
 				{

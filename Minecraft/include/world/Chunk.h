@@ -43,6 +43,7 @@ namespace Minecraft
 		glm::ivec2 chunkCoordinates;
 
 		Block getLocalBlock(glm::ivec3 localPosition);
+		Block getBlock(glm::vec3 worldPosition);
 		void generate(Block* newChunkData, int chunkX, int chunkZ, int32 seed);
 
 		// Must guarantee at least 16 sub-chunks located at this address

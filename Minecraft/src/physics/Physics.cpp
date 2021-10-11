@@ -60,8 +60,17 @@ namespace Minecraft
 
 				transform.position += rb.velocity * dt;
 				rb.velocity += rb.acceleration * dt;
-				rb.velocity -= gravity * dt;
+				if (!rb.isSensor)
+				{
+					rb.velocity -= gravity * dt;
+				}
 				rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
+
+				if (rb.isSensor)
+				{
+					// TODO: Change this
+					continue;
+				}
 
 				resolveStaticCollision(entity, rb, transform, boxCollider);
 
@@ -111,13 +120,13 @@ namespace Minecraft
 						float t2 = (max.x - origin.x) / normalDirection.x;
 						float t3 = (min.y - origin.y) / normalDirection.y;
 						float t4 = (max.y - origin.y) / normalDirection.y;
-						float t5 = (min.z - origin.z) / normalDirection.z;						
+						float t5 = (min.z - origin.z) / normalDirection.z;
 						float t6 = (max.z - origin.z) / normalDirection.z;
-						
+
 						float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
 						float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
-						if (tmax < 0 || tmin > tmax) 
-						{ 
+						if (tmax < 0 || tmin > tmax)
+						{
 							// No intersection
 							return result;
 						}

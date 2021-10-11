@@ -22,6 +22,7 @@ namespace Minecraft
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
 		Block* blockData;
 		Chunk chunk;
+		bool doBlockData;
 	};
 
 	namespace ChunkManager
@@ -58,6 +59,7 @@ namespace Minecraft
 				bool shouldContinue = true;
 				while (shouldContinue)
 				{
+					if (commands.empty())
 					{
 						// Wait until we need to do some work
 						std::unique_lock<std::mutex> lock(mtx);
@@ -80,16 +82,24 @@ namespace Minecraft
 					if (doFillCommand)
 					{
 						g_logger_log("Creating on CPU Chunk<%d, %d>", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
-						if (Chunk::exists("world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y))
+						if (command.doBlockData)
 						{
-							command.chunk.deserialize(command.blockData,
-								"world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
+							if (Chunk::exists("world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y))
+							{
+								command.chunk.deserialize(command.blockData,
+									"world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
+							}
+							else
+							{
+								command.chunk.generate(command.blockData, command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y, seed);
+							}
+							command.doBlockData = false;
+							queueCommand(command);
 						}
 						else
 						{
-							command.chunk.generate(command.blockData, command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y, seed);
+							command.chunk.generateRenderData(command.subChunks);
 						}
-						command.chunk.generateRenderData(command.subChunks);
 					}
 				}
 			}
@@ -114,6 +124,7 @@ namespace Minecraft
 			uint32 seed;
 		};
 
+		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
 		static uint32 worldSeed = 0;
 		static std::array<SubChunk, World::ChunkCapacity * 16> subChunks = {};
@@ -192,11 +203,17 @@ namespace Minecraft
 		void queueCreateChunk(int32 x, int32 z)
 		{
 			// Only upload if we need to
-			if (chunkIndices.find({ x, z }) == chunkIndices.end())
+			bool upload;
+			{
+				std::lock_guard<std::mutex> lock(chunkMtx);
+				upload = chunkIndices.find({ x, z }) == chunkIndices.end();
+			}
+			if (upload)
 			{
 				FillChunkCommand cmd;
 				cmd.chunk.chunkCoordinates.x = x;
 				cmd.chunk.chunkCoordinates.y = z;
+				cmd.doBlockData = true;
 				cmd.blockData = nullptr;
 				cmd.subChunks = nullptr;
 
@@ -206,7 +223,10 @@ namespace Minecraft
 					{
 						cmd.subChunks = subChunks.data() + (i * 16);
 						loadedChunks.set(i, true);
-						chunkIndices[{x, z}] = i;
+						{
+							std::lock_guard<std::mutex> lock(chunkMtx);
+							chunkIndices[{x, z}] = i;
+						}
 						cmd.blockData = blockPool()[i];
 						break;
 					}
@@ -226,6 +246,7 @@ namespace Minecraft
 			res.chunkCoordinates = chunkCoords;
 			res.chunkData = nullptr;
 
+			std::lock_guard<std::mutex> lock(chunkMtx);
 			auto iter = chunkIndices.find(chunkCoords);
 			if (iter != chunkIndices.end())
 			{

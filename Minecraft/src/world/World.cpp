@@ -82,7 +82,7 @@ namespace Minecraft
 			boxCollider.size.y = 3.0f;
 			boxCollider.size.z = 0.75f;
 			Transform& transform = registry->getComponent<Transform>(player);
-			transform.position.y = 255;
+			transform.position.y = 289;
 			transform.position.x = 45.0f;
 			transform.position.z = -45.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
@@ -205,8 +205,7 @@ namespace Minecraft
 			Chunk chunk = ChunkManager::getChunk(worldPosition);
 			if (chunk.chunkData)
 			{
-				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f));
-				return chunk.getLocalBlock(localPosition);
+				return chunk.getBlock(worldPosition);
 			}
 			return BlockMap::NULL_BLOCK;
 		}
