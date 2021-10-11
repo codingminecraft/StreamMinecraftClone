@@ -13,6 +13,13 @@ namespace Minecraft
 			0
 		};
 
+		extern Block AIR_BLOCK = {
+			1,
+			0,
+			0,
+			0
+		};
+
 		static std::unordered_map<std::string, int> nameToIdMap;
 		static std::vector<BlockFormat> blockFormats;
 		static std::unordered_map<std::string, TextureFormat> textureFormatMap;

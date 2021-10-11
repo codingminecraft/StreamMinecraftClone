@@ -207,6 +207,13 @@ namespace Minecraft
 			{
 				return chunk.getBlock(worldPosition);
 			}
+
+			if (worldPosition.y >= 0 && worldPosition.y < 256)
+			{
+				// Assume it's a chunk that's out of bounds
+				// TODO: Make this only return air block if it's far far away from the player
+				return BlockMap::AIR_BLOCK;
+			}
 			return BlockMap::NULL_BLOCK;
 		}
 

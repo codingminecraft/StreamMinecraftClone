@@ -116,22 +116,22 @@ namespace Minecraft
 					if (y == 0)
 					{
 						// Bedrock
-						chunkData[arrayExpansion].id = 6;
+						chunkData[arrayExpansion].id = 7;
 					}
 					else if (y < stoneHeight)
 					{
 						// Stone
-						chunkData[arrayExpansion].id = 5;
+						chunkData[arrayExpansion].id = 6;
 					}
 					else if (y < maxHeight)
 					{
 						// Dirt
-						chunkData[arrayExpansion].id = 3;
+						chunkData[arrayExpansion].id = 4;
 					}
 					else if (y == maxHeight)
 					{
 						// Green Concrete 
-						chunkData[arrayExpansion].id = 4;
+						chunkData[arrayExpansion].id = 5;
 					}
 				}
 			}

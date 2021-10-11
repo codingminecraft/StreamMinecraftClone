@@ -258,6 +258,25 @@ namespace Minecraft
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader)
 		{
+			// TODO: Remove me, this is for debugging purposes
+			static uint32 maxVertCount = 0;
+			static uint32 minVertCount = UINT32_MAX;
+			static uint32 last100Verts[100] = {};
+			int last100VertsIndex = 0;
+			float avgVertCount = 0.0f;
+			for (int i = 0; i < 100; i++)
+			{
+				avgVertCount += last100Verts[i];
+			}
+			if (avgVertCount > 0) 
+				avgVertCount /= 100;
+			DebugStats::minVertCount = minVertCount;
+			DebugStats::maxVertCount = maxVertCount;
+			DebugStats::avgVertCount = avgVertCount;
+
+			// TODO: Weird that I have to re-enable that here. Try to find out why?
+			glEnable(GL_CULL_FACE);
+
 			for (auto iter = chunkIndices.begin(); iter != chunkIndices.end();)
 			{
 				glm::ivec2 chunkPos = iter->first;
@@ -272,12 +291,17 @@ namespace Minecraft
 					SubChunk* data = subChunks.data() + (chunkIndex * 16);
 					for (int i = 0; i < 16; i++)
 					{
-						if (data[i].uploadVertsToGpu)
+						if (data[i].uploadVertsToGpu && data[i].numVertsUsed > 0)
 						{
 							data[i].uploadVertsToGpu = false;
 							glBindBuffer(GL_ARRAY_BUFFER, data[i].vbo);
 							glBufferSubData(GL_ARRAY_BUFFER, 0, data[i].numVertsUsed * sizeof(Vertex), data[i].data);
-							//g_logger_info("Num Verts Used: %d", data[i].numVertsUsed.load());
+
+							// TODO: Remove me this is for debugging purposes
+							last100Verts[last100VertsIndex] = data[i].numVertsUsed;
+							maxVertCount = glm::max(data[i].numVertsUsed.load(), maxVertCount);
+							minVertCount = glm::min(data[i].numVertsUsed.load(), minVertCount);
+							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
 						if (data[i].numVertsUsed > 0)

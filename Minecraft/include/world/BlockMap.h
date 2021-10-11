@@ -27,6 +27,7 @@ namespace Minecraft
 	namespace BlockMap
 	{
 		extern Block NULL_BLOCK;
+		extern Block AIR_BLOCK;
 
 		const TextureFormat& getTextureFormat(const std::string& textureName);
 		const BlockFormat& getBlock(const std::string& name);

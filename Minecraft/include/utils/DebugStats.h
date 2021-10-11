@@ -10,6 +10,9 @@ namespace Minecraft
 		extern float lastFrameTime;
 		extern glm::vec3 playerPos;
 		extern glm::vec3 playerOrientation;
+		extern uint32 minVertCount;
+		extern uint32 maxVertCount;
+		extern float avgVertCount;
 
 		void render();
 	}

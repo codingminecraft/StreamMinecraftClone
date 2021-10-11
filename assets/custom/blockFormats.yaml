@@ -1,40 +1,47 @@
-grass_block:
+air_block:
   id: 1
+  side: none
+  top: none
+  bottom: none 
+  isSolid: false
+  isTransparent: false
+grass_block:
+  id: 2
   side: grass_block_side
   top: grass_block_top
   bottom: dirt
   isSolid: true
   isTransparent: false
 sand:
-  id: 2
+  id: 3
   side: sand
   top: sand
   bottom: sand
   isSolid: true
   isTransparent: false
 dirt:
-  id: 3
+  id: 4
   side: dirt
   top: dirt
   bottom: dirt
   isSolid: true
   isTransparent: false
 green_concrete:
-  id: 4
+  id: 5
   side: green_concrete_powder
   top: green_concrete_powder
   bottom: green_concrete_powder
   isSolid: true
   isTransparent: false
 stone:
-  id: 5
+  id: 6
   side: stone
   top: stone
   bottom: stone
   isSolid: true
   isTransparent: false
 bedrock:
-  id: 6
+  id: 7
   side: bedrock
   top: bedrock
   bottom: bedrock
