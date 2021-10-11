@@ -146,4 +146,9 @@ namespace Minecraft
 			return texCoordsTextureId;
 		}
 	}
+
+	bool operator==(const Block& a, const Block& b)
+	{
+		return a.id == b.id;
+	}
 }

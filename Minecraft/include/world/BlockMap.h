@@ -1,11 +1,26 @@
 #ifndef MINECRAFT_BLOCK_MAP_H
 #define MINECRAFT_BLOCK_MAP_H
 #include "core.h"
-#include "Chunk.h"
 
 namespace Minecraft
 {
 	struct Texture;
+
+	// 64 bits per block 
+	// 16 bit integer id 2^16
+	// 4 bits light level 0-15
+	// 4 bits rotation direction 
+	// 8 bits block type
+	// 32 bits extra stuff
+	struct Block
+	{
+		int16 id;
+		int8 lightLevel;
+		int8 rotation;
+		int32 padding;
+	};
+
+	bool operator==(const Block& a, const Block& b);
 
 	struct BlockFormat
 	{

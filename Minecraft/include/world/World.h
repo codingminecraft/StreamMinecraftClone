@@ -1,7 +1,6 @@
 #ifndef MINECRAFT_WORLD_H
 #define MINECRAFT_WORLD_H
 #include "core.h"
-#include "Chunk.h"
 #include "core/Ecs.h"
 
 namespace Minecraft
@@ -15,7 +14,6 @@ namespace Minecraft
 		void update(float dt);
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
-		Block getBlock(const glm::vec3& worldPosition);
 
 		const uint16 ChunkRadius = 8;
 		const uint16 ChunkCapacity = ((ChunkRadius + 1) * 2) * ((ChunkRadius + 1) * 2);

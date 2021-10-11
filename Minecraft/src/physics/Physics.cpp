@@ -4,6 +4,7 @@
 #include "core/Ecs.h"
 #include "world/World.h"
 #include "world/BlockMap.h"
+#include "world/ChunkManager.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "input/Input.h"
@@ -109,7 +110,7 @@ namespace Minecraft
 					Transform currentTransform;
 					currentTransform.position = currentOrigin - glm::vec3(0.5f, 0.5f, 0.5f);
 
-					Block block = World::getBlock(currentTransform.position);
+					Block block = ChunkManager::getBlock(currentTransform.position);
 					BlockFormat blockFormat = BlockMap::getBlock(block.id);
 
 					if (blockFormat.isSolid)
@@ -172,7 +173,7 @@ namespace Minecraft
 					for (int32 z = backZ; z <= frontZ; z++)
 					{
 						glm::vec3 boxPos = glm::vec3(x - 0.5f, y - 0.5f, z - 0.5f);
-						Block block = World::getBlock(boxPos);
+						Block block = ChunkManager::getBlock(boxPos);
 						BlockFormat blockFormat = BlockMap::getBlock(block.id);
 
 						BoxCollider defaultBlockCollider;

@@ -83,8 +83,8 @@ namespace Minecraft
 			boxCollider.size.z = 0.75f;
 			Transform& transform = registry->getComponent<Transform>(player);
 			transform.position.y = 289;
-			transform.position.x = 45.0f;
-			transform.position.z = -45.0f;
+			transform.position.x = -145.0f;
+			transform.position.z = 55.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
 			controller.lockedToCamera = true;
 			controller.controllerBaseSpeed = 4.0f;
@@ -111,8 +111,8 @@ namespace Minecraft
 			boxCollider2.size.z = 0.75f;
 			Transform& transform2 = registry->getComponent<Transform>(randomEntity);
 			transform2.position.y = 255;
-			transform2.position.x = 45.0f;
-			transform2.position.z = -45.0f;
+			transform2.position.x = -145.0f;
+			transform2.position.z = 55.0f;
 			CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
 			controller2.lockedToCamera = false;
 			controller2.controllerBaseSpeed = 4.2f;
@@ -198,23 +198,6 @@ namespace Minecraft
 				glm::floor(worldCoordinates.x / 16.0f),
 				glm::floor(worldCoordinates.z / 16.0f)
 			};
-		}
-
-		Block getBlock(const glm::vec3& worldPosition)
-		{
-			Chunk chunk = ChunkManager::getChunk(worldPosition);
-			if (chunk.chunkData)
-			{
-				return chunk.getBlock(worldPosition);
-			}
-
-			if (worldPosition.y >= 0 && worldPosition.y < 256)
-			{
-				// Assume it's a chunk that's out of bounds
-				// TODO: Make this only return air block if it's far far away from the player
-				return BlockMap::AIR_BLOCK;
-			}
-			return BlockMap::NULL_BLOCK;
 		}
 
 		static void checkChunkRadius()
