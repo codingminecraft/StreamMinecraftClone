@@ -57,34 +57,26 @@ namespace Minecraft
 
 		bool textureButton(const TexturedButton& button)
 		{
-			RenderableTexture tex;
-			tex.start = button.position;
-			tex.size = button.size;
+			const Sprite* sprite = nullptr;
 			guiStyle.color = "#ffffff"_hex;
 
 			bool res = false;
 			WidgetState state = mouseInAABB(button.position, button.size);
 			if (state == WidgetState::Click)
 			{
-				tex.texture = button.clickSprite.texture;
-				tex.texCoordStart = button.clickSprite.uvStart;
-				tex.texCoordSize = button.clickSprite.uvSize;
 				res = true;
+				sprite = &button.clickSprite;
 			}
 			else if (state == WidgetState::Hover)
 			{
-				tex.texture = button.hoverSprite.texture;
-				tex.texCoordStart = button.hoverSprite.uvStart;
-				tex.texCoordSize = button.hoverSprite.uvSize;
+				sprite = &button.hoverSprite;
 			}
 			else
 			{
-				tex.texture = button.sprite.texture;
-				tex.texCoordStart = button.sprite.uvStart;
-				tex.texCoordSize = button.sprite.uvSize;
+				sprite = &button.sprite;
 			}
 
-			Renderer::drawTexture2D(tex, guiStyle, -1);
+			Renderer::drawTexture2D(*sprite, button.position, button.size, guiStyle, -1);
 
 			g_logger_assert(button.text != nullptr, "Invalid button text. Cannot be null.");
 			g_logger_assert(button.font != nullptr, "Invalid button font. Cannot be null.");
@@ -110,20 +102,15 @@ namespace Minecraft
 
 			guiStyle.color = "#1a1a1a"_hex;
 			Renderer::drawFilledSquare2D(sliderPosition, sliderSize, guiStyle, -1);
-
-			if (Input::mouseScreenX >= buttonPosition.x && Input::mouseScreenX <= buttonPosition.x + buttonSize.x &&
-				Input::mouseScreenY >= buttonPosition.y && Input::mouseScreenY <= buttonPosition.y + buttonSize.y)
+			WidgetState state = mouseInAABB(buttonPosition, buttonSize);
+			if (state == WidgetState::Click)
 			{
-				// We are hovering over the slider button
-				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT))
-				{
-					isDragging = true;
-				}
-				else
-				{
-					guiStyle.color = "#636363"_hex;
-					Renderer::drawFilledSquare2D(buttonPosition, buttonSize, guiStyle);
-				}
+				isDragging = true;
+			}
+			else if (state == WidgetState::Hover)
+			{
+				guiStyle.color = "#636363"_hex;
+				Renderer::drawFilledSquare2D(buttonPosition, buttonSize, guiStyle);
 			}
 			else
 			{

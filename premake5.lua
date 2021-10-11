@@ -24,6 +24,8 @@ project "Minecraft"
     files {
         "Minecraft/src/**.cpp",
         "Minecraft/include/**.h",
+        "Minecraft/include/**.hpp",
+        "Minecraft/src/**.hpp",
         "Minecraft/vendor/GLFW/include/GLFW/glfw3.h",
         "Minecraft/vendor/GLFW/include/GLFW/glfw3native.h",
         "Minecraft/vendor/GLFW/src/glfw_config.h",

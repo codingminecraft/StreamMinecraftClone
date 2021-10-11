@@ -30,15 +30,15 @@ namespace YamlExtended
 
 	void writeVec2(const char* name, const glm::vec2& vec2, YAML::Node& node)
 	{
-		node[name].push_back(vec2.x);
-		node[name].push_back(vec2.y);
+		node[name]["x"] = vec2.x;
+		node[name]["y"] = vec2.y;
 	}
 
 	glm::vec2 readVec2(const char* name, const YAML::Node& node)
 	{
 		return {
-			node[name][0].as<float>(),
-			node[name][1].as<float>()
+			node[name]["x"].as<float>(),
+			node[name]["y"].as<float>()
 		};
 	}
 }

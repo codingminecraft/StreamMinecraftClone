@@ -14,7 +14,10 @@ namespace Minecraft
 	{
 		static Texture menuTextures;
 		static TexturedButton button;
-		static RenderableTexture title;
+
+		static Sprite title;
+		static glm::vec2 titlePosition;
+		static glm::vec2 titleSize;
 
 		void init()
 		{
@@ -27,39 +30,24 @@ namespace Minecraft
 				.setWrapT(WrapMode::None)
 				.generate(true);
 
-			Sprite buttonSprite;
-			buttonSprite.texture = &menuTextures;
-			buttonSprite.uvSize = glm::vec2(272.0f / (float)menuTextures.width, 32.0f / (float)menuTextures.height);
-			buttonSprite.uvStart = glm::vec2(0, 0);
+			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/menuSpritesheet.yaml");
 
-			Sprite buttonHoverSprite;
-			buttonHoverSprite.texture = &menuTextures;
-			buttonHoverSprite.uvSize = buttonSprite.uvSize;
-			buttonHoverSprite.uvStart = glm::vec2(0, 33.0f / (float)menuTextures.height);
-			
-			Sprite buttonClickSprite;
-			buttonClickSprite.texture = &menuTextures;
-			buttonClickSprite.uvSize = buttonSprite.uvSize;
-			buttonClickSprite.uvStart = glm::vec2(0, 66.0f / (float)menuTextures.height);
-
-			title.size = glm::vec2(2.0f, 0.5f);
-			title.start = glm::vec2(-1.0f, 0.6f);
-			title.texCoordSize = glm::vec2(88.0f / 512.0f, 19.0f / 512.0f);
-			title.texCoordStart = glm::vec2(0, 100.0f / 512.0f);
-			title.texture = &menuTextures;
-
-			button.sprite = buttonSprite;
-			button.hoverSprite = buttonHoverSprite;
-			button.clickSprite = buttonClickSprite;
+			button.sprite = menuSprites.at(std::string("buttonRegular"));
+			button.hoverSprite = menuSprites.at(std::string("buttonHover"));
+			button.clickSprite = menuSprites.at(std::string("buttonClick"));
 			button.font = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			button.textScale = 0.5f;
+
+			titleSize = glm::vec2(2.0f, 0.5f);
+			titlePosition = glm::vec2(-1.0f, 0.6f);
+			title = menuSprites.at(std::string("title"));
 
 			g_logger_info("Initialized main menu scene.");
 		}
 
 		void update(float dt)
 		{
-			Renderer::drawTexture2D(title, Styles::defaultStyle);
+			Renderer::drawTexture2D(title, titlePosition, titleSize, Styles::defaultStyle);
 
 			button.text = "Play Game";
 			button.position = glm::vec2(-1.25f, 0.2f);

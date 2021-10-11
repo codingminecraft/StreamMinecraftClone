@@ -6,6 +6,7 @@
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
 #include "renderer/Batch.hpp"
+#include "renderer/Sprites.h"
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
@@ -258,17 +259,17 @@ namespace Minecraft
 			batch2D.addVertex(v);
 		}
 
-		void drawTexture2D(const RenderableTexture& renderable, const Style& style, int zIndex, bool isFont)
+		void drawTexture2D(const Sprite& sprite, const glm::vec2& position, const glm::vec2& size, const Style& style, int zIndex, bool isFont)
 		{
-			glm::vec2 v0 = renderable.start;
-			glm::vec2 v1 = renderable.start + glm::vec2{ 0, renderable.size.y };
-			glm::vec2 v2 = renderable.start + renderable.size;
-			glm::vec2 v3 = renderable.start + glm::vec2{ renderable.size.x, 0 };
+			glm::vec2 v0 = position;
+			glm::vec2 v1 = position + glm::vec2{ 0, size.y };
+			glm::vec2 v2 = position + size;
+			glm::vec2 v3 = position + glm::vec2{ size.x, 0 };
 
-			glm::vec2 uv0 = renderable.texCoordStart + glm::vec2{ 0, renderable.texCoordSize.y };
-			glm::vec2 uv1 = renderable.texCoordStart;
-			glm::vec2 uv2 = renderable.texCoordStart + glm::vec2{ renderable.texCoordSize.x, 0 };
-			glm::vec2 uv3 = renderable.texCoordStart + renderable.texCoordSize;
+			glm::vec2 uv0 = sprite.uvStart + glm::vec2{ 0, sprite.uvSize.y };
+			glm::vec2 uv1 = sprite.uvStart;
+			glm::vec2 uv2 = sprite.uvStart + glm::vec2{ sprite.uvSize.x, 0 };
+			glm::vec2 uv3 = sprite.uvStart + sprite.uvSize;
 
 			if (!isFont)
 			{
@@ -279,7 +280,7 @@ namespace Minecraft
 					uv0,
 					uv2,
 					uv1,
-					renderable.texture,
+					&sprite.texture,
 					style,
 					zIndex,
 					isFont
@@ -291,7 +292,7 @@ namespace Minecraft
 					uv0,
 					uv3,
 					uv2,
-					renderable.texture,
+					&sprite.texture,
 					style,
 					zIndex,
 					isFont
@@ -307,7 +308,7 @@ namespace Minecraft
 					uv0,
 					uv2,
 					uv1,
-					renderable.texture,
+					&sprite.texture,
 					style,
 					zIndex,
 					isFont
@@ -319,7 +320,7 @@ namespace Minecraft
 					uv0,
 					uv3,
 					uv2,
-					renderable.texture,
+					&sprite.texture,
 					style,
 					zIndex,
 					isFont
@@ -340,13 +341,14 @@ namespace Minecraft
 				float charHeight = renderableChar.texCoordSize.y * font.fontSize * scale;
 				float adjustedY = y - renderableChar.bearingY * font.fontSize * scale;
 
-				drawTexture2D(RenderableTexture{
-					&font.texture,
-					{ x, adjustedY },
-					{ charWidth, charHeight },
+				drawTexture2D(Sprite{
+					font.texture,
 					renderableChar.texCoordStart,
 					renderableChar.texCoordSize
-					}, style, zIndex, true);
+					}, 
+					{ x, adjustedY }, 
+					{ charWidth, charHeight }, 
+					style, zIndex, true);
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
 				//x += font.getKerning(c, nextC) * scale * font.fontSize;

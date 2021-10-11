@@ -1,18 +1,12 @@
 #ifndef MINECRAFT_GUI_H
 #define MINECRAFT_GUI_H
 #include "core.h"
+#include "renderer/Sprites.h"
 
 namespace Minecraft
 {
 	struct Texture;
 	struct Font;
-
-	struct Sprite
-	{
-		Texture* texture;
-		glm::vec2 uvStart;
-		glm::vec2 uvSize;
-	};
 
 	struct Button
 	{

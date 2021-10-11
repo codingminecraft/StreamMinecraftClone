@@ -32,10 +32,6 @@ namespace Minecraft
 	{
 		// Internal declarations
 		static void checkChunkRadius();
-		static void synchronizeChunks();
-		static Chunk* findChunk(const glm::ivec2& chunkCoords);
-		static void setUnloadedChunk(const Chunk& chunkVal);
-		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal);
 
 		// Members
 		static Shader shader;
@@ -43,7 +39,6 @@ namespace Minecraft
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
-		static Chunk chunks[World::ChunkCapacity];
 		static std::string worldSavePath;
 		static Ecs::Registry* registry;
 
@@ -55,7 +50,6 @@ namespace Minecraft
 			registry = &sceneRegistry;
 			worldSavePath = "world";
 			File::createDirIfNotExists(worldSavePath.c_str());
-			g_memory_zeroMem(chunks, sizeof(Chunk) * ChunkCapacity);
 
 			// Generate a seed if needed
 			srand((unsigned long)time(NULL));
@@ -63,8 +57,8 @@ namespace Minecraft
 			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
-			TexturePacker::packTextures("assets/images/block", "assets/blockFormat/textureFormat.yaml", "assets/blockFormat/test.png");
-			BlockMap::loadBlocks("assets/blockFormat/textureFormat.yaml", "assets/blockFormat/blockFormats.yaml");
+			TexturePacker::packTextures("assets/images/block", "assets/custom/textureFormat.yaml", "assets/custom/test.png");
+			BlockMap::loadBlocks("assets/custom/textureFormat.yaml", "assets/custom/blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 
 			shader.compile("assets/shaders/default.glsl");
@@ -72,7 +66,7 @@ namespace Minecraft
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
-				.setFilepath("assets/blockFormat/test.png")
+				.setFilepath("assets/custom/test.png")
 				.generate(true);
 
 			// Setup player
@@ -141,16 +135,6 @@ namespace Minecraft
 		void free()
 		{
 			ChunkManager::free();
-
-			for (int i = 0; i < ChunkCapacity; i++)
-			{
-				Chunk& chunk = chunks[i];
-				if (chunk.loaded)
-				{
-					chunk.freeCpu();
-					chunk.freeGpu();
-				}
-			}
 		}
 
 		void update(float dt)
@@ -162,31 +146,6 @@ namespace Minecraft
 			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry, dt);
-
-			static Button b1;
-			b1.clickColor = "#7a6528"_hex;
-			b1.hoverColor = "#ba9327"_hex;
-			b1.color = "#fcba03"_hex;
-			b1.position = glm::vec2(0.0f, 0.0f);
-			b1.size = glm::vec2(0.5f, 0.25f);
-			b1.font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
-			b1.text = "Some text";
-			b1.textScale = 0.1f;
-			if (Gui::button(b1))
-			{
-				g_logger_info("Clicked me!");
-			}
-
-			static Slider s1;
-			s1.maxValue = 10.0f;
-			s1.minValue = -10.0f;
-			s1.position = glm::vec2(-1.0f, -1.0f);
-			s1.size = glm::vec2(1.0f, 0.05f);
-			static float value = -10.0f;
-			if (Gui::slider(s1, &value))
-			{
-				g_logger_info("Slider value: %2.3f", value);
-			}
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
@@ -228,30 +187,9 @@ namespace Minecraft
 			// Render all the loaded chunks
 			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
-			for (int i = 0; i < ChunkCapacity; i++)
-			{
-				Chunk& chunk = chunks[i];
-				if (chunk.loaded)
-				{
-					shader.uploadIVec2("uChunkPos", chunk.chunkCoordinates);
-					shader.uploadVec3("uPlayerPosition", playerPosition);
-					shader.uploadInt("uChunkRadius", World::ChunkRadius);
-					chunk.render();
-
-					const glm::ivec2 localChunkPos = chunk.chunkCoordinates - playerPositionInChunkCoords;
-					bool hasBeenQueued = loadedChunkPositions.find(chunk.chunkCoordinates) == loadedChunkPositions.end();
-					if (!hasBeenQueued && (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >= ChunkRadius * ChunkRadius)
-					{
-						ChunkManager::queueDeleteChunk(chunk);
-						loadedChunkPositions.erase(chunk.chunkCoordinates);
-					}
-
-					DebugStats::numDrawCalls++;
-				}
-			}
+			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader);
 
 			checkChunkRadius();
-			synchronizeChunks();
 		}
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
@@ -262,43 +200,15 @@ namespace Minecraft
 			};
 		}
 
-		Chunk& getChunk(const glm::vec3& worldPosition)
-		{
-			glm::ivec2 chunkPosition = toChunkCoords(worldPosition);
-			for (Chunk& chunk : chunks)
-			{
-				if (chunk.chunkCoordinates == chunkPosition)
-				{
-					return chunk;
-				}
-			}
-
-			static Chunk defaultChunk = {};
-			return defaultChunk;
-		}
-
 		Block getBlock(const glm::vec3& worldPosition)
 		{
-			Chunk& chunk = getChunk(worldPosition);
+			Chunk chunk = ChunkManager::getChunk(worldPosition);
 			if (chunk.chunkData)
 			{
 				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunk.chunkCoordinates.x * 16.0f, 0.0f, chunk.chunkCoordinates.y * 16.0f));
 				return chunk.getLocalBlock(localPosition);
 			}
 			return BlockMap::NULL_BLOCK;
-		}
-
-		static bool exists(const glm::ivec2& position)
-		{
-			for (Chunk& chunk : chunks)
-			{
-				if (chunk.chunkCoordinates == position)
-				{
-					return true;
-				}
-			}
-
-			return false;
 		}
 
 		static void checkChunkRadius()
@@ -319,16 +229,7 @@ namespace Minecraft
 			while (true)
 			{
 				glm::ivec2 localPos = playerPosChunkCoords - position;
-				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) < ChunkRadius * ChunkRadius)
-				{
-					bool alreadyExists = exists(position);
-					auto iter = loadedChunkPositions.find(position);
-					if (!alreadyExists && iter == loadedChunkPositions.end())
-					{
-						ChunkManager::queueCreateChunk(position.x, position.y);
-						loadedChunkPositions.insert(position);
-					}
-				}
+				ChunkManager::queueCreateChunk(position.x, position.y);
 
 				switch (direction)
 				{
@@ -365,70 +266,6 @@ namespace Minecraft
 					}
 				}
 			}
-		}
-
-		static void synchronizeChunks()
-		{
-			std::vector<Chunk> readyChunks = ChunkManager::getReadyChunks();
-			if (readyChunks.size() > 0)
-			{
-				for (Chunk& chunk : readyChunks)
-				{
-					if (chunk.loaded)
-					{
-						g_logger_info("Unloading from GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-						chunk.freeGpu();
-						setChunk(chunk.chunkCoordinates, chunk);
-					}
-					else
-					{
-						g_logger_info("Uploading to GPU chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-						chunk.uploadToGPU();
-						setUnloadedChunk(chunk);
-					}
-				}
-			}
-		}
-
-		static Chunk* findChunk(const glm::ivec2& chunkCoords)
-		{
-			for (int i = 0; i < ChunkCapacity; i++)
-			{
-				if (chunks[i].chunkCoordinates == chunkCoords)
-				{
-					return &chunks[i];
-				}
-			}
-
-			return nullptr;
-		}
-
-		static void setUnloadedChunk(const Chunk& chunkVal)
-		{
-			for (int i = 0; i < ChunkCapacity; i++)
-			{
-				if (!chunks[i].loaded)
-				{
-					chunks[i] = chunkVal;
-					return;
-				}
-			}
-
-			g_logger_warning("Tried to set unloaded chunk, but there are no unloaded chunks left.");
-		}
-
-		static void setChunk(const glm::ivec2& chunkCoords, const Chunk& chunkVal)
-		{
-			for (int i = 0; i < ChunkCapacity; i++)
-			{
-				if (chunks[i].chunkCoordinates == chunkCoords)
-				{
-					chunks[i] = chunkVal;
-					return;
-				}
-			}
-
-			g_logger_warning("Tried to set chunk<%d, %d> but could not find matching chunk.", chunkCoords.x, chunkCoords.y);
 		}
 	}
 }

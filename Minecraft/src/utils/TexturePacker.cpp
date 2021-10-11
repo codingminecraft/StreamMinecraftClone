@@ -89,7 +89,6 @@ namespace Minecraft
 			stbi_write_png(outputFilepath, pngOutputWidth, pngOutputHeight, 4, &pixels.begin()->r, pngOutputWidth * sizeof(Pixel));
 		
 			YAML::Node textureFormat;
-			textureFormat["Blocks"];
 			uint16 uid = 0;
 			for (const Location& location : textureLocations)
 			{
