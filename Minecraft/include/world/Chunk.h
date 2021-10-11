@@ -10,18 +10,6 @@ namespace Minecraft
 		uint32 data2;
 	};
 
-	struct RenderState
-	{
-		uint32 vao;
-		uint32 vbo;
-	};
-
-	struct ChunkRenderData
-	{
-		Vertex* vertices;
-		RenderState renderState;
-	};
-
 	struct SubChunk
 	{
 		Vertex* data;
@@ -52,24 +40,16 @@ namespace Minecraft
 	struct Chunk
 	{
 		Block* chunkData;
-		//ChunkRenderData renderData;
-		//uint32 numVertices;
 		glm::ivec2 chunkCoordinates;
-		//bool loaded;
 
 		Block getLocalBlock(glm::ivec3 localPosition);
 		void generate(Block* newChunkData, int chunkX, int chunkZ, int32 seed);
 
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(SubChunk* subChunks);
-		//void uploadToGPU();
-		//void render() const;
 
 		void serialize(const std::string& worldSavePath);
 		void deserialize(Block* newChunkData, const std::string& worldSavePath, int chunkX, int chunkZ);
-
-		//void freeCpu();
-		//void freeGpu();
 
 		static bool exists(const std::string& worldSavePath, int chunkX, int chunkZ);
 		static void info();

@@ -15,7 +15,6 @@ namespace Minecraft
 		void queueCreateChunk(int32 x, int32 z);
 		Chunk getChunk(const glm::vec3& worldPosition);
 
-		//std::vector<Chunk> getReadyChunks();
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader);
 
 	}

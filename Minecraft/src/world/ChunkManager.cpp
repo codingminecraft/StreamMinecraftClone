@@ -32,35 +32,11 @@ namespace Minecraft
 			ChunkWorker(int numThreads, int worldSeed)
 				: cv(), mtx(), queueMtx(), doWork(true)
 			{
-				//nextThreadToUse = 0;
 				seed = worldSeed;
 				for (int i = 0; i < numThreads; i++)
 				{
 					workerThreads.push_back(std::thread(&ChunkWorker::threadWorker, this));
 				}
-
-				//chunkQueue = new Chunk[World::ChunkCapacity];
-				//threadIndices = new ChunkThreadIndex[numThreads];
-
-				//uint32 partitionSize = (uint32)glm::ceil(World::ChunkCapacity / numThreads);
-				//uint32 startIndex = 0;
-				//for (int i = 0; i < numThreads; i++)
-				//{
-				//	threadIndices[i].currentChunk = 0;
-				//	threadIndices[i].startIndex = startIndex;
-				//	threadIndices[i].numChunksToComplete = 0;
-				//	if (i != numThreads - 1)
-				//	{
-				//		threadIndices[i].partitionSize = partitionSize;
-				//	}
-				//	else
-				//	{
-				//		threadIndices[i].partitionSize = World::ChunkCapacity - startIndex;
-				//	}
-
-				//	workerThreads.push_back(std::thread(&ChunkWorker::threadWorker, this, i));
-				//	startIndex += partitionSize;
-				//}
 			}
 
 			void free()
@@ -75,9 +51,6 @@ namespace Minecraft
 				{
 					workerThreads[i].join();
 				}
-
-				//delete[] chunkQueue;
-				//delete[] threadIndices;
 			}
 
 			void threadWorker()
@@ -93,88 +66,33 @@ namespace Minecraft
 					}
 
 					FillChunkCommand command;
+					bool doFillCommand = false;
 					{
 						std::lock_guard<std::mutex> queueLock(queueMtx);
-						command = commands.front();
-						commands.pop();
+						if (!commands.empty())
+						{
+							command = commands.front();
+							commands.pop();
+							doFillCommand = true;
+						}
 					}
 
-					//if (chunk.loaded)
-					//{
-					//	g_logger_log("Deleting on CPU Chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-					//	chunk.serialize("world");
-					//	chunk.freeCpu();
-					//}
-					g_logger_log("Creating on CPU Chunk<%d, %d>", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
-					if (Chunk::exists("world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y))
+					if (doFillCommand)
 					{
-						command.chunk.deserialize(command.blockData,
-							"world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
+						g_logger_log("Creating on CPU Chunk<%d, %d>", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
+						if (Chunk::exists("world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y))
+						{
+							command.chunk.deserialize(command.blockData,
+								"world", command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y);
+						}
+						else
+						{
+							command.chunk.generate(command.blockData, command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y, seed);
+						}
+						command.chunk.generateRenderData(command.subChunks);
 					}
-					else
-					{
-						command.chunk.generate(command.blockData, command.chunk.chunkCoordinates.x, command.chunk.chunkCoordinates.y, seed);
-					}
-					command.chunk.generateRenderData(command.subChunks);
 				}
 			}
-
-			//void threadWorker(int index)
-			//{
-			//	bool shouldContinue = true;
-			//	while (shouldContinue)
-			//	{
-			//		// Store a tmp variable to avoid concurrent reads
-			//		uint32 tmpNumChunksToComplete = 0;
-			//		{
-			//			// Wait until we need to do some work
-			//			std::unique_lock<std::mutex> lock(mtx);
-			//			ChunkThreadIndex& threadIndex = threadIndices[index];
-			//			cv.wait(lock, [&] { return !doWork || threadIndex.numChunksToComplete != 0; });
-			//			tmpNumChunksToComplete = threadIndex.numChunksToComplete;
-			//			shouldContinue = doWork;
-			//		}
-
-			//		std::vector<Chunk> newChunks;
-			//		while (tmpNumChunksToComplete != 0)
-			//		{
-			//			ChunkThreadIndex& threadIndex = threadIndices[index];
-			//			Chunk& chunk = chunkQueue[threadIndex.startIndex + threadIndex.currentChunk];
-			//			if (chunk.loaded)
-			//			{
-			//				g_logger_log("Deleting on CPU Chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			//				chunk.serialize("world");
-			//				chunk.freeCpu();
-			//			}
-			//			else
-			//			{
-			//				g_logger_log("Creating on CPU Chunk<%d, %d>", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			//				if (Chunk::exists("world", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y))
-			//				{
-			//					chunk.deserialize("world", chunk.chunkCoordinates.x, chunk.chunkCoordinates.y);
-			//				}
-			//				else
-			//				{
-			//					chunk.generate(chunk.chunkCoordinates.x, chunk.chunkCoordinates.y, seed);
-			//				}
-			//				chunk.generateRenderData();
-			//			}
-
-			//			{
-			//				std::lock_guard lock(vectorMtx);
-			//				readyChunks.push_back(chunk);
-			//			}
-
-			//			{
-			//				std::lock_guard lock(mtx);
-			//				threadIndex.numChunksToComplete--;
-			//				threadIndex.currentChunk = (threadIndex.currentChunk + 1) % threadIndex.partitionSize;
-			//				// Update the tmp variable while we have this locked
-			//				tmpNumChunksToComplete = threadIndex.numChunksToComplete;
-			//			}
-			//		}
-			//	}
-			//}
 
 			void queueCommand(const FillChunkCommand& command)
 			{
@@ -185,46 +103,7 @@ namespace Minecraft
 				cv.notify_one();
 			}
 
-			//void queueChunk(const Chunk& chunk)
-			//{
-			//	{
-			//		std::lock_guard<std::mutex> lockGuard(mtx);
-			//		g_logger_assert(nextThreadToUse >= 0 && nextThreadToUse < workerThreads.size(), "Invalid thread worker %d.", nextThreadToUse);
-			//		ChunkThreadIndex& index = threadIndices[nextThreadToUse];
-			//		g_logger_assert(index.numChunksToComplete < index.partitionSize - 1, "Ran out of room.");
-			//		uint32 nextAvailableSlot =
-			//			index.startIndex + ((index.currentChunk + index.numChunksToComplete) % index.partitionSize);
-			//		chunkQueue[nextAvailableSlot] = chunk;
-			//		index.numChunksToComplete++;
-			//	}
-			//	nextThreadToUse = (nextThreadToUse + 1) % workerThreads.size();
-			//	cv.notify_one();
-			//}
-
-			//std::vector<Chunk> getReadyChunks()
-			//{
-			//	if (vectorMtx.try_lock())
-			//	{
-			//		if (readyChunks.size() > 0)
-			//		{
-			//			std::vector<Chunk> copy = readyChunks;
-			//			readyChunks.clear();
-			//			vectorMtx.unlock();
-			//			return copy;
-			//		}
-			//		else
-			//		{
-			//			vectorMtx.unlock();
-			//		}
-			//	}
-
-			//	return {};
-			//}
-
 		private:
-			//ChunkThreadIndex* threadIndices;
-			//uint32 nextThreadToUse;
-			//std::vector<Chunk> readyChunks;
 			std::queue<FillChunkCommand> commands;
 			std::vector<std::thread> workerThreads;
 			std::condition_variable cv;
@@ -318,8 +197,6 @@ namespace Minecraft
 				FillChunkCommand cmd;
 				cmd.chunk.chunkCoordinates.x = x;
 				cmd.chunk.chunkCoordinates.y = z;
-				//chunk.loaded = false;
-				//chunkWorker().queueChunk(chunk);
 				cmd.blockData = nullptr;
 				cmd.subChunks = nullptr;
 
@@ -379,7 +256,7 @@ namespace Minecraft
 							data[i].uploadVertsToGpu = false;
 							glBindBuffer(GL_ARRAY_BUFFER, data[i].vbo);
 							glBufferSubData(GL_ARRAY_BUFFER, 0, data[i].numVertsUsed * sizeof(Vertex), data[i].data);
-							g_logger_info("Num Verts Used: %d", data[i].numVertsUsed.load());
+							//g_logger_info("Num Verts Used: %d", data[i].numVertsUsed.load());
 						}
 
 						if (data[i].numVertsUsed > 0)

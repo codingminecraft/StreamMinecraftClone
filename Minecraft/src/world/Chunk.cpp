@@ -134,75 +134,6 @@ namespace Minecraft
 				}
 			}
 		}
-
-		// Count how many vertices we need
-		//numVertices = 0;
-		//for (int y = 0; y < World::ChunkHeight; y++)
-		//{
-		//	for (int x = 0; x < World::ChunkDepth; x++)
-		//	{
-		//		for (int z = 0; z < World::ChunkWidth; z++)
-		//		{
-		//			const Block& block = getBlockInternal(chunkData, x, y, z);
-		//			int blockId = block.id;
-
-		//			if (block == BlockMap::NULL_BLOCK)
-		//			{
-		//				continue;
-		//			}
-
-		//			// Top Face
-		//			const int topBlockId = getBlockInternal(chunkData, x, y + 1, z).id;
-		//			const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
-		//			if (!topBlockId || topBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-
-		//			// Bottom Face
-		//			const int bottomBlockId = getBlockInternal(chunkData, x, y - 1, z).id;
-		//			const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
-		//			if (!bottomBlockId || bottomBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-
-		//			// Right Face
-		//			const int rightBlockId = getBlockInternal(chunkData, x, y, z + 1).id;
-		//			const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
-		//			if (!rightBlockId || rightBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-
-		//			// Left Face
-		//			const int leftBlockId = getBlockInternal(chunkData, x, y, z - 1).id;
-		//			const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
-		//			if (!leftBlockId || leftBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-
-		//			// Forward Face
-		//			const int forwardBlockId = getBlockInternal(chunkData, x + 1, y, z).id;
-		//			const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
-		//			if (!forwardBlockId || forwardBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-
-		//			// Back Face
-		//			const int backBlockId = getBlockInternal(chunkData, x - 1, y, z).id;
-		//			const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
-		//			if (!backBlockId || backBlock.isTransparent)
-		//			{
-		//				numVertices += 6;
-		//			}
-		//		}
-		//	}
-		//}
-
-		//g_logger_info("Num vertices: %d", numVertices);
 	}
 
 	Block Chunk::getLocalBlock(glm::ivec3 localPosition)
@@ -333,45 +264,6 @@ namespace Minecraft
 		currentSubChunk->uploadVertsToGpu = true;
 	}
 
-	//void Chunk::render() const
-	//{
-	//	glBindVertexArray(renderData.renderState.vao);
-	//	glDrawArrays(GL_TRIANGLES, 0, numVertices);
-	//}
-
-	//void Chunk::freeCpu()
-	//{
-	//	if (renderData.vertices)
-	//	{
-	//		g_memory_free(renderData.vertices);
-	//		renderData.vertices = nullptr;
-	//	}
-
-	//	if (chunkData)
-	//	{
-	//		g_memory_free(chunkData);
-	//		chunkData = nullptr;
-	//	}
-	//}
-
-	//void Chunk::freeGpu()
-	//{
-	//	if (renderData.renderState.vbo != -1)
-	//	{
-	//		glDeleteBuffers(1, &renderData.renderState.vbo);
-	//		renderData.renderState.vbo = -1;
-
-	//	}
-
-	//	if (renderData.renderState.vao != -1)
-	//	{
-	//		glDeleteVertexArrays(1, &renderData.renderState.vao);
-	//		renderData.renderState.vao = -1;
-	//	}
-
-	//	loaded = false;
-	//}
-
 	static std::string getFormattedFilepath(int32 x, int32 z, const std::string& worldSavePath)
 	{
 		return worldSavePath + "/" +
@@ -383,7 +275,6 @@ namespace Minecraft
 		std::string filepath = getFormattedFilepath(chunkCoordinates.x, chunkCoordinates.y, worldSavePath);
 		FILE* fp = fopen(filepath.c_str(), "wb");
 		fwrite(&chunkCoordinates, sizeof(glm::ivec2), 1, fp);
-		//fwrite(&numVertices, sizeof(uint32), 1, fp);
 		fwrite(chunkData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
 		fclose(fp);
 	}
@@ -399,7 +290,6 @@ namespace Minecraft
 		}
 
 		fread(&chunkCoordinates, sizeof(glm::ivec2), 1, fp);
-		//fread(&numVertices, sizeof(uint32), 1, fp);
 		chunkData = newChunkData;
 		fread(chunkData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
 		fclose(fp);
@@ -410,28 +300,6 @@ namespace Minecraft
 		std::string filepath = getFormattedFilepath(chunkX, chunkZ, worldSavePath);
 		return File::isFile(filepath.c_str());
 	}
-
-	//void Chunk::uploadToGPU()
-	//{
-	//	// 1. Buffer the data
-	//	glCreateVertexArrays(1, &renderData.renderState.vao);
-	//	glBindVertexArray(renderData.renderState.vao);
-
-	//	glGenBuffers(1, &renderData.renderState.vbo);
-
-	//	// 1a. copy our vertices array in a buffer for OpenGL to use
-	//	glBindBuffer(GL_ARRAY_BUFFER, renderData.renderState.vbo);
-	//	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVertices, renderData.vertices, GL_DYNAMIC_DRAW);
-
-	//	// 1b. then set our vertex attributes pointers
-	//	glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
-	//	glEnableVertexAttribArray(0);
-
-	//	glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, data2)));
-	//	glEnableVertexAttribArray(1);
-
-	//	loaded = true;
-	//}
 
 	static const int BASE_17_DEPTH = 17;
 	static const int BASE_17_WIDTH = 17;
