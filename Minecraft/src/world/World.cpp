@@ -218,7 +218,10 @@ namespace Minecraft
 			while (true)
 			{
 				glm::ivec2 localPos = playerPosChunkCoords - position;
-				ChunkManager::queueCreateChunk(position.x, position.y);
+				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) <= (World::ChunkRadius * World::ChunkRadius))
+				{
+					ChunkManager::queueCreateChunk(position.x, position.y);
+				}
 
 				switch (direction)
 				{

@@ -325,7 +325,7 @@ namespace Minecraft
 
 						const glm::ivec2 localChunkPos = chunkPos - playerPositionInChunkCoords;
 						bool inRangeOfPlayer = (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
-							(World::ChunkRadius * World::ChunkRadius) * (World::ChunkRadius * World::ChunkRadius);
+							(World::ChunkRadius * World::ChunkRadius);
 						if (!inRangeOfPlayer)
 						{
 							g_logger_log("Deleting chunk<%d, %d> %d, %d", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
