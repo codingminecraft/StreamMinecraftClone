@@ -9,6 +9,12 @@
 
 namespace Minecraft
 {
+	enum class CommandType : uint8
+	{
+		FillBlockData,
+		TesselateVertices
+	};
+
 	struct FillChunkCommand
 	{
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
@@ -16,7 +22,7 @@ namespace Minecraft
 		std::array<SubChunk*, 16> subChunks;
 		int subChunkLevel;
 		glm::ivec2 chunkCoordinates;
-		bool doBlockData;
+		CommandType type;
 	};
 
 	namespace ChunkManager
@@ -62,41 +68,48 @@ namespace Minecraft
 					}
 
 					FillChunkCommand command;
-					bool doFillCommand = false;
+					bool processCommand = false;
 					{
 						std::lock_guard<std::mutex> queueLock(queueMtx);
 						if (!commands.empty())
 						{
 							command = commands.front();
 							commands.pop();
-							doFillCommand = true;
+							processCommand = true;
 						}
 					}
 
-					if (doFillCommand)
+					if (processCommand)
 					{
-						if (command.doBlockData)
+						switch (command.type)
 						{
-							if (Chunk::exists("world", command.chunkCoordinates))
+						case CommandType::FillBlockData:
 							{
-								Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);
-							}
-							else
-							{
-								Chunk::generate(command.blockData, command.chunkCoordinates, seed);
-							}
+								if (Chunk::exists("world", command.chunkCoordinates))
+								{
+									Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);
+								}
+								else
+								{
+									Chunk::generate(command.blockData, command.chunkCoordinates, seed);
+								}
 
-							command.doBlockData = false;
-							for (int i = 0; i < command.subChunks.size(); i++)
-							{
-								command.subChunkLevel = i;
-								queueCommand(command);
-								beginWork(false);
+								// Queue the tesselation commands
+								command.type = CommandType::TesselateVertices;
+								for (int i = 0; i < command.subChunks.size(); i++)
+								{
+									command.subChunkLevel = i;
+									command.subChunks[i]->state = SubChunkState::TesselateVertices;
+									queueCommand(command);
+									beginWork(false);
+								}
 							}
-						}
-						else
-						{
-							Chunk::generateRenderData(command.subChunks[command.subChunkLevel], command.blockData, command.subChunkLevel);
+							break;
+						case CommandType::TesselateVertices:
+							{
+								Chunk::generateRenderData(command.subChunks[command.subChunkLevel], command.blockData, command.subChunkLevel);
+							}
+							break;
 						}
 					}
 				}
@@ -108,7 +121,6 @@ namespace Minecraft
 					std::lock_guard<std::mutex> lockGuard(queueMtx);
 					commands.push(command);
 				}
-				//cv.notify_one();
 			}
 
 			void beginWork(bool notifyAll = true)
@@ -184,7 +196,7 @@ namespace Minecraft
 				// Assign the pointers for the data on the CPU
 				subChunks.at(i).data = vertexPools[i];
 				subChunks.at(i).numVertsUsed = 0;
-				subChunks.at(i).inUse = false;
+				subChunks.at(i).state = SubChunkState::Unloaded;
 
 				// Generate a bunch of empty vertex buckets for GPU use
 				glCreateVertexArrays(1, &subChunks.at(i).vao);
@@ -226,14 +238,15 @@ namespace Minecraft
 			{
 				FillChunkCommand cmd;
 				cmd.chunkCoordinates = glm::ivec2{ x, z };
-				cmd.doBlockData = true;
+				cmd.type = CommandType::FillBlockData;
 				cmd.blockData = nullptr;
 				for (int i = 0; i < 16; i++)
 				{
 					cmd.subChunks[i] = getFreeSubChunk();
 					cmd.subChunkLevel = i;
 					g_logger_assert(cmd.subChunks[i] != nullptr, "Ran out of chunk room!");
-					cmd.subChunks[i]->inUse = true;
+					cmd.subChunks[i]->state = SubChunkState::LoadingBlockData;
+					cmd.subChunks[i]->numVertsUsed = 0;
 					cmd.subChunks[i]->chunkCoordinates = glm::ivec2{ x, z };
 				}
 
@@ -295,7 +308,9 @@ namespace Minecraft
 				avgVertCount += last100Verts[i];
 			}
 			if (avgVertCount > 0)
+			{
 				avgVertCount /= 100;
+			}
 			DebugStats::minVertCount = minVertCount;
 			DebugStats::maxVertCount = maxVertCount;
 			DebugStats::avgVertCount = avgVertCount;
@@ -305,14 +320,15 @@ namespace Minecraft
 
 			for (int i = 0; i < subChunks.size(); i++)
 			{
-				if (subChunks[i].inUse)
+				if (subChunks[i].state != SubChunkState::Unloaded)
 				{
 					glm::ivec2 chunkPos = subChunks[i].chunkCoordinates;
 					auto iter = chunkIndices.find(chunkPos);
 					if (iter == chunkIndices.end())
 					{
 						// If the chunk coords are no longer loaded, set this chunk as not in use anymore
-						subChunks[i].inUse = false;
+						subChunks[i].state = SubChunkState::Unloaded;
+						subChunks[i].numVertsUsed = 0;
 					}
 					else if (loadedChunks.test(iter->second))
 					{
@@ -321,11 +337,12 @@ namespace Minecraft
 						shader.uploadVec3("uPlayerPosition", playerPosition);
 						shader.uploadInt("uChunkRadius", World::ChunkRadius);
 
-						if (subChunks[i].uploadVertsToGpu && subChunks[i].numVertsUsed > 0)
+						if (subChunks[i].state == SubChunkState::UploadVerticesToGpu)
 						{
-							subChunks[i].uploadVertsToGpu = false;
+							g_logger_assert(subChunks[i].numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							glBindBuffer(GL_ARRAY_BUFFER, subChunks[i].vbo);
 							glBufferSubData(GL_ARRAY_BUFFER, 0, subChunks[i].numVertsUsed * sizeof(Vertex), subChunks[i].data);
+							subChunks[i].state = SubChunkState::Uploaded;
 
 							// TODO: Remove me this is for debugging purposes
 							last100Verts[last100VertsIndex] = subChunks[i].numVertsUsed;
@@ -334,8 +351,9 @@ namespace Minecraft
 							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
-						if (subChunks[i].numVertsUsed > 0 && subChunks[i].inUse)
+						if (subChunks[i].state == SubChunkState::Uploaded)
 						{
+							g_logger_assert(subChunks[i].numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							glBindVertexArray(subChunks[i].vao);
 							glDrawArrays(GL_TRIANGLES, 0, subChunks[i].numVertsUsed);
 							DebugStats::numDrawCalls++;
@@ -351,7 +369,8 @@ namespace Minecraft
 							loadedChunks.set(chunkIndex, false);
 							std::lock_guard lock(chunkMtx);
 							chunkIndices.erase(iter);
-							subChunks[i].inUse = false;
+							subChunks[i].state = SubChunkState::Unloaded;
+							subChunks[i].numVertsUsed = 0;
 						}
 					}
 				}
@@ -362,7 +381,7 @@ namespace Minecraft
 		{
 			for (int i = 0; i < subChunks.size(); i++)
 			{
-				if (!subChunks[i].inUse)
+				if (subChunks[i].state == SubChunkState::Unloaded)
 				{
 					return &(subChunks[i]);
 				}
@@ -501,6 +520,7 @@ namespace Minecraft
 			const int worldChunkX = subChunk->chunkCoordinates.x * 16;
 			const int worldChunkZ = subChunk->chunkCoordinates.y * 16;
 
+			subChunk->state = SubChunkState::TesselatingVertices;
 			subChunk->numVertsUsed = 0;
 			g_logger_assert(subChunkLevel >= 0 && subChunkLevel < 16, "Invalid sub-chunk level %d", subChunkLevel);
 			int yStart = subChunkLevel * 16;
@@ -611,12 +631,11 @@ namespace Minecraft
 
 			if (subChunk->numVertsUsed > 0)
 			{
-				subChunk->uploadVertsToGpu = true;
+				subChunk->state = SubChunkState::UploadVerticesToGpu;
 			}
 			else
 			{
-				subChunk->inUse = false;
-				subChunk->uploadVertsToGpu = false;
+				subChunk->state = SubChunkState::Unloaded;
 			}
 		}
 

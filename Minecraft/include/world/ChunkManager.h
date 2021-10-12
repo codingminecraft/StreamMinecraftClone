@@ -7,6 +7,17 @@ namespace Minecraft
 	struct Shader;
 	struct Block;
 
+	enum class SubChunkState : uint8
+	{
+		Unloaded,
+		LoadBlockData,
+		LoadingBlockData,
+		TesselateVertices,
+		TesselatingVertices,
+		UploadVerticesToGpu,
+		Uploaded
+	};
+
 	struct Vertex
 	{
 		uint32 data1;
@@ -20,8 +31,7 @@ namespace Minecraft
 		uint32 vbo;
 		glm::ivec2 chunkCoordinates;
 		std::atomic<uint32> numVertsUsed;
-		std::atomic<bool> uploadVertsToGpu;
-		std::atomic<bool> inUse;
+		std::atomic<SubChunkState> state;
 	};
 
 	namespace Chunk
