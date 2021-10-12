@@ -91,7 +91,7 @@ namespace Minecraft
 
 				// Draw third row of statistics
 				playerPosPos = glm::vec2(-2.95f, 1.11f);
-				playerPosStr = std::string("MaxVertCount: " + CMath::toString(DebugStats::maxVertCount));
+				playerPosStr = std::string("MaxVertCount: " + CMath::toString((float)DebugStats::maxVertCount));
 				Renderer::drawString(
 					playerPosStr,
 					*font,
@@ -100,7 +100,7 @@ namespace Minecraft
 					Styles::defaultStyle);
 
 				playerPosChunkCoordsPos = glm::vec2(-1.48f, 1.11f);
-				playerPosChunkCoordsStr = std::string("MinVertCount: " + CMath::toString(DebugStats::minVertCount));
+				playerPosChunkCoordsStr = std::string("MinVertCount: " + CMath::toString((float)DebugStats::minVertCount));
 				Renderer::drawString(
 					playerPosChunkCoordsStr,
 					*font,

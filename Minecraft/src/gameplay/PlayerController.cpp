@@ -24,9 +24,9 @@ namespace Minecraft
 	namespace PlayerController
 	{
 		// Internal members
-		static Ecs::EntityId playerId = Ecs::nullEntity;
+		static Ecs::EntityId playerId;
 		static Style blockHighlight;
-		static GameMode gameMode = GameMode::Spectator;
+		static GameMode gameMode;
 
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
@@ -37,6 +37,8 @@ namespace Minecraft
 			blockHighlight = Styles::defaultStyle;
 			blockHighlight.color = "#00000067"_hex;
 			blockHighlight.strokeWidth = 0.02f;
+			gameMode = GameMode::Survival;
+			playerId = Ecs::nullEntity;
 		}
 
 		void update(Ecs::Registry& registry, float dt)

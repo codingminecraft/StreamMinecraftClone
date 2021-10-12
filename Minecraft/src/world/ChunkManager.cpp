@@ -91,6 +91,7 @@ namespace Minecraft
 							{
 								command.subChunkLevel = i;
 								queueCommand(command);
+								beginWork(false);
 							}
 						}
 						else
@@ -107,7 +108,19 @@ namespace Minecraft
 					std::lock_guard<std::mutex> lockGuard(queueMtx);
 					commands.push(command);
 				}
-				cv.notify_one();
+				//cv.notify_one();
+			}
+
+			void beginWork(bool notifyAll = true)
+			{
+				if (notifyAll)
+				{
+					cv.notify_all();
+				}
+				else
+				{
+					cv.notify_one();
+				}
 			}
 
 		private:
@@ -166,7 +179,7 @@ namespace Minecraft
 
 			// Initialize the SubChunks
 			loadedChunks.reset();
-			for (int i = 0; i < vertexPools.size(); i++)
+			for (uint32 i = 0; i < vertexPools.size(); i++)
 			{
 				// Assign the pointers for the data on the CPU
 				subChunks.at(i).data = vertexPools[i];
@@ -241,6 +254,11 @@ namespace Minecraft
 				}
 
 			}
+		}
+
+		void processCommands()
+		{
+			chunkWorker().beginWork();
 		}
 
 		Block getBlock(const glm::vec3& worldPosition)
@@ -387,7 +405,7 @@ namespace Minecraft
 
 		// Internal functions
 		static int to1DArray(int x, int y, int z);
-		static const Block& getBlockInternal(const Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
+		static Block getBlockInternal(const Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
 		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face);
 
@@ -402,10 +420,8 @@ namespace Minecraft
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
-#ifdef _DEBUG
 			// TODO: Should we zero the memory in release mode as well? Or does it matter?
 			g_memory_zeroMem(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
-#endif
 			const SimplexNoise generator = SimplexNoise();
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{
@@ -640,7 +656,7 @@ namespace Minecraft
 			return (x * World::ChunkDepth) + (y * World::ChunkHeight) + z;
 		}
 
-		static const Block& getBlockInternal(const Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates)
+		static Block getBlockInternal(const Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates)
 		{
 			int index = to1DArray(x, y, z);
 			return x >= 16 || x < 0 || z >= 16 || z < 0

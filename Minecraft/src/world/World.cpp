@@ -262,6 +262,8 @@ namespace Minecraft
 					}
 				}
 			}
+
+			ChunkManager::processCommands();
 		}
 	}
 }

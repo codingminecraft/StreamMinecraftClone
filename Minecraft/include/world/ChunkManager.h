@@ -48,6 +48,7 @@ namespace Minecraft
 		Block getBlock(const glm::vec3& worldPosition);
 
 		void queueCreateChunk(int32 x, int32 z);
+		void processCommands();
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader);
 	}
 }
