@@ -208,6 +208,15 @@ namespace Minecraft
 			// See switch statement below
 			glm::ivec2 position = toChunkCoords(playerPosition);
 			glm::ivec2 playerPosChunkCoords = position;
+			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
+
+			// If the player moves to a new chunk, then retesselate any chunks on the edge of the chunk radius to 
+			// fix any holes there might be
+			bool retesselateEdges = false;
+			if (lastPlayerPosChunkCoords != playerPosChunkCoords)
+			{
+				retesselateEdges = true;
+			}
 
 			bool needsWork = false;
 			// 0 RIGHT, 1 UP, 2 LEFT, 3 DOWN
@@ -224,7 +233,11 @@ namespace Minecraft
 					// so we also have to make sure that we check if the chunk is in range before we
 					// try to queue it. Otherwise, we end up with infinite queues that instantly get deleted
 					// which clog our threads with empty work.
-					ChunkManager::queueCreateChunk(position.x, position.y);
+					glm::ivec2 lastLocalPos = lastPlayerPosChunkCoords - position;
+					bool retesselateThisChunk = 
+						(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+						&& retesselateEdges;
+					ChunkManager::queueCreateChunk(position, retesselateThisChunk);
 				}
 
 				switch (direction)
@@ -263,6 +276,7 @@ namespace Minecraft
 				}
 			}
 
+			lastPlayerPosChunkCoords = playerPosChunkCoords;
 			ChunkManager::processCommands();
 		}
 	}

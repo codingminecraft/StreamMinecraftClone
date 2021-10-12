@@ -12,6 +12,7 @@ namespace Minecraft
 		Unloaded,
 		LoadBlockData,
 		LoadingBlockData,
+		RetesselateVertices,
 		TesselateVertices,
 		TesselatingVertices,
 		UploadVerticesToGpu,
@@ -29,6 +30,7 @@ namespace Minecraft
 		Vertex* data;
 		uint32 vao;
 		uint32 vbo;
+		uint8 subChunkLevel;
 		glm::ivec2 chunkCoordinates;
 		std::atomic<uint32> numVertsUsed;
 		std::atomic<SubChunkState> state;
@@ -38,7 +40,7 @@ namespace Minecraft
 	{
 		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, int32 seed);
 		// Must guarantee at least 16 sub-chunks located at this address
-		void generateRenderData(SubChunk* subChunk, const Block* blockData, int subChunkLevel);
+		void generateRenderData(SubChunk* subChunk, const Block* blockData);
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
 		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
@@ -57,7 +59,7 @@ namespace Minecraft
 
 		Block getBlock(const glm::vec3& worldPosition);
 
-		void queueCreateChunk(int32 x, int32 z);
+		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate);
 		void processCommands();
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader);
 	}

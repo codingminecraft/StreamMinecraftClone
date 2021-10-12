@@ -20,7 +20,7 @@ namespace Minecraft
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
 		Block* blockData;
 		std::array<SubChunk*, 16> subChunks;
-		int subChunkLevel;
+		SubChunk* subChunk;
 		glm::ivec2 chunkCoordinates;
 		CommandType type;
 	};
@@ -84,32 +84,34 @@ namespace Minecraft
 						switch (command.type)
 						{
 						case CommandType::FillBlockData:
+						{
+							if (Chunk::exists("world", command.chunkCoordinates))
 							{
-								if (Chunk::exists("world", command.chunkCoordinates))
-								{
-									Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);
-								}
-								else
-								{
-									Chunk::generate(command.blockData, command.chunkCoordinates, seed);
-								}
+								Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);
+							}
+							else
+							{
+								Chunk::generate(command.blockData, command.chunkCoordinates, seed);
+							}
 
-								// Queue the tesselation commands
-								command.type = CommandType::TesselateVertices;
-								for (int i = 0; i < command.subChunks.size(); i++)
-								{
-									command.subChunkLevel = i;
-									command.subChunks[i]->state = SubChunkState::TesselateVertices;
-									queueCommand(command);
-									beginWork(false);
-								}
-							}
-							break;
-						case CommandType::TesselateVertices:
+							// Queue the tesselation commands
+							command.type = CommandType::TesselateVertices;
+							for (int i = 0; i < command.subChunks.size(); i++)
 							{
-								Chunk::generateRenderData(command.subChunks[command.subChunkLevel], command.blockData, command.subChunkLevel);
+								command.subChunk = command.subChunks[i];
+								command.subChunk->state = SubChunkState::TesselateVertices;
+								command.subChunk->subChunkLevel = i;
+								queueCommand(command);
+								beginWork(false);
 							}
-							break;
+						}
+						break;
+						case CommandType::TesselateVertices:
+						{
+							g_logger_assert(command.subChunk != nullptr, "Cannot tesselate vertices of null subchunk.");
+							Chunk::generateRenderData(command.subChunk, command.blockData);
+						}
+						break;
 						}
 					}
 				}
@@ -226,28 +228,28 @@ namespace Minecraft
 			chunkWorker().free();
 		}
 
-		void queueCreateChunk(int32 x, int32 z)
+		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate)
 		{
 			// Only upload if we need to
 			bool upload;
 			{
 				std::lock_guard<std::mutex> lock(chunkMtx);
-				upload = chunkIndices.find({ x, z }) == chunkIndices.end();
+				upload = chunkIndices.find(chunkCoordinates) == chunkIndices.end();
 			}
 			if (upload)
 			{
 				FillChunkCommand cmd;
-				cmd.chunkCoordinates = glm::ivec2{ x, z };
+				cmd.chunkCoordinates = chunkCoordinates;
 				cmd.type = CommandType::FillBlockData;
 				cmd.blockData = nullptr;
 				for (int i = 0; i < 16; i++)
 				{
 					cmd.subChunks[i] = getFreeSubChunk();
-					cmd.subChunkLevel = i;
+					cmd.subChunk = nullptr;
 					g_logger_assert(cmd.subChunks[i] != nullptr, "Ran out of chunk room!");
 					cmd.subChunks[i]->state = SubChunkState::LoadingBlockData;
 					cmd.subChunks[i]->numVertsUsed = 0;
-					cmd.subChunks[i]->chunkCoordinates = glm::ivec2{ x, z };
+					cmd.subChunks[i]->chunkCoordinates = chunkCoordinates;
 				}
 
 				for (int i = 0; i < loadedChunks.size(); i++)
@@ -257,15 +259,40 @@ namespace Minecraft
 						loadedChunks.set(i, true);
 						{
 							std::lock_guard<std::mutex> lock(chunkMtx);
-							chunkIndices[{x, z}] = i;
+							chunkIndices[chunkCoordinates] = i;
 						}
 						cmd.blockData = blockPool()[i];
 						chunkWorker().queueCommand(cmd);
-						g_logger_log("Queueing chunk <%d, %d>", x, z);
+						g_logger_log("Queueing chunk <%d, %d>", chunkCoordinates.x, chunkCoordinates.y);
 						break;
 					}
 				}
+			}
+			else if (retesselate)
+			{
+				FillChunkCommand cmd;
+				cmd.chunkCoordinates = chunkCoordinates;
+				cmd.type = CommandType::TesselateVertices;
+				cmd.blockData = nullptr;
+				{
+					std::lock_guard<std::mutex> lock(chunkMtx);
+					auto iter = chunkIndices.find(chunkCoordinates);
+					if (iter == chunkIndices.end())
+					{
+						return;
+					}
+					cmd.blockData = blockPool()[iter->second];
+				}
 
+				for (int i = 0; i < subChunks.size(); i++)
+				{
+					if (subChunks[i].chunkCoordinates == chunkCoordinates && subChunks[i].state == SubChunkState::Uploaded)
+					{
+						subChunks[i].state = SubChunkState::RetesselateVertices;
+						cmd.subChunk = &(subChunks[i]);
+						chunkWorker().queueCommand(cmd);
+					}
+				}
 			}
 		}
 
@@ -515,15 +542,15 @@ namespace Minecraft
 			return getLocalBlock(localPosition, chunkCoordinates, blockData);
 		}
 
-		void generateRenderData(SubChunk* subChunk, const Block* blockData, int subChunkLevel)
+		void generateRenderData(SubChunk* subChunk, const Block* blockData)
 		{
 			const int worldChunkX = subChunk->chunkCoordinates.x * 16;
 			const int worldChunkZ = subChunk->chunkCoordinates.y * 16;
 
 			subChunk->state = SubChunkState::TesselatingVertices;
 			subChunk->numVertsUsed = 0;
-			g_logger_assert(subChunkLevel >= 0 && subChunkLevel < 16, "Invalid sub-chunk level %d", subChunkLevel);
-			int yStart = subChunkLevel * 16;
+			g_logger_assert(subChunk->subChunkLevel >= 0 && subChunk->subChunkLevel < 16, "Invalid sub-chunk level %d", subChunk->subChunkLevel);
+			int yStart = subChunk->subChunkLevel * 16;
 			int yEnd = yStart + 16;
 			for (int y = yStart; y < yEnd; y++)
 			{
