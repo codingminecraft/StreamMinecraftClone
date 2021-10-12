@@ -328,7 +328,7 @@ namespace Minecraft
 							(World::ChunkRadius * World::ChunkRadius);
 						if (!inRangeOfPlayer)
 						{
-							g_logger_log("Deleting chunk<%d, %d> %d, %d", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
+							g_logger_log("Deleting chunk<%d, %d> Local position<%d, %d>", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
 							int chunkIndex = iter->second;
 							loadedChunks.set(chunkIndex, false);
 							std::lock_guard lock(chunkMtx);

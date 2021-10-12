@@ -10,6 +10,7 @@ namespace Minecraft
 {
 	namespace CharacterSystem
 	{
+		// Internal variables
 		static Ecs::EntityId cameraEntity = Ecs::nullEntity;
 
 		void update(Ecs::Registry& registry, float dt)
@@ -34,32 +35,34 @@ namespace Minecraft
 				}
 				rb.velocity.z = 0;
 
-				float rotation = transform.orientation.y;
-				glm::vec2 forward = glm::vec2(glm::cos(glm::radians(rotation)), glm::sin(glm::radians(rotation)));
-				glm::vec2 right = glm::vec2(-forward.y, forward.x);
+				float rotation = glm::radians(transform.orientation.y);
+				glm::vec3 forward = glm::vec3(glm::cos(rotation), 0, glm::sin(rotation));
+				glm::vec3 right = glm::vec3(-forward.z, 0, forward.x);
 				if (controller.movementAxis.x)
 				{
-					rb.velocity.x += forward.x * controller.movementAxis.x;
-					rb.velocity.z += forward.y * controller.movementAxis.x;
+					rb.velocity.x = forward.x * controller.movementAxis.x;
+					rb.velocity.z = forward.z * controller.movementAxis.x;
 				}
 				if (rb.isSensor && controller.movementAxis.y)
 				{
 					// TODO: Change this
-					rb.velocity.y += controller.movementAxis.y * speed;
+					rb.velocity.y += controller.movementAxis.y;
 				}
 				if (controller.movementAxis.z)
 				{
 					rb.velocity.x += right.x * controller.movementAxis.z;
-					rb.velocity.z += right.y * controller.movementAxis.z;
+					rb.velocity.z += right.z * controller.movementAxis.z;
 				}
 
-				if (rb.velocity.x > 0 || rb.velocity.z > 0)
+				if (glm::abs(rb.velocity.x) > 0 || glm::abs(rb.velocity.z) > 0)
 				{
-					float normalDir = glm::inversesqrt(rb.velocity.x * rb.velocity.x + rb.velocity.z * rb.velocity.z);
-					rb.velocity.x *= normalDir;
-					rb.velocity.z *= normalDir;
-					rb.velocity.x *= speed;
-					rb.velocity.z *= speed;
+					float denominator = glm::inversesqrt(rb.velocity.x * rb.velocity.x + rb.velocity.z * rb.velocity.z);
+					rb.velocity.x *= denominator * speed;
+					if (rb.isSensor && glm::abs(rb.velocity.y) > 0)
+					{
+						rb.velocity.y *= denominator * speed;
+					}
+					rb.velocity.z *= denominator * speed;
 				}
 
 				float mx = controller.viewAxis.x;
@@ -70,10 +73,13 @@ namespace Minecraft
 				transform.orientation.x += my;
 				transform.orientation.y += mx;
 				transform.orientation.x = glm::clamp(transform.orientation.x, -89.9f, 89.9f);
-				if (glm::abs(transform.orientation.y) > 360.0f)
+				if (transform.orientation.y > 360.0f)
 				{
-					float val = transform.orientation.y > 0 ? transform.orientation.y : -transform.orientation.y;
-					transform.orientation.y = val - (360 * (int)(transform.orientation.y / 360));
+					transform.orientation.y = 360.0f - transform.orientation.y;
+				}
+				else if (transform.orientation.y < 0)
+				{
+					transform.orientation.y = 360.0f + transform.orientation.y;
 				}
 
 				if (controller.applyJumpForce)

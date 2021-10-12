@@ -220,6 +220,10 @@ namespace Minecraft
 				glm::ivec2 localPos = playerPosChunkCoords - position;
 				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) <= (World::ChunkRadius * World::ChunkRadius))
 				{
+					// We have to expand in a circle that exceeds the range of chunks in this radius,
+					// so we also have to make sure that we check if the chunk is in range before we
+					// try to queue it. Otherwise, we end up with infinite queues that instantly get deleted
+					// which clog our threads with empty work.
 					ChunkManager::queueCreateChunk(position.x, position.y);
 				}
 
