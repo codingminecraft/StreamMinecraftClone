@@ -11,10 +11,10 @@ namespace Minecraft
 {
 	struct FillChunkCommand
 	{
-		// Must be at least 16 subChunks per command
-		SubChunk* subChunks;
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
 		Block* blockData;
+		std::array<SubChunk*, 16> subChunks;
+		int subChunkLevel;
 		glm::ivec2 chunkCoordinates;
 		bool doBlockData;
 	};
@@ -75,7 +75,6 @@ namespace Minecraft
 
 					if (doFillCommand)
 					{
-						g_logger_log("Creating on CPU Chunk<%d, %d>", command.chunkCoordinates.x, command.chunkCoordinates.y);
 						if (command.doBlockData)
 						{
 							if (Chunk::exists("world", command.chunkCoordinates))
@@ -86,12 +85,17 @@ namespace Minecraft
 							{
 								Chunk::generate(command.blockData, command.chunkCoordinates, seed);
 							}
+
 							command.doBlockData = false;
-							queueCommand(command);
+							for (int i = 0; i < command.subChunks.size(); i++)
+							{
+								command.subChunkLevel = i;
+								queueCommand(command);
+							}
 						}
 						else
 						{
-							Chunk::generateRenderData(command.subChunks, command.blockData, command.chunkCoordinates);
+							Chunk::generateRenderData(command.subChunks[command.subChunkLevel], command.blockData, command.subChunkLevel);
 						}
 					}
 				}
@@ -117,6 +121,7 @@ namespace Minecraft
 			uint32 seed;
 		};
 
+		// Internal variables
 		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
 		static uint32 worldSeed = 0;
@@ -124,6 +129,10 @@ namespace Minecraft
 		static std::bitset<World::ChunkCapacity> loadedChunks;
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
 
+		// Internal functions
+		static SubChunk* getFreeSubChunk();
+
+		// Singletons
 		static ChunkWorker& chunkWorker()
 		{
 			static ChunkWorker instance(processorCount, worldSeed);
@@ -162,7 +171,7 @@ namespace Minecraft
 				// Assign the pointers for the data on the CPU
 				subChunks.at(i).data = vertexPools[i];
 				subChunks.at(i).numVertsUsed = 0;
-				subChunks.at(i).loaded = false;
+				subChunks.at(i).inUse = false;
 
 				// Generate a bunch of empty vertex buckets for GPU use
 				glCreateVertexArrays(1, &subChunks.at(i).vao);
@@ -206,26 +215,31 @@ namespace Minecraft
 				cmd.chunkCoordinates = glm::ivec2{ x, z };
 				cmd.doBlockData = true;
 				cmd.blockData = nullptr;
-				cmd.subChunks = nullptr;
+				for (int i = 0; i < 16; i++)
+				{
+					cmd.subChunks[i] = getFreeSubChunk();
+					cmd.subChunkLevel = i;
+					g_logger_assert(cmd.subChunks[i] != nullptr, "Ran out of chunk room!");
+					cmd.subChunks[i]->inUse = true;
+					cmd.subChunks[i]->chunkCoordinates = glm::ivec2{ x, z };
+				}
 
 				for (int i = 0; i < loadedChunks.size(); i++)
 				{
 					if (!loadedChunks.test(i))
 					{
-						cmd.subChunks = subChunks.data() + (i * 16);
 						loadedChunks.set(i, true);
 						{
 							std::lock_guard<std::mutex> lock(chunkMtx);
 							chunkIndices[{x, z}] = i;
 						}
 						cmd.blockData = blockPool()[i];
+						chunkWorker().queueCommand(cmd);
+						g_logger_log("Queueing chunk <%d, %d>", x, z);
 						break;
 					}
 				}
 
-				g_logger_assert(cmd.subChunks != nullptr, "Ran out of chunks! Cannot find any new chunk data.");
-				g_logger_info("Queueing chunk<%d, %d>", cmd.chunkCoordinates.x, cmd.chunkCoordinates.y);
-				chunkWorker().queueCommand(cmd);
 			}
 		}
 
@@ -271,60 +285,72 @@ namespace Minecraft
 			// TODO: Weird that I have to re-enable that here. Try to find out why?
 			glEnable(GL_CULL_FACE);
 
-			for (auto iter = chunkIndices.begin(); iter != chunkIndices.end();)
+			for (int i = 0; i < subChunks.size(); i++)
 			{
-				glm::ivec2 chunkPos = iter->first;
-				int chunkIndex = iter->second;
-
-				if (loadedChunks.test(chunkIndex))
+				if (subChunks[i].inUse)
 				{
-					shader.uploadIVec2("uChunkPos", chunkPos);
-					shader.uploadVec3("uPlayerPosition", playerPosition);
-					shader.uploadInt("uChunkRadius", World::ChunkRadius);
-
-					SubChunk* data = subChunks.data() + (chunkIndex * 16);
-					for (int i = 0; i < 16; i++)
+					glm::ivec2 chunkPos = subChunks[i].chunkCoordinates;
+					auto iter = chunkIndices.find(chunkPos);
+					if (iter == chunkIndices.end())
 					{
-						if (data[i].uploadVertsToGpu && data[i].numVertsUsed > 0)
+						// If the chunk coords are no longer loaded, set this chunk as not in use anymore
+						subChunks[i].inUse = false;
+					}
+					else if (loadedChunks.test(iter->second))
+					{
+						// Otherwise render it
+						shader.uploadIVec2("uChunkPos", chunkPos);
+						shader.uploadVec3("uPlayerPosition", playerPosition);
+						shader.uploadInt("uChunkRadius", World::ChunkRadius);
+
+						if (subChunks[i].uploadVertsToGpu && subChunks[i].numVertsUsed > 0)
 						{
-							data[i].uploadVertsToGpu = false;
-							glBindBuffer(GL_ARRAY_BUFFER, data[i].vbo);
-							glBufferSubData(GL_ARRAY_BUFFER, 0, data[i].numVertsUsed * sizeof(Vertex), data[i].data);
+							subChunks[i].uploadVertsToGpu = false;
+							glBindBuffer(GL_ARRAY_BUFFER, subChunks[i].vbo);
+							glBufferSubData(GL_ARRAY_BUFFER, 0, subChunks[i].numVertsUsed * sizeof(Vertex), subChunks[i].data);
 
 							// TODO: Remove me this is for debugging purposes
-							last100Verts[last100VertsIndex] = data[i].numVertsUsed;
-							maxVertCount = glm::max(data[i].numVertsUsed.load(), maxVertCount);
-							minVertCount = glm::min(data[i].numVertsUsed.load(), minVertCount);
+							last100Verts[last100VertsIndex] = subChunks[i].numVertsUsed;
+							maxVertCount = glm::max(subChunks[i].numVertsUsed.load(), maxVertCount);
+							minVertCount = glm::min(subChunks[i].numVertsUsed.load(), minVertCount);
 							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
-						if (data[i].numVertsUsed > 0)
+						if (subChunks[i].numVertsUsed > 0 && subChunks[i].inUse)
 						{
-							glBindVertexArray(data[i].vao);
-							glDrawArrays(GL_TRIANGLES, 0, data[i].numVertsUsed);
+							glBindVertexArray(subChunks[i].vao);
+							glDrawArrays(GL_TRIANGLES, 0, subChunks[i].numVertsUsed);
 							DebugStats::numDrawCalls++;
 						}
-					}
 
-					const glm::ivec2 localChunkPos = chunkPos - playerPositionInChunkCoords;
-					if ((localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) >=
-						(World::ChunkRadius * World::ChunkRadius) * (World::ChunkRadius * World::ChunkRadius))
-					{
-						g_logger_info("Deleting chunk<%d, %d> %d, %d", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
-						int chunkIndex = iter->second;
-						loadedChunks.set(chunkIndex, false);
-						iter = chunkIndices.erase(iter);
+						const glm::ivec2 localChunkPos = chunkPos - playerPositionInChunkCoords;
+						bool inRangeOfPlayer = (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
+							(World::ChunkRadius * World::ChunkRadius) * (World::ChunkRadius * World::ChunkRadius);
+						if (!inRangeOfPlayer)
+						{
+							g_logger_log("Deleting chunk<%d, %d> %d, %d", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
+							int chunkIndex = iter->second;
+							loadedChunks.set(chunkIndex, false);
+							std::lock_guard lock(chunkMtx);
+							chunkIndices.erase(iter);
+							subChunks[i].inUse = false;
+						}
 					}
-					else
-					{
-						iter++;
-					}
-				}
-				else
-				{
-					iter++;
 				}
 			}
+		}
+
+		static SubChunk* getFreeSubChunk()
+		{
+			for (int i = 0; i < subChunks.size(); i++)
+			{
+				if (!subChunks[i].inUse)
+				{
+					return &(subChunks[i]);
+				}
+			}
+
+			return nullptr;
 		}
 	}
 
@@ -454,30 +480,23 @@ namespace Minecraft
 			return getLocalBlock(localPosition, chunkCoordinates, blockData);
 		}
 
-		void generateRenderData(SubChunk* subChunks, const Block* blockData, const glm::ivec2& chunkCoordinates)
+		void generateRenderData(SubChunk* subChunk, const Block* blockData, int subChunkLevel)
 		{
-			const int worldChunkX = chunkCoordinates.x * 16;
-			const int worldChunkZ = chunkCoordinates.y * 16;
+			const int worldChunkX = subChunk->chunkCoordinates.x * 16;
+			const int worldChunkZ = subChunk->chunkCoordinates.y * 16;
 
-			SubChunk* currentSubChunk = subChunks;
-			currentSubChunk->numVertsUsed = 0;
-			for (int y = 0; y < World::ChunkHeight; y++)
+			subChunk->numVertsUsed = 0;
+			g_logger_assert(subChunkLevel >= 0 && subChunkLevel < 16, "Invalid sub-chunk level %d", subChunkLevel);
+			int yStart = subChunkLevel * 16;
+			int yEnd = yStart + 16;
+			for (int y = yStart; y < yEnd; y++)
 			{
-				if (y % 16 == 0)
-				{
-					uint32 subChunkIndex = y / 16;
-					g_logger_assert(subChunkIndex >= 0 && subChunkIndex < 16, "Invalid sub-chunk index.");
-					currentSubChunk->uploadVertsToGpu = true;
-					currentSubChunk = subChunks + subChunkIndex;
-					currentSubChunk->numVertsUsed = 0;
-				}
-
 				for (int x = 0; x < World::ChunkDepth; x++)
 				{
 					for (int z = 0; z < World::ChunkWidth; z++)
 					{
 						// 24 Vertices per cube
-						const Block& block = getBlockInternal(blockData, x, y, z, chunkCoordinates);
+						const Block& block = getBlockInternal(blockData, x, y, z, subChunk->chunkCoordinates);
 						int blockId = block.id;
 
 						if (block == BlockMap::NULL_BLOCK)
@@ -506,75 +525,83 @@ namespace Minecraft
 						verts[7] = verts[3] + glm::ivec3(0, 1, 0);
 
 						// Top Face
-						const int topBlockId = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates).id;
+						const int topBlockId = getBlockInternal(blockData, x, y + 1, z, subChunk->chunkCoordinates).id;
 						const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
 						if (!topBlockId || topBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
 								top, CUBE_FACE::TOP);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 
 						// Bottom Face
-						const int bottomBlockId = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates).id;
+						const int bottomBlockId = getBlockInternal(blockData, x, y - 1, z, subChunk->chunkCoordinates).id;
 						const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
 						if (!bottomBlockId || bottomBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
 								bottom, CUBE_FACE::BOTTOM);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 
 						// Right Face
-						const int rightBlockId = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates).id;
+						const int rightBlockId = getBlockInternal(blockData, x, y, z + 1, subChunk->chunkCoordinates).id;
 						const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
 						if (!rightBlockId || rightBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
 								side, CUBE_FACE::RIGHT);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 
 						// Left Face
-						const int leftBlockId = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates).id;
+						const int leftBlockId = getBlockInternal(blockData, x, y, z - 1, subChunk->chunkCoordinates).id;
 						const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
 						if (!leftBlockId || leftBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
 								side, CUBE_FACE::LEFT);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 
 						// Forward Face
-						const int forwardBlockId = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates).id;
+						const int forwardBlockId = getBlockInternal(blockData, x + 1, y, z, subChunk->chunkCoordinates).id;
 						const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
 						if (!forwardBlockId || forwardBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
 								side, CUBE_FACE::FRONT);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 
 						// Back Face
-						const int backBlockId = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates).id;
+						const int backBlockId = getBlockInternal(blockData, x - 1, y, z, subChunk->chunkCoordinates).id;
 						const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
 						if (!backBlockId || backBlock.isTransparent)
 						{
-							g_logger_assert(currentSubChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", currentSubChunk->numVertsUsed.load());
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
+							g_logger_assert(subChunk->numVertsUsed + 6 <= World::MaxVertsPerSubChunk, "Ran out of room in sub-chunk! %d", subChunk->numVertsUsed.load());
+							loadBlock(subChunk->data + subChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
 								side, CUBE_FACE::BACK);
-							currentSubChunk->numVertsUsed += 6;
+							subChunk->numVertsUsed += 6;
 						}
 					}
 				}
 			}
 
-			currentSubChunk->uploadVertsToGpu = true;
+			if (subChunk->numVertsUsed > 0)
+			{
+				subChunk->uploadVertsToGpu = true;
+			}
+			else
+			{
+				subChunk->inUse = false;
+				subChunk->uploadVertsToGpu = false;
+			}
 		}
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)

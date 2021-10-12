@@ -22,7 +22,7 @@ namespace Minecraft
 		const uint16 ChunkDepth = 16;
 		const uint16 ChunkHeight = 256;
 
-		const uint16 MaxVertsPerSubChunk = 5'500;
+		const uint16 MaxVertsPerSubChunk = 35'500;
 	}
 }
 
