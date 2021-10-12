@@ -25,6 +25,18 @@ namespace Minecraft
 		CommandType type;
 	};
 
+	class CompareFillChunkCommand
+	{
+	public:
+		bool operator()(const FillChunkCommand& a, const FillChunkCommand& b)
+		{
+			// Tesselation is lower priority than loading block data
+			int aValue = a.type == CommandType::TesselateVertices ? 0 : 1;
+			int bValue = b.type == CommandType::TesselateVertices ? 0 : 1;
+			return aValue < bValue;
+		}
+	};
+
 	namespace ChunkManager
 	{
 		class ChunkWorker
@@ -73,7 +85,7 @@ namespace Minecraft
 						std::lock_guard<std::mutex> queueLock(queueMtx);
 						if (!commands.empty())
 						{
-							command = commands.front();
+							command = commands.top();
 							commands.pop();
 							processCommand = true;
 						}
@@ -138,7 +150,7 @@ namespace Minecraft
 			}
 
 		private:
-			std::queue<FillChunkCommand> commands;
+			std::priority_queue<FillChunkCommand, std::vector<FillChunkCommand>, CompareFillChunkCommand> commands;
 			std::vector<std::thread> workerThreads;
 			std::condition_variable cv;
 			std::mutex mtx;
@@ -378,7 +390,7 @@ namespace Minecraft
 							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
-						if (subChunks[i].state == SubChunkState::Uploaded)
+						if (subChunks[i].state == SubChunkState::Uploaded || subChunks[i].state == SubChunkState::RetesselateVertices)
 						{
 							g_logger_assert(subChunks[i].numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							glBindVertexArray(subChunks[i].vao);
