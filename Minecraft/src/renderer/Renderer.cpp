@@ -489,7 +489,7 @@ namespace Minecraft
 			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
 				// TODO: Fix this it's broken
-				batch2D = createBatch2D(zIndex);
+				//batch2D = createBatch2D(zIndex);
 			}
 
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId, isFont);

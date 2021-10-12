@@ -1,6 +1,8 @@
 #ifndef MINECRAFT_CHUNK_MANAGER_H
 #define MINECRAFT_CHUNK_MANAGER_H
 #include "core.h"
+#include "core/Pool.hpp"
+#include "world/World.h"
 
 namespace Minecraft
 {
@@ -36,11 +38,12 @@ namespace Minecraft
 		std::atomic<SubChunkState> state;
 	};
 
+	// TODO: Make this internal to ChunkManager.cpp and remove includes above
 	namespace Chunk
 	{
 		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, int32 seed);
 		// Must guarantee at least 16 sub-chunks located at this address
-		void generateRenderData(SubChunk* subChunk, const Block* blockData);
+		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Block* blockData, const glm::ivec2& chunkCoordinates);
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
 		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);

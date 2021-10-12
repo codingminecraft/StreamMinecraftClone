@@ -15,14 +15,14 @@ namespace Minecraft
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
-		const uint16 ChunkRadius = 8;
+		const uint16 ChunkRadius = 12;
 		const uint16 ChunkCapacity = (ChunkRadius * 2) * (ChunkRadius * 2);
 
 		const uint16 ChunkWidth = 16;
 		const uint16 ChunkDepth = 16;
 		const uint16 ChunkHeight = 256;
 
-		const uint16 MaxVertsPerSubChunk = 30'500;
+		const uint16 MaxVertsPerSubChunk = 1'500;
 	}
 }
 
