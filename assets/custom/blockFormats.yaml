@@ -4,7 +4,7 @@ air_block:
   top: none
   bottom: none 
   isSolid: false
-  isTransparent: false
+  isTransparent: true
 grass_block:
   id: 2
   side: grass_block_side

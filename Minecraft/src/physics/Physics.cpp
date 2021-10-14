@@ -147,6 +147,13 @@ namespace Minecraft
 						result.hit = true;
 						result.blockCenter = currentTransform.position + currentBox.offset;
 						result.blockSize = currentBox.size;
+						result.hitNormal = result.point - result.blockCenter;
+						float maxComponent = glm::max(glm::abs(result.hitNormal.x), glm::max(glm::abs(result.hitNormal.y), glm::abs(result.hitNormal.z)));
+						result.hitNormal = glm::abs(result.hitNormal.x) == maxComponent
+							? glm::vec3(1, 0, 0) * glm::sign(result.hitNormal.x)
+							: glm::abs(result.hitNormal.y) == maxComponent
+							? glm::vec3(0, 1, 0) * glm::sign(result.hitNormal.y)
+							: glm::vec3(0, 0, 1) * glm::sign(result.hitNormal.z);
 						return result;
 					}
 				}

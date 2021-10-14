@@ -47,6 +47,10 @@ namespace Minecraft
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
 		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
+		bool setLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Block* blockData, Block newBlock);
+		bool setBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Block* blockData, Block newBlock);
+		bool removeLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Block* blockData);
+		bool removeBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Block* blockData);
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates);
 		void deserialize(Block* blockData, const std::string& worldSavePath, const glm::ivec2& chunkCoordinates);
@@ -61,6 +65,8 @@ namespace Minecraft
 		void free();
 
 		Block getBlock(const glm::vec3& worldPosition);
+		void setBlock(const glm::vec3& worldPosition, Block newBlock);
+		void removeBlock(const glm::vec3& worldPosition);
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate);
 		void processCommands();

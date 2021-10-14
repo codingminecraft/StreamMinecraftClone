@@ -268,29 +268,31 @@ namespace Minecraft
 			}
 			else if (retesselate)
 			{
-			//	FillChunkCommand cmd;
-			//	cmd.chunkCoordinates = chunkCoordinates;
-			//	cmd.type = CommandType::TesselateVertices;
-			//	cmd.subChunks = &subChunks();
-			//	cmd.blockData = nullptr;
-			//	{
-			//		std::lock_guard<std::mutex> lock(chunkMtx);
-			//		auto iter = chunkIndices.find(chunkCoordinates);
-			//		if (iter == chunkIndices.end())
-			//		{
-			//			return;
-			//		}
-			//		cmd.blockData = blockPool()[iter->second];
-			//	}
+				FillChunkCommand cmd;
+				cmd.chunkCoordinates = chunkCoordinates;
+				cmd.type = CommandType::TesselateVertices;
+				cmd.subChunks = &subChunks();
+				cmd.blockData = nullptr;
+				{
+					std::lock_guard<std::mutex> lock(chunkMtx);
+					auto iter = chunkIndices.find(chunkCoordinates);
+					if (iter == chunkIndices.end())
+					{
+						return;
+					}
+					cmd.blockData = blockPool()[iter->second];
+				}
 
-			//	for (int i = 0; i < subChunks().size(); i++)
-			//	{
-			//		if (subChunks()[i]->chunkCoordinates == chunkCoordinates && subChunks()[i]->state == SubChunkState::Uploaded)
-			//		{
-			//			subChunks()[i]->state = SubChunkState::RetesselateVertices;
-			//			chunkWorker().queueCommand(cmd);
-			//		}
-			//	}
+				// Update the sub-chunks that are about to be deleted
+				for (int i = 0; i < subChunks().size(); i++)
+				{
+					if (subChunks()[i]->chunkCoordinates == chunkCoordinates && subChunks()[i]->state == SubChunkState::Uploaded)
+					{
+						subChunks()[i]->state = SubChunkState::RetesselateVertices;
+					}
+				}
+
+				chunkWorker().queueCommand(cmd);
 			}
 		}
 
@@ -318,6 +320,84 @@ namespace Minecraft
 			}
 
 			return Chunk::getBlock(worldPosition, chunkCoords, blockData);
+		}
+
+		void setBlock(const glm::vec3& worldPosition, Block newBlock)
+		{
+			glm::ivec2 chunkCoords = World::toChunkCoords(worldPosition);
+			Block* blockData = nullptr;
+
+			std::lock_guard<std::mutex> lock(chunkMtx);
+			auto iter = chunkIndices.find(chunkCoords);
+			if (iter != chunkIndices.end())
+			{
+				blockData = blockPool()[iter->second];
+			}
+			else if (worldPosition.y >= 0 && worldPosition.y < 256)
+			{
+				// Assume it's a chunk that's out of bounds
+				g_logger_warning("Tried to set invalid block at position<%2.3f, %2.3f, %2.3f>!", worldPosition.x, worldPosition.y, worldPosition.z);
+				return;
+			}
+
+			if (Chunk::setBlock(worldPosition, chunkCoords, blockData, newBlock))
+			{
+				FillChunkCommand cmd;
+				cmd.chunkCoordinates = chunkCoords;
+				cmd.type = CommandType::TesselateVertices;
+				cmd.subChunks = &subChunks();
+				cmd.blockData = blockData;
+
+				// Update the sub-chunks that are about to be deleted
+				for (int i = 0; i < subChunks().size(); i++)
+				{
+					if (subChunks()[i]->chunkCoordinates == chunkCoords && subChunks()[i]->state == SubChunkState::Uploaded)
+					{
+						subChunks()[i]->state = SubChunkState::RetesselateVertices;
+					}
+				}
+
+				chunkWorker().queueCommand(cmd);
+			}
+		}
+
+		void removeBlock(const glm::vec3& worldPosition)
+		{
+			glm::ivec2 chunkCoords = World::toChunkCoords(worldPosition);
+			Block* blockData = nullptr;
+
+			std::lock_guard<std::mutex> lock(chunkMtx);
+			auto iter = chunkIndices.find(chunkCoords);
+			if (iter != chunkIndices.end())
+			{
+				blockData = blockPool()[iter->second];
+			}
+			else if (worldPosition.y >= 0 && worldPosition.y < 256)
+			{
+				// Assume it's a chunk that's out of bounds
+				g_logger_warning("Tried to set invalid block at position<%2.3f, %2.3f, %2.3f>!", worldPosition.x, worldPosition.y, worldPosition.z);
+				return;
+			}
+
+			if (Chunk::removeBlock(worldPosition, chunkCoords, blockData))
+			{
+				FillChunkCommand cmd;
+				cmd.chunkCoordinates = chunkCoords;
+				cmd.type = CommandType::TesselateVertices;
+				cmd.subChunks = &subChunks();
+				cmd.blockData = blockData;
+
+				// Update the sub-chunks that are about to be deleted
+				for (int i = 0; i < subChunks().size(); i++)
+				{
+					if (subChunks()[i]->chunkCoordinates == chunkCoords && subChunks()[i]->state == SubChunkState::Uploaded)
+					{
+						subChunks()[i]->state = SubChunkState::RetesselateVertices;
+					}
+				}
+
+				chunkWorker().queueCommand(cmd);
+			}
 		}
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader)
@@ -438,6 +518,8 @@ namespace Minecraft
 		// Internal functions
 		static int to1DArray(int x, int y, int z);
 		static Block getBlockInternal(const Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
+		static bool setBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates, Block newBlock);
+		static bool removeBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
 		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face);
 
@@ -512,6 +594,10 @@ namespace Minecraft
 							// Green Concrete 
 							blockData[arrayExpansion].id = 5;
 						}
+						else
+						{
+							blockData[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
+						}
 					}
 				}
 			}
@@ -526,6 +612,28 @@ namespace Minecraft
 		{
 			glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoordinates.x * 16.0f, 0.0f, chunkCoordinates.y * 16.0f));
 			return getLocalBlock(localPosition, chunkCoordinates, blockData);
+		}
+
+		bool setLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Block* blockData, Block newBlock)
+		{
+			return setBlockInternal(blockData, localPosition.x, localPosition.y, localPosition.z, chunkCoordinates, newBlock);
+		}
+
+		bool setBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Block* blockData, Block newBlock)
+		{
+			glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoordinates.x * 16.0f, 0.0f, chunkCoordinates.y * 16.0f));
+			return setLocalBlock(localPosition, chunkCoordinates, blockData, newBlock);
+		}
+
+		bool removeLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Block* blockData)
+		{
+			return removeBlockInternal(blockData, localPosition.x, localPosition.y, localPosition.z, chunkCoordinates);
+		}
+
+		bool removeBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Block* blockData)
+		{
+			glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoordinates.x * 16.0f, 0.0f, chunkCoordinates.y * 16.0f));
+			return removeLocalBlock(localPosition, chunkCoordinates, blockData);
 		}
 
 		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates)
@@ -568,7 +676,7 @@ namespace Minecraft
 						const Block& block = getBlockInternal(blockData, x, y, z, chunkCoordinates);
 						int blockId = block.id;
 
-						if (block == BlockMap::NULL_BLOCK)
+						if (block == BlockMap::NULL_BLOCK || block.id == BlockMap::AIR_BLOCK.id)
 						{
 							continue;
 						}
@@ -667,14 +775,16 @@ namespace Minecraft
 				currentSubChunk->state = SubChunkState::UploadVerticesToGpu;
 			}
 
-			//for (int i = 0; i < (*subChunks).size(); i++)
-			//{
-			//	if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::RetesselateVertices)
-			//	{
-			//		g_logger_info("UNLOADING RETESSELATED STUFF");
-			//		(*subChunks)[i]->state = SubChunkState::Unloaded;
-			//	}
-			//}
+			for (int i = 0; i < (*subChunks).size(); i++)
+			{
+				if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::RetesselateVertices)
+				{
+					SubChunk* subChunkToUnload = (*subChunks)[i];
+					subChunkToUnload->numVertsUsed = 0;
+					subChunkToUnload->state = SubChunkState::Unloaded;
+					subChunks->freePool(i);
+				}
+			}
 		}
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)
@@ -721,6 +831,42 @@ namespace Minecraft
 				: y >= 256 || y < 0
 				? BlockMap::NULL_BLOCK
 				: data[index];
+		}
+
+		static bool setBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates, Block newBlock)
+		{
+			int index = to1DArray(x, y, z);
+			if (x >= 16 || x < 0 || z >= 16 || z < 0)
+			{
+				g_logger_warning("Tried to set internal block in the wrong chunk.");
+				return false;
+			}
+			else if (y >= 256 || y < 0)
+			{
+				g_logger_warning("Tried to set invalid block position, y >= 256 || y < 0.");
+				return false;
+			}
+
+			data[index] = newBlock;
+			return true;
+		}
+
+		static bool removeBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates)
+		{
+			int index = to1DArray(x, y, z);
+			if (x >= 16 || x < 0 || z >= 16 || z < 0)
+			{
+				g_logger_warning("Tried to remove internal block in the wrong chunk.");
+				return false;
+			}
+			else if (y >= 256 || y < 0)
+			{
+				g_logger_warning("Tried to remove invalid block position, y >= 256 || y < 0.");
+				return false;
+			}
+
+			data[index] = BlockMap::AIR_BLOCK;
+			return true;
 		}
 
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath)

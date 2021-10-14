@@ -10,6 +10,7 @@ namespace Minecraft
 		glm::vec3 point;
 		glm::vec3 blockCenter;
 		glm::vec3 blockSize;
+		glm::vec3 hitNormal;
 		bool hit;
 	};
 

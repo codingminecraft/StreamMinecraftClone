@@ -9,6 +9,8 @@
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
 #include "gameplay/CharacterController.h"
+#include "world/ChunkManager.h"
+#include "world/BlockMap.h"
 
 namespace Minecraft
 {
@@ -27,6 +29,8 @@ namespace Minecraft
 		static Ecs::EntityId playerId;
 		static Style blockHighlight;
 		static GameMode gameMode;
+		static float blockPlaceDebounceTime = 0.2f;
+		static float blockPlaceDebounce = 0.0f;
 
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
@@ -74,11 +78,32 @@ namespace Minecraft
 
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
 		{
+			blockPlaceDebounce -= dt;
+
 			RaycastStaticResult res = Physics::raycastStatic(transform.position, transform.forward, 5.0f);
 			if (res.hit)
 			{
 				Renderer::drawBox(res.blockCenter, res.blockSize, blockHighlight);
 				Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
+				
+				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
+				{
+					glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
+					static Block newBlock {
+						3, 0, 0, 0
+					};
+					ChunkManager::setBlock(worldPos, newBlock);
+					blockPlaceDebounce = blockPlaceDebounceTime;
+				}
+				else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
+				{
+					glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
+					static Block newBlock{
+						3, 0, 0, 0
+					};
+					ChunkManager::removeBlock(worldPos);
+					blockPlaceDebounce = blockPlaceDebounceTime;
+				}
 			}
 
 			controller.viewAxis.x = Input::deltaMouseX;
