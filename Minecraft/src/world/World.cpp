@@ -30,6 +30,8 @@ namespace Minecraft
 {
 	namespace World
 	{
+		extern std::string worldSavePath = "world";
+
 		// Internal declarations
 		static void checkChunkRadius();
 
@@ -39,7 +41,6 @@ namespace Minecraft
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
-		static std::string worldSavePath;
 		static Ecs::Registry* registry;
 
 		static int32 seed;
@@ -48,7 +49,6 @@ namespace Minecraft
 		{
 			// Initialize memory
 			registry = &sceneRegistry;
-			worldSavePath = "world";
 			File::createDirIfNotExists(worldSavePath.c_str());
 
 			// Generate a seed if needed

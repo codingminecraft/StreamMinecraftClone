@@ -10,6 +10,7 @@ namespace Minecraft
 		float mouseY = 0;
 		float deltaMouseX = 0;
 		float deltaMouseY = 0;
+		uint32 lastCharPressedData = '\0';
 
 		bool keyPressed[GLFW_KEY_LAST];
 		bool keyBeginPressData[GLFW_KEY_LAST];
@@ -70,6 +71,7 @@ namespace Minecraft
 		{
 			deltaMouseX = 0;
 			deltaMouseY = 0;
+			lastCharPressedData = '\0';
 			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
 		}
 
@@ -85,6 +87,11 @@ namespace Minecraft
 				keyPressed[key] = false;
 				keyBeginPressData[key] = false;
 			}
+		}
+
+		void charCallback(GLFWwindow* window, unsigned int codepoint)
+		{
+			lastCharPressedData = codepoint;
 		}
 
 		bool isKeyPressed(int key)
@@ -103,6 +110,11 @@ namespace Minecraft
 		{
 			g_logger_assert(mouseButton >= 0 && mouseButton < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
 			return mousePressed[mouseButton];
+		}
+
+		uint32 lastCharPressed()
+		{
+			return lastCharPressedData;
 		}
 	}
 }

@@ -9,7 +9,8 @@
 #include "input/Input.h"
 #include "input/KeyBindings.h"
 #include "utils/Settings.h"
-#include "gui/MainMenu.h"
+#include "gui/Gui.h"
+#include "gui/GuiElements.h"
 
 namespace Minecraft
 {
@@ -37,6 +38,8 @@ namespace Minecraft
 			Physics::init();
 			Scene::init(SceneType::MainMenu, registry);
 			KeyBindings::init();
+			Gui::init();
+			GuiElements::init();
 		}
 
 		void run()
@@ -61,6 +64,7 @@ namespace Minecraft
 		void free()
 		{
 			// Free all resources
+			GuiElements::free();
 			getRegistry().free();
 			Window& window = getWindow();
 			window.destroy();

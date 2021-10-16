@@ -10,7 +10,6 @@ namespace Minecraft
 
 	struct Button
 	{
-		glm::vec2 position;
 		glm::vec2 size;
 		glm::vec4 color;
 		glm::vec4 hoverColor;
@@ -22,7 +21,6 @@ namespace Minecraft
 
 	struct TexturedButton
 	{
-		glm::vec2 position;
 		glm::vec2 size;
 		Sprite sprite;
 		Sprite hoverSprite;
@@ -34,7 +32,6 @@ namespace Minecraft
 
 	struct Slider
 	{
-		glm::vec2 position;
 		glm::vec2 size;
 		float minValue;
 		float maxValue;
@@ -42,6 +39,19 @@ namespace Minecraft
 
 	namespace Gui
 	{
+		void init();
+
+		void beginFrame();
+		void beginWindow(const glm::vec2& position, const glm::vec2& size, int numColumns = 0);
+		void endWindow();
+		void advanceCursor(const glm::vec2& delta);
+
+		void centerNextElement();
+		void sameLine();
+		void image(const Sprite& sprite, const glm::vec2& size);
+		void label(const char* text, float scale, float maxHeight = -1.0f);
+
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength);
 		bool button(const Button& button);
 		bool textureButton(const TexturedButton& button);
 		

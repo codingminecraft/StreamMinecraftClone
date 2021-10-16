@@ -20,12 +20,14 @@ namespace Minecraft
 		void setWindowSize(const glm::vec2& windowSize);
 		void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 		void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+		void charCallback(GLFWwindow* window, unsigned int codepoint);
 		void endFrame();
 		
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 		bool isKeyPressed(int key);
 		bool keyBeginPress(int key);
 		bool isMousePressed(int mouseButton);
+		uint32 lastCharPressed();
 	}
 }
 

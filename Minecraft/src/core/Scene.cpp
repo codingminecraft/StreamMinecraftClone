@@ -2,6 +2,7 @@
 #include "core/Components.h"
 #include "world/World.h"
 #include "gui/MainMenu.h"
+#include "gui/Gui.h"
 #include "renderer/Renderer.h"
 #include "renderer/Camera.h"
 #include "utils/Settings.h"
@@ -48,6 +49,7 @@ namespace Minecraft
 		void update(float dt)
 		{
 			Renderer::clearColor(Settings::Window::clearColor);
+			Gui::beginFrame();
 
 			switch (currentScene)
 			{

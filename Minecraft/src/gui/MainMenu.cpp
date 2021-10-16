@@ -1,5 +1,7 @@
 #include "gui/MainMenu.h"
 #include "gui/Gui.h"
+#include "gui/GuiElements.h"
+#include "gui/CreateWorldMenu.h"
 #include "renderer/Texture.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
@@ -12,34 +14,17 @@ namespace Minecraft
 {
 	namespace MainMenu
 	{
-		static Texture menuTextures;
-		static TexturedButton button;
-
 		static Sprite title;
-		static glm::vec2 titlePosition;
 		static glm::vec2 titleSize;
+		static bool isCreatingWorld;
 
 		void init()
 		{
-			menuTextures = TextureBuilder()
-				.setFilepath("assets/images/menuSprites.png")
-				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
-				.setTextureType(TextureType::_2D)
-				.setWrapS(WrapMode::None)
-				.setWrapT(WrapMode::None)
-				.generate(true);
+			isCreatingWorld = false;
 
 			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/menuSpritesheet.yaml");
 
-			button.sprite = menuSprites.at(std::string("buttonRegular"));
-			button.hoverSprite = menuSprites.at(std::string("buttonHover"));
-			button.clickSprite = menuSprites.at(std::string("buttonClick"));
-			button.font = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
-			button.textScale = 0.5f;
-
 			titleSize = glm::vec2(2.0f, 0.5f);
-			titlePosition = glm::vec2(-1.0f, 0.6f);
 			title = menuSprites.at(std::string("title"));
 
 			g_logger_info("Initialized main menu scene.");
@@ -47,28 +32,40 @@ namespace Minecraft
 
 		void update(float dt)
 		{
-			Renderer::drawTexture2D(title, titlePosition, titleSize, Styles::defaultStyle);
-
-			button.text = "Play Game";
-			button.position = glm::vec2(-1.25f, 0.2f);
-			button.size = glm::vec2(2.5f, 0.2f);
-			if (Gui::textureButton(button))
+			if (!isCreatingWorld)
 			{
-				Scene::changeScene(SceneType::Game);
+				Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));
+				Gui::advanceCursor(glm::vec2(0.0f, 0.5f));
+				Gui::centerNextElement();
+				Gui::image(title, titleSize);
+
+				Gui::advanceCursor(glm::vec2(0.0f, 0.35f));
+				Gui::centerNextElement();
+				static TexturedButton button = *GuiElements::defaultButton;
+				button.text = "Play Game";
+				if (Gui::textureButton(button))
+				{
+					isCreatingWorld = true;
+				}
+
+				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
+				Gui::centerNextElement();
+				button.text = "Quit";
+				if (Gui::textureButton(button))
+				{
+					Application::getWindow().close();
+				}
+				Gui::endWindow();
 			}
-
-			button.text = "Quit";
-			button.position = glm::vec2(-1.25f, -0.1f);
-			button.size = glm::vec2(2.5f, 0.2f);
-			if (Gui::textureButton(button))
+			else
 			{
-				Application::getWindow().close();
+				CreateWorldMenu::update(dt);
 			}
 		}
 
 		void free()
 		{
-			menuTextures.destroy();
+
 		}
 	}
 }

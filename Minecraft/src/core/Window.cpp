@@ -46,6 +46,7 @@ namespace Minecraft
 		glfwSetKeyCallback((GLFWwindow*)res->windowPtr, Input::keyCallback);
 		glfwSetFramebufferSizeCallback((GLFWwindow*)res->windowPtr, resizeCallback);
 		glfwSetMouseButtonCallback((GLFWwindow*)res->windowPtr, Input::mouseButtonCallback);
+		glfwSetCharCallback((GLFWwindow*)res->windowPtr, Input::charCallback);
 
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 		const GLFWvidmode* mode = glfwGetVideoMode(monitor);

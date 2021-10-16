@@ -23,6 +23,8 @@ namespace Minecraft
 		const uint16 ChunkHeight = 256;
 
 		const uint16 MaxVertsPerSubChunk = 1'500;
+
+		extern std::string worldSavePath;
 	}
 }
 
