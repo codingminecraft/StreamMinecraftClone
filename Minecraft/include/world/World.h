@@ -15,7 +15,7 @@ namespace Minecraft
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
-		const uint16 ChunkRadius = 12;
+		const uint16 ChunkRadius = 32;
 		const uint16 ChunkCapacity = (ChunkRadius * 2) * (ChunkRadius * 2);
 
 		const uint16 ChunkWidth = 16;

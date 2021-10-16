@@ -30,7 +30,7 @@ namespace Minecraft
 {
 	namespace World
 	{
-		extern std::string worldSavePath = "world";
+		extern std::string worldSavePath = "";
 
 		// Internal declarations
 		static void checkChunkRadius();
@@ -49,6 +49,11 @@ namespace Minecraft
 		{
 			// Initialize memory
 			registry = &sceneRegistry;
+			g_logger_assert(worldSavePath != "", "World save path must not be empty.");
+			std::filesystem::path appDataPath = std::filesystem::path(File::getSpecialAppFolder()) / std::filesystem::path(".minecraftClone");
+			File::createDirIfNotExists(appDataPath.string().c_str());
+			worldSavePath = (appDataPath / std::filesystem::path(worldSavePath)).string();
+			g_logger_info("World save folder at: %s", worldSavePath.c_str());
 			File::createDirIfNotExists(worldSavePath.c_str());
 
 			// Generate a seed if needed

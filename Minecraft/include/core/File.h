@@ -10,6 +10,7 @@ namespace Minecraft
 		bool isFile(const char* directoryName);
 		bool moveFile(const char* from, const char* to);
 		bool createDirIfNotExists(const char* directoryName);
+		std::string getSpecialAppFolder();
 	}
 }
 

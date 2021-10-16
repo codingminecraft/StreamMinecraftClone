@@ -96,6 +96,7 @@ namespace Minecraft
 						{
 						case CommandType::FillBlockData:
 						{
+							// TODO: Fix this, this should be World::worldSavePath
 							if (Chunk::exists("world", command.chunkCoordinates))
 							{
 								Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);

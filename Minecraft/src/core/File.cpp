@@ -4,6 +4,8 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
+#include <shobjidl_core.h>
+#include <shlobj.h>
 
 namespace Minecraft
 {
@@ -70,6 +72,24 @@ namespace Minecraft
 			}
 
 			return true;
+		}
+
+		std::string getSpecialAppFolder()
+		{
+			static std::string specialAppFolder = "";
+
+			PWSTR pszPath;
+			if (specialAppFolder == "" && SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &pszPath)))
+			{
+				// TODO: PWSTR uses wchar_t* not char_t* fix this
+				// TODO: Query the registry for maximum path length
+				static char tmp[MAX_PATH];
+				wcstombs(tmp, pszPath, 256);
+				specialAppFolder = tmp;
+				CoTaskMemFree(pszPath);
+			}
+
+			return specialAppFolder;
 		}
 	}
 }
