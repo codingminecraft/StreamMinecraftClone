@@ -7,7 +7,6 @@
 #include "renderer/Camera.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
-#include "renderer/Styles.h"
 #include "input/Input.h"
 #include "input/KeyHandler.h"
 #include "core/Application.h"
@@ -31,9 +30,6 @@ namespace Minecraft
 	namespace World
 	{
 		extern std::string worldSavePath = "";
-
-		// Internal declarations
-		static void checkChunkRadius();
 
 		// Members
 		static Shader shader;
@@ -86,10 +82,10 @@ namespace Minecraft
 			boxCollider.size.x = 0.5f;
 			boxCollider.size.y = 3.0f;
 			boxCollider.size.z = 0.75f;
-			Transform& transform = registry->getComponent<Transform>(player);
-			transform.position.y = 289;
-			transform.position.x = -145.0f;
-			transform.position.z = 55.0f;
+			Transform& playerTransform = registry->getComponent<Transform>(player);
+			playerTransform.position.y = 289;
+			playerTransform.position.x = -145.0f;
+			playerTransform.position.z = 55.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
 			controller.lockedToCamera = true;
 			controller.controllerBaseSpeed = 4.0f;
@@ -132,7 +128,7 @@ namespace Minecraft
 			tag2.type = TagType::None;
 
 			ChunkManager::init(seed);
-			checkChunkRadius();
+			ChunkManager::checkChunkRadius(playerTransform.position);
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
 		}
@@ -194,7 +190,13 @@ namespace Minecraft
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
 			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader);
 
-			checkChunkRadius();
+			// Check chunk radius if needed
+			static glm::vec3 lastPlayerLoadPosition = playerPosition;
+			if (glm::distance2(playerPosition, lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
+			{
+				lastPlayerLoadPosition = playerPosition;
+				ChunkManager::checkChunkRadius(playerPosition);
+			}
 		}
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
@@ -203,86 +205,6 @@ namespace Minecraft
 				glm::floor(worldCoordinates.x / 16.0f),
 				glm::floor(worldCoordinates.z / 16.0f)
 			};
-		}
-
-		static void checkChunkRadius()
-		{
-			const glm::vec3 playerPosition = registry->getComponent<Transform>(playerId).position;
-
-			// Position changes as we circle out
-			// See switch statement below
-			glm::ivec2 position = toChunkCoords(playerPosition);
-			glm::ivec2 playerPosChunkCoords = position;
-			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
-
-			// If the player moves to a new chunk, then retesselate any chunks on the edge of the chunk radius to 
-			// fix any holes there might be
-			bool retesselateEdges = false;
-			if (lastPlayerPosChunkCoords != playerPosChunkCoords)
-			{
-				retesselateEdges = true;
-			}
-
-			bool needsWork = false;
-			// 0 RIGHT, 1 UP, 2 LEFT, 3 DOWN
-			uint8 direction = 0;
-			uint8 distance = 1;
-			uint8 timeToChangeDistance = 0;
-			uint8 travelled = 0;
-			while (true)
-			{
-				glm::ivec2 localPos = playerPosChunkCoords - position;
-				if ((localPos.x * localPos.x) + (localPos.y * localPos.y) <= (World::ChunkRadius * World::ChunkRadius))
-				{
-					// We have to expand in a circle that exceeds the range of chunks in this radius,
-					// so we also have to make sure that we check if the chunk is in range before we
-					// try to queue it. Otherwise, we end up with infinite queues that instantly get deleted
-					// which clog our threads with empty work.
-					glm::ivec2 lastLocalPos = lastPlayerPosChunkCoords - position;
-					bool retesselateThisChunk = 
-						(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 1) * (World::ChunkRadius - 1))
-						&& retesselateEdges;
-					ChunkManager::queueCreateChunk(position, retesselateThisChunk);
-				}
-
-				switch (direction)
-				{
-				case 0:
-					position.x++;
-					break;
-				case 1:
-					position.y++;
-					break;
-				case 2:
-					position.x--;
-					break;
-				case 3:
-					position.y--;
-					break;
-				}
-
-				travelled++;
-				if (travelled >= distance)
-				{
-					direction = (direction + 1) % 4;
-					travelled = 0;
-
-					timeToChangeDistance++;
-					if (timeToChangeDistance > 1)
-					{
-						timeToChangeDistance = 0;
-						distance++;
-					}
-
-					if (distance > ChunkRadius * 2)
-					{
-						break;
-					}
-				}
-			}
-
-			lastPlayerPosChunkCoords = playerPosChunkCoords;
-			ChunkManager::processCommands();
 		}
 	}
 }

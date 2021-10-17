@@ -37,7 +37,7 @@ namespace Minecraft
 				// Fill block data has higher priority than other types of commands
 				return a.type != CommandType::FillBlockData;
 			}
-			
+
 			// They are the same type of command, the chunk closer to the player has higher priority
 			glm::ivec2 tmpA = a.playerPosChunkCoords - a.chunkCoordinates;
 			int32 aDistanceSquared = (tmpA.x * tmpA.x) + (tmpA.y * tmpA.y);
@@ -309,7 +309,6 @@ namespace Minecraft
 						}
 						cmd.blockData = blockPool()[i];
 						chunkWorker().queueCommand(cmd);
-						g_logger_log("Queueing chunk <%d, %d>", chunkCoordinates.x, chunkCoordinates.y);
 						break;
 					}
 				}
@@ -342,11 +341,6 @@ namespace Minecraft
 
 				chunkWorker().queueCommand(cmd);
 			}
-		}
-
-		void processCommands()
-		{
-			chunkWorker().beginWork();
 		}
 
 		Block getBlock(const glm::vec3& worldPosition)
@@ -406,6 +400,7 @@ namespace Minecraft
 				}
 
 				chunkWorker().queueCommand(cmd);
+				chunkWorker().beginWork(false);
 			}
 		}
 
@@ -445,6 +440,7 @@ namespace Minecraft
 				}
 
 				chunkWorker().queueCommand(cmd);
+				chunkWorker().beginWork(false);
 			}
 		}
 
@@ -518,20 +514,6 @@ namespace Minecraft
 							commandIndex++;
 							DebugStats::numDrawCalls++;
 						}
-
-						const glm::ivec2 localChunkPos = chunkPos - playerPositionInChunkCoords;
-						bool inRangeOfPlayer = (localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
-							(World::ChunkRadius * World::ChunkRadius);
-						if (!inRangeOfPlayer)
-						{
-							g_logger_log("Deleting chunk<%d, %d> Local position<%d, %d>", chunkPos.x, chunkPos.y, localChunkPos.x, localChunkPos.y);
-							int chunkIndex = iter->second;
-							loadedChunks.set(chunkIndex, false);
-							std::lock_guard lock(chunkMtx);
-							chunkIndices.erase(iter);
-							subChunks()[i]->state = SubChunkState::Unloaded;
-							subChunks()[i]->numVertsUsed = 0;
-						}
 					}
 				}
 			}
@@ -546,6 +528,74 @@ namespace Minecraft
 				glBindVertexArray(globalVao);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandIndex, 0);
 			}
+		}
+
+		void checkChunkRadius(const glm::vec3& playerPosition)
+		{
+			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);;
+			chunkWorker().setPlayerPosChunkCoords(playerPosChunkCoords);
+			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
+
+			// Remove out of range chunks
+			for (int i = 0; i < subChunks().size(); i++)
+			{
+				if (subChunks()[i]->state != SubChunkState::Unloaded)
+				{
+					glm::ivec2 chunkPos = subChunks()[i]->chunkCoordinates;
+					const glm::ivec2 localChunkPos = chunkPos - playerPosChunkCoords;
+					bool inRangeOfPlayer =
+						(localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
+						(World::ChunkRadius * World::ChunkRadius);
+					if (!inRangeOfPlayer)
+					{
+						subChunks()[i]->state = SubChunkState::Unloaded;
+						subChunks()[i]->numVertsUsed = 0;
+
+						auto iter = chunkIndices.find(chunkPos);
+						if (iter != chunkIndices.end())
+						{
+							int chunkIndex = iter->second;
+							loadedChunks.set(chunkIndex, false);
+							std::lock_guard lock(chunkMtx);
+							chunkIndices.erase(iter);
+						}
+					}
+				}
+			}
+
+			// If the player moves to a new chunk, then retesselate any chunks on the edge of the chunk radius to 
+			// fix any holes there might be
+			bool retesselateEdges = false;
+			if (lastPlayerPosChunkCoords != playerPosChunkCoords)
+			{
+				retesselateEdges = true;
+			}
+
+			// Load/retesselate any chunks that need to be
+			bool needsWork = false;
+			for (int y = playerPosChunkCoords.y - World::ChunkRadius; y <= playerPosChunkCoords.y + World::ChunkRadius; y++)
+			{
+				for (int x = playerPosChunkCoords.x - World::ChunkRadius; x <= playerPosChunkCoords.x + World::ChunkRadius; x++)
+				{
+					glm::ivec2 position(x, y);
+					glm::ivec2 localPos = playerPosChunkCoords - position;
+					if ((localPos.x * localPos.x) + (localPos.y * localPos.y) <= (World::ChunkRadius * World::ChunkRadius))
+					{
+						// We have to expand in a circle that exceeds the range of chunks in this radius,
+						// so we also have to make sure that we check if the chunk is in range before we
+						// try to queue it. Otherwise, we end up with infinite queues that instantly get deleted
+						// which clog our threads with empty work.
+						glm::ivec2 lastLocalPos = lastPlayerPosChunkCoords - position;
+						bool retesselateThisChunk =
+							(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+							&& retesselateEdges;
+						ChunkManager::queueCreateChunk(position, retesselateThisChunk);
+					}
+				}
+			}
+
+			lastPlayerPosChunkCoords = playerPosChunkCoords;
+			chunkWorker().beginWork();
 		}
 	}
 

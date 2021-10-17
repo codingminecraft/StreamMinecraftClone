@@ -69,8 +69,8 @@ namespace Minecraft
 		void removeBlock(const glm::vec3& worldPosition);
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate);
-		void processCommands();
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader);
+		void checkChunkRadius(const glm::vec3& playerPosition);
 	}
 }
 
