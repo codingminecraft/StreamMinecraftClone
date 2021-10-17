@@ -2,8 +2,9 @@
 #define MINECRAFT_CORE_H
 
 // Glm
+#define GLM_EXT_INCLUDED
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/hash.hpp"
+#include <glm/gtx/hash.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
