@@ -13,6 +13,14 @@ namespace Minecraft
 	struct Font;
 	struct Sprite;
 
+	struct DrawArraysIndirectCommand
+	{
+		uint32 count;
+		uint32 instanceCount;
+		uint32 first;
+		uint32 baseInstance;
+	};
+
 	namespace Renderer
 	{
 		void init(Ecs::Registry& registry);

@@ -6,6 +6,7 @@
 #include "utils/DebugStats.h"
 #include "utils/CMath.h"
 #include "renderer/Shader.h"
+#include "renderer/Renderer.h"
 
 namespace Minecraft
 {
@@ -21,18 +22,28 @@ namespace Minecraft
 		Block* blockData;
 		Pool<SubChunk, World::ChunkCapacity * 16>* subChunks;
 		glm::ivec2 chunkCoordinates;
+		glm::ivec2 playerPosChunkCoords;
 		CommandType type;
 	};
 
 	class CompareFillChunkCommand
 	{
 	public:
+		// Returning true means lesser priority
 		bool operator()(const FillChunkCommand& a, const FillChunkCommand& b)
 		{
-			// Tesselation is lower priority than loading block data
-			int aValue = a.type == CommandType::TesselateVertices ? 0 : 1;
-			int bValue = b.type == CommandType::TesselateVertices ? 0 : 1;
-			return aValue < bValue;
+			if (a.type != b.type)
+			{
+				// Fill block data has higher priority than other types of commands
+				return a.type != CommandType::FillBlockData;
+			}
+			
+			// They are the same type of command, the chunk closer to the player has higher priority
+			glm::ivec2 tmpA = a.playerPosChunkCoords - a.chunkCoordinates;
+			int32 aDistanceSquared = (tmpA.x * tmpA.x) + (tmpA.y * tmpA.y);
+			glm::ivec2 tmpB = b.playerPosChunkCoords - b.chunkCoordinates;
+			int32 bDistanceSquared = (tmpB.x * tmpB.x) + (tmpB.y * tmpB.y);
+			return aDistanceSquared > bDistanceSquared;
 		}
 	};
 
@@ -122,8 +133,9 @@ namespace Minecraft
 				}
 			}
 
-			void queueCommand(const FillChunkCommand& command)
+			void queueCommand(FillChunkCommand& command)
 			{
+				command.playerPosChunkCoords = playerPosChunkCoords.load();
 				{
 					std::lock_guard<std::mutex> lockGuard(queueMtx);
 					commands.push(command);
@@ -142,9 +154,15 @@ namespace Minecraft
 				}
 			}
 
+			void setPlayerPosChunkCoords(const glm::ivec2& playerPosChunkCoords)
+			{
+				this->playerPosChunkCoords = playerPosChunkCoords;
+			}
+
 		private:
 			std::priority_queue<FillChunkCommand, std::vector<FillChunkCommand>, CompareFillChunkCommand> commands;
 			std::vector<std::thread> workerThreads;
+			std::atomic<glm::ivec2> playerPosChunkCoords;
 			std::condition_variable cv;
 			std::mutex mtx;
 			std::mutex queueMtx;
@@ -160,6 +178,13 @@ namespace Minecraft
 		static std::bitset<World::ChunkCapacity> loadedChunks;
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
 
+		static DrawArraysIndirectCommand* gpuDrawCommandBuffer;
+		static int32* chunkPosBuffer;
+		static uint32 chunkPosInstancedBuffer;
+		static uint32 drawCommandsInUse;
+		static uint32 globalVao;
+		static uint32 drawCommandVbo;
+
 		// Singletons
 		static ChunkWorker& chunkWorker()
 		{
@@ -170,13 +195,6 @@ namespace Minecraft
 		static Pool<SubChunk, World::ChunkCapacity * 16>& subChunks()
 		{
 			static Pool<SubChunk, World::ChunkCapacity * 16> instance{ 1 };
-			return instance;
-		}
-
-		static Pool<Vertex, World::ChunkCapacity * 16>& vertexPool()
-		{
-			// 16 SubChunks per chunk
-			static Pool<Vertex, World::ChunkCapacity * 16> instance(World::MaxVertsPerSubChunk);
 			return instance;
 		}
 
@@ -196,43 +214,72 @@ namespace Minecraft
 			// Initialize the singletons
 			chunkWorker();
 			blockPool();
-			Pool<Vertex, World::ChunkCapacity * 16>& vertexPools = vertexPool();
+
+			// Set up draw commands to relate to our sub chunks
+			//maxDrawCommands = 5'000;
+			gpuDrawCommandBuffer = (DrawArraysIndirectCommand*)g_memory_allocate(sizeof(DrawArraysIndirectCommand) * subChunks().size());
+			chunkPosBuffer = (int32*)g_memory_allocate(sizeof(int32) * 2 * subChunks().size());
+			g_memory_zeroMem(gpuDrawCommandBuffer, sizeof(DrawArraysIndirectCommand) * subChunks().size());
+			glCreateBuffers(1, &drawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * subChunks().size(), gpuDrawCommandBuffer, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
 			loadedChunks.reset();
-			for (uint32 i = 0; i < vertexPools.size(); i++)
+
+			// Generate a bunch of empty vertex buckets for GPU use
+			glCreateVertexArrays(1, &globalVao);
+			glBindVertexArray(globalVao);
+
+			uint32 renderVbo;
+			glGenBuffers(1, &renderVbo);
+
+			size_t totalSizeOfSubChunkVertices = subChunks().size() * World::MaxVertsPerSubChunk * sizeof(Vertex);
+			glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+
+			// Set our vertex attribute pointers
+			glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
+			glVertexAttribDivisor(0, 0);
+			glEnableVertexAttribArray(0);
+
+			glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, data2)));
+			glVertexAttribDivisor(1, 0);
+			glEnableVertexAttribArray(1);
+
+			// Set up our global immutable buffer
+			GLbitfield flags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT;
+			glBufferStorage(GL_ARRAY_BUFFER, totalSizeOfSubChunkVertices, NULL, flags);
+			Vertex* basePointer = (Vertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, subChunks().size() * World::MaxVertsPerSubChunk,
+				flags);// | GL_MAP_FLUSH_EXPLICIT_BIT);
+			for (uint32 i = 0; i < subChunks().size(); i++)
 			{
 				// Assign the pointers for the data on the CPU
-				subChunks()[i]->data = vertexPools[i];
+				subChunks()[i]->first = (i * World::MaxVertsPerSubChunk);
+				subChunks()[i]->data = basePointer + subChunks()[i]->first;
 				subChunks()[i]->numVertsUsed = 0;
+				subChunks()[i]->drawCommandIndex = i;
 				subChunks()[i]->state = SubChunkState::Unloaded;
-
-				// Generate a bunch of empty vertex buckets for GPU use
-				glCreateVertexArrays(1, &subChunks()[i]->vao);
-				glBindVertexArray(subChunks()[i]->vao);
-
-				glGenBuffers(1, &subChunks()[i]->vbo);
-
-				glBindBuffer(GL_ARRAY_BUFFER, subChunks()[i]->vbo);
-				glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertexPools.poolSize(), NULL, GL_DYNAMIC_DRAW);
-
-				// Set our vertex attribute pointers
-				glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
-				glEnableVertexAttribArray(0);
-
-				glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)(offsetof(Vertex, data2)));
-				glEnableVertexAttribArray(1);
 			}
+
+			// Set up the instanced chunk pos vertex buffer
+			glCreateBuffers(1, &chunkPosInstancedBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * 2 * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+
+			glVertexAttribIPointer(10, 2, GL_INT, sizeof(int32) * 2, 0);
+			glVertexAttribDivisor(10, 1);
+			glEnableVertexAttribArray(10);
 
 			// Subchunk = 16x16x16  Blocks
 			// BigChunk = 16x256x16 Blocks
-			g_logger_info("Vertex Pool Total Size: %2.3f Gb", (float)(vertexPool().totalSize() / (1024.0f * 1024 * 1024)));
+			g_logger_info("Vertex Pool Total Size: %2.3f Gb", (float)(totalSizeOfSubChunkVertices / (1024.0f * 1024 * 1024)));
 			g_logger_info("Block Pool Total Size: %2.3f Gb", (float)(blockPool().totalSize() / (1024.0f * 1024 * 1024)));
 		}
 
 		void free()
 		{
 			chunkWorker().free();
+			g_memory_free(gpuDrawCommandBuffer);
 		}
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate)
@@ -403,6 +450,8 @@ namespace Minecraft
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader)
 		{
+			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
+
 			// TODO: Remove me, this is for debugging purposes
 			static uint32 maxVertCount = 0;
 			static uint32 minVertCount = UINT32_MAX;
@@ -424,6 +473,7 @@ namespace Minecraft
 			// TODO: Weird that I have to re-enable that here. Try to find out why?
 			glEnable(GL_CULL_FACE);
 
+			int commandIndex = 0;
 			for (int i = 0; i < subChunks().size(); i++)
 			{
 				if (subChunks()[i]->state != SubChunkState::Unloaded)
@@ -440,15 +490,12 @@ namespace Minecraft
 					else if (iter != chunkIndices.end() && loadedChunks.test(iter->second))
 					{
 						// Otherwise render it
-						shader.uploadIVec2("uChunkPos", chunkPos);
 						shader.uploadVec3("uPlayerPosition", playerPosition);
 						shader.uploadInt("uChunkRadius", World::ChunkRadius);
 
 						if (subChunks()[i]->state == SubChunkState::UploadVerticesToGpu)
 						{
 							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							glBindBuffer(GL_ARRAY_BUFFER, subChunks()[i]->vbo);
-							glBufferSubData(GL_ARRAY_BUFFER, 0, subChunks()[i]->numVertsUsed * sizeof(Vertex), subChunks()[i]->data);
 							subChunks()[i]->state = SubChunkState::Uploaded;
 
 							// TODO: Remove me this is for debugging purposes
@@ -460,9 +507,15 @@ namespace Minecraft
 
 						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices)
 						{
+							DrawArraysIndirectCommand& drawCommand = gpuDrawCommandBuffer[commandIndex];
 							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							glBindVertexArray(subChunks()[i]->vao);
-							glDrawArrays(GL_TRIANGLES, 0, subChunks()[i]->numVertsUsed);
+							drawCommand.baseInstance = commandIndex;
+							drawCommand.instanceCount = 1;
+							drawCommand.count = subChunks()[i]->numVertsUsed;
+							drawCommand.first = subChunks()[i]->first;
+							chunkPosBuffer[(commandIndex * 2)] = subChunks()[i]->chunkCoordinates.x;
+							chunkPosBuffer[(commandIndex * 2) + 1] = subChunks()[i]->chunkCoordinates.y;
+							commandIndex++;
 							DebugStats::numDrawCalls++;
 						}
 
@@ -481,6 +534,17 @@ namespace Minecraft
 						}
 					}
 				}
+			}
+
+			if (commandIndex > 0)
+			{
+				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandIndex, chunkPosBuffer);
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandIndex * sizeof(DrawArraysIndirectCommand), gpuDrawCommandBuffer);
+
+				glBindVertexArray(globalVao);
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandIndex, 0);
 			}
 		}
 	}

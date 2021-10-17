@@ -12,7 +12,6 @@ namespace Minecraft
 		{
 			data = nullptr;
 			dataLength = 0;
-			NumPools = 0;
 			_poolSize = 0;
 			std::lock_guard<std::mutex> lock(bitsetMtx);
 			poolsBeingUsed.reset();
@@ -95,6 +94,7 @@ namespace Minecraft
 		uint32 _poolSize;
 		T* data;
 	};
+
 }
 
 #endif 

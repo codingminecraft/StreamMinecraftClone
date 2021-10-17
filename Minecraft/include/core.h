@@ -10,6 +10,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/norm.hpp>
 
 // My libraries
 #include <cppUtils/cppUtils.hpp>

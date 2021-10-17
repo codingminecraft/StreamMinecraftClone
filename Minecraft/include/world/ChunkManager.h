@@ -30,8 +30,8 @@ namespace Minecraft
 	struct SubChunk
 	{
 		Vertex* data;
-		uint32 vao;
-		uint32 vbo;
+		uint32 first;
+		uint32 drawCommandIndex;
 		uint8 subChunkLevel;
 		glm::ivec2 chunkCoordinates;
 		std::atomic<uint32> numVertsUsed;

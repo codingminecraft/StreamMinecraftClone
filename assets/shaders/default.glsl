@@ -1,7 +1,9 @@
 #type vertex
-#version 330 core
+#version 460 core
 layout (location = 0) in uint aData1;
 layout (location = 1) in uint aData2;
+
+layout (location = 10) in ivec2 aChunkPos;
 
 out vec2 fTexCoords;
 flat out uint fFace;
@@ -10,7 +12,7 @@ out vec3 fFragPosition;
 uniform samplerBuffer uTexCoordTexture;
 uniform mat4 uProjection;
 uniform mat4 uView;
-uniform ivec2 uChunkPos;
+//uniform ivec2 uChunkPos;
 
 #define POSITION_INDEX_BITMASK uint(0x1FFFF)
 #define FACE_BITMASK uint(0xE0000000)
@@ -50,14 +52,14 @@ void main()
 	extractTexCoords(aData1, aData2, fTexCoords);
 
 	// Convert from local Chunk Coords to world Coords
-	fFragPosition.x += float(uChunkPos.x) * 16.0;
-	fFragPosition.z += float(uChunkPos.y) * 16.0;
+	fFragPosition.x += float(aChunkPos.x) * 16.0;
+	fFragPosition.z += float(aChunkPos.y) * 16.0;
 
 	gl_Position = uProjection * uView * vec4(fFragPosition, 1.0);
 }
 
 #type fragment
-#version 330 core
+#version 460 core
 out vec4 FragColor;
 
 in vec2 fTexCoords;
