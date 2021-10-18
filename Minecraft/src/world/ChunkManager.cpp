@@ -175,11 +175,121 @@ namespace Minecraft
 		{
 			DrawArraysIndirectCommand command;
 			int distanceToPlayer;
+			int level;
 
 			bool operator<(const DrawCommand& b) const
 			{
 				return distanceToPlayer < b.distanceToPlayer;
 			}
+		};
+
+		// I yoinked this from here https://gist.github.com/podgorskiy/e698d18879588ada9014768e3e82a644
+		// Until I have time to properly learn frustum culling this is how it shall stay
+		class Frustum
+		{
+		public:
+			Frustum() {}
+
+			// m = ProjectionMatrix * ViewMatrix 
+			Frustum(glm::mat4 m)
+			{
+				m = glm::transpose(m);
+				m_planes[Left] = m[3] + m[0];
+				m_planes[Right] = m[3] - m[0];
+				m_planes[Bottom] = m[3] + m[1];
+				m_planes[Top] = m[3] - m[1];
+				m_planes[Near] = m[3] + m[2];
+				m_planes[Far] = m[3] - m[2];
+
+				glm::vec3 crosses[Combinations] = {
+					glm::cross(glm::vec3(m_planes[Left]),   glm::vec3(m_planes[Right])),
+					glm::cross(glm::vec3(m_planes[Left]),   glm::vec3(m_planes[Bottom])),
+					glm::cross(glm::vec3(m_planes[Left]),   glm::vec3(m_planes[Top])),
+					glm::cross(glm::vec3(m_planes[Left]),   glm::vec3(m_planes[Near])),
+					glm::cross(glm::vec3(m_planes[Left]),   glm::vec3(m_planes[Far])),
+					glm::cross(glm::vec3(m_planes[Right]),  glm::vec3(m_planes[Bottom])),
+					glm::cross(glm::vec3(m_planes[Right]),  glm::vec3(m_planes[Top])),
+					glm::cross(glm::vec3(m_planes[Right]),  glm::vec3(m_planes[Near])),
+					glm::cross(glm::vec3(m_planes[Right]),  glm::vec3(m_planes[Far])),
+					glm::cross(glm::vec3(m_planes[Bottom]), glm::vec3(m_planes[Top])),
+					glm::cross(glm::vec3(m_planes[Bottom]), glm::vec3(m_planes[Near])),
+					glm::cross(glm::vec3(m_planes[Bottom]), glm::vec3(m_planes[Far])),
+					glm::cross(glm::vec3(m_planes[Top]),    glm::vec3(m_planes[Near])),
+					glm::cross(glm::vec3(m_planes[Top]),    glm::vec3(m_planes[Far])),
+					glm::cross(glm::vec3(m_planes[Near]),   glm::vec3(m_planes[Far]))
+				};
+
+				m_points[0] = intersection<Left, Bottom, Near>(crosses);
+				m_points[1] = intersection<Left, Top, Near>(crosses);
+				m_points[2] = intersection<Right, Bottom, Near>(crosses);
+				m_points[3] = intersection<Right, Top, Near>(crosses);
+				m_points[4] = intersection<Left, Bottom, Far>(crosses);
+				m_points[5] = intersection<Left, Top, Far>(crosses);
+				m_points[6] = intersection<Right, Bottom, Far>(crosses);
+				m_points[7] = intersection<Right, Top, Far>(crosses);
+			}
+
+			// http://iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
+			bool IsBoxVisible(const glm::vec3& minp, const glm::vec3& maxp) const
+			{
+				// check box outside/inside of frustum
+				for (int i = 0; i < Count; i++)
+				{
+					if ((glm::dot(m_planes[i], glm::vec4(minp.x, minp.y, minp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(maxp.x, minp.y, minp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(minp.x, maxp.y, minp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(maxp.x, maxp.y, minp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(minp.x, minp.y, maxp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(maxp.x, minp.y, maxp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(minp.x, maxp.y, maxp.z, 1.0f)) < 0.0) &&
+						(glm::dot(m_planes[i], glm::vec4(maxp.x, maxp.y, maxp.z, 1.0f)) < 0.0))
+					{
+						return false;
+					}
+				}
+
+				// check frustum outside/inside box
+				int out;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].x > maxp.x) ? 1 : 0); if (out == 8) return false;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].x < minp.x) ? 1 : 0); if (out == 8) return false;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].y > maxp.y) ? 1 : 0); if (out == 8) return false;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].y < minp.y) ? 1 : 0); if (out == 8) return false;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].z > maxp.z) ? 1 : 0); if (out == 8) return false;
+				out = 0; for (int i = 0; i < 8; i++) out += ((m_points[i].z < minp.z) ? 1 : 0); if (out == 8) return false;
+
+				return true;
+			}
+
+		private:
+			enum Planes
+			{
+				Left = 0,
+				Right,
+				Bottom,
+				Top,
+				Near,
+				Far,
+				Count,
+				Combinations = Count * (Count - 1) / 2
+			};
+
+			template<Planes i, Planes j>
+			struct ij2k
+			{
+				enum { k = i * (9 - i) / 2 + j - 1 };
+			};
+
+			template<Planes a, Planes b, Planes c>
+			glm::vec3 intersection(const glm::vec3* crosses) const
+			{
+				float D = glm::dot(glm::vec3(m_planes[a]), crosses[ij2k<b, c>::k]);
+				glm::vec3 res = glm::mat3(crosses[ij2k<b, c>::k], -crosses[ij2k<a, c>::k], crosses[ij2k<a, b>::k]) *
+					glm::vec3(m_planes[a].w, m_planes[b].w, m_planes[c].w);
+				return res * (-1.0f / D);
+			}
+
+			glm::vec4   m_planes[Count];
+			glm::vec3   m_points[8];
 		};
 
 		class CommandBufferContainer
@@ -215,12 +325,12 @@ namespace Minecraft
 				}
 			}
 
-			void add(const DrawArraysIndirectCommand& command, const glm::ivec2& chunkCoords, const glm::ivec2& playerPosChunkCoords)
+			void add(const DrawArraysIndirectCommand& command, const glm::ivec2& chunkCoords, int level, const glm::ivec2& playerPosChunkCoords)
 			{
 				g_logger_assert((numCommands + 1) < maxNumCommands, "Ran out of room in command buffer!");
 				glm::ivec2 d = chunkCoords - playerPosChunkCoords;
 				int dSquared = (d.x * d.x) + (d.y * d.y);
-				commandBuffer[numCommands] = { command, dSquared };
+				commandBuffer[numCommands] = { command, dSquared, level };
 				commandBuffer[numCommands].command.baseInstance = numCommands;
 				chunkPosBuffer[(numCommands * 2)] = chunkCoords.x;
 				chunkPosBuffer[(numCommands * 2) + 1] = chunkCoords.y;
@@ -230,11 +340,26 @@ namespace Minecraft
 			void sort(const glm::ivec2& playerPosChunkCoords, const glm::mat4& cameraProjection, const glm::mat4& cameraView)
 			{
 				// Remove chunks not in the view frustum
-				//for (int i = 0; i < numCommands; i++)
-				//{
-				//	const CommandSortOperator& chunkCoord = sortOperators[i];
-				//	
-				//}
+				glm::mat4 pv = cameraProjection * cameraView;
+				Frustum frustum(pv);
+
+				float subChunkRadius = 8.0f;
+				for (int i = 0; i < numCommands; i++)
+				{
+					const DrawCommand& command = commandBuffer[i];
+					float yCenter = command.level * 16;
+					glm::vec3 chunkPos = glm::vec3(chunkPosBuffer[(i * 2)] * World::ChunkDepth, yCenter, chunkPosBuffer[(i * 2) + 1] * World::ChunkWidth);
+					if (!frustum.IsBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
+					{
+						// Cull the chunk since it's out of bounds of the view frustum
+						commandBuffer[i] = commandBuffer[numCommands - 1];
+						commandBuffer[i].command.baseInstance = i;
+						chunkPosBuffer[(i * 2)] = chunkPosBuffer[((numCommands - 1) * 2)];
+						chunkPosBuffer[(i * 2) + 1] = chunkPosBuffer[((numCommands - 1) * 2) + 1];
+						numCommands--;
+						i--;
+					}
+				}
 
 				// Sort chunks front to back
 				std::sort(commandBuffer, commandBuffer + numCommands);
@@ -540,7 +665,7 @@ namespace Minecraft
 			}
 		}
 
-		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader)
+		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix)
 		{
 			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
 
@@ -600,8 +725,7 @@ namespace Minecraft
 							drawCommand.instanceCount = 1;
 							drawCommand.count = subChunks()[i]->numVertsUsed;
 							drawCommand.first = subChunks()[i]->first;
-							commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, playerPositionInChunkCoords);
-							DebugStats::numDrawCalls++;
+							commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords);
 						}
 					}
 				}
@@ -612,11 +736,12 @@ namespace Minecraft
 				static int tick = 0;
 				tick++;
 				double timeStart = glfwGetTime();
-				commandBuffer().sort(playerPositionInChunkCoords, glm::mat4(), glm::mat4());
+				commandBuffer().sort(playerPositionInChunkCoords, projectionMatrix, viewMatrix);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandBuffer().getNumCommands(), commandBuffer().getChunkPosBuffer());
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
 				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * commandBuffer().getNumCommands(), commandBuffer().getCommandBuffer());
+				DebugStats::numDrawCalls += commandBuffer().getNumCommands();
 
 				glBindVertexArray(globalVao);
 				shader.uploadVec3("uPlayerPosition", playerPosition);
