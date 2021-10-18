@@ -13,6 +13,7 @@ namespace Minecraft
 		extern uint32 minVertCount;
 		extern uint32 maxVertCount;
 		extern float avgVertCount;
+		extern float chunkRenderTime;
 
 		void render();
 	}

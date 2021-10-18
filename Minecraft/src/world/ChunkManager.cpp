@@ -171,6 +171,102 @@ namespace Minecraft
 			uint32 seed;
 		};
 
+		struct DrawCommand
+		{
+			DrawArraysIndirectCommand command;
+			int distanceToPlayer;
+
+			bool operator<(const DrawCommand& b) const
+			{
+				return distanceToPlayer < b.distanceToPlayer;
+			}
+		};
+
+		class CommandBufferContainer
+		{
+		public:
+			CommandBufferContainer(int maxNumCommands)
+			{
+				this->maxNumCommands = maxNumCommands;
+				commandBuffer = nullptr;
+				chunkPosBuffer = nullptr;
+				numCommands = 0;
+			}
+
+			void init()
+			{
+				this->commandBuffer = (DrawCommand*)g_memory_allocate(sizeof(DrawCommand) * maxNumCommands);
+				this->chunkPosBuffer = (int32*)g_memory_allocate(sizeof(int32*) * maxNumCommands * 2);
+				this->numCommands = 0;
+			}
+
+			void free()
+			{
+				if (commandBuffer)
+				{
+					g_memory_free(commandBuffer);
+					commandBuffer = nullptr;
+				}
+
+				if (chunkPosBuffer)
+				{
+					g_memory_free(chunkPosBuffer);
+					chunkPosBuffer = nullptr;
+				}
+			}
+
+			void add(const DrawArraysIndirectCommand& command, const glm::ivec2& chunkCoords, const glm::ivec2& playerPosChunkCoords)
+			{
+				g_logger_assert((numCommands + 1) < maxNumCommands, "Ran out of room in command buffer!");
+				glm::ivec2 d = chunkCoords - playerPosChunkCoords;
+				int dSquared = (d.x * d.x) + (d.y * d.y);
+				commandBuffer[numCommands] = { command, dSquared };
+				commandBuffer[numCommands].command.baseInstance = numCommands;
+				chunkPosBuffer[(numCommands * 2)] = chunkCoords.x;
+				chunkPosBuffer[(numCommands * 2) + 1] = chunkCoords.y;
+				numCommands++;
+			}
+
+			void sort(const glm::ivec2& playerPosChunkCoords, const glm::mat4& cameraProjection, const glm::mat4& cameraView)
+			{
+				// Remove chunks not in the view frustum
+				//for (int i = 0; i < numCommands; i++)
+				//{
+				//	const CommandSortOperator& chunkCoord = sortOperators[i];
+				//	
+				//}
+
+				// Sort chunks front to back
+				std::sort(commandBuffer, commandBuffer + numCommands);
+			}
+
+			inline int getNumCommands() const
+			{
+				return numCommands;
+			}
+
+			inline const DrawCommand* getCommandBuffer() const
+			{
+				return commandBuffer;
+			}
+
+			inline const int32* getChunkPosBuffer() const
+			{
+				return chunkPosBuffer;
+			}
+
+			inline void softReset()
+			{
+				numCommands = 0;
+			}
+
+		private:
+			int maxNumCommands;
+			int numCommands;
+			DrawCommand* commandBuffer;
+			int32* chunkPosBuffer;
+		};
+
 		// Internal variables
 		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
@@ -178,10 +274,8 @@ namespace Minecraft
 		static std::bitset<World::ChunkCapacity> loadedChunks;
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
 
-		static DrawArraysIndirectCommand* gpuDrawCommandBuffer;
-		static int32* chunkPosBuffer;
+		//static DrawArraysIndirectCommand* gpuDrawCommandBuffer;
 		static uint32 chunkPosInstancedBuffer;
-		static uint32 drawCommandsInUse;
 		static uint32 globalVao;
 		static uint32 drawCommandVbo;
 
@@ -204,6 +298,12 @@ namespace Minecraft
 			return instance;
 		}
 
+		static CommandBufferContainer& commandBuffer()
+		{
+			static CommandBufferContainer instance(subChunks().size());
+			return instance;
+		}
+
 		void init(uint32 seed)
 		{
 			// A chunk uses 55,000 vertices on average, so a sub-chunk can be estimated to use about 
@@ -216,13 +316,10 @@ namespace Minecraft
 			blockPool();
 
 			// Set up draw commands to relate to our sub chunks
-			//maxDrawCommands = 5'000;
-			gpuDrawCommandBuffer = (DrawArraysIndirectCommand*)g_memory_allocate(sizeof(DrawArraysIndirectCommand) * subChunks().size());
-			chunkPosBuffer = (int32*)g_memory_allocate(sizeof(int32) * 2 * subChunks().size());
-			g_memory_zeroMem(gpuDrawCommandBuffer, sizeof(DrawArraysIndirectCommand) * subChunks().size());
+			commandBuffer().init();
 			glCreateBuffers(1, &drawCommandVbo);
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
-			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawArraysIndirectCommand) * subChunks().size(), gpuDrawCommandBuffer, GL_DYNAMIC_DRAW);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
 			loadedChunks.reset();
@@ -249,8 +346,7 @@ namespace Minecraft
 			// Set up our global immutable buffer
 			GLbitfield flags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT;
 			glBufferStorage(GL_ARRAY_BUFFER, totalSizeOfSubChunkVertices, NULL, flags);
-			Vertex* basePointer = (Vertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, subChunks().size() * World::MaxVertsPerSubChunk,
-				flags);// | GL_MAP_FLUSH_EXPLICIT_BIT);
+			Vertex* basePointer = (Vertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, subChunks().size() * World::MaxVertsPerSubChunk, flags);
 			for (uint32 i = 0; i < subChunks().size(); i++)
 			{
 				// Assign the pointers for the data on the CPU
@@ -279,7 +375,7 @@ namespace Minecraft
 		void free()
 		{
 			chunkWorker().free();
-			g_memory_free(gpuDrawCommandBuffer);
+			commandBuffer().free();
 		}
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate)
@@ -469,7 +565,6 @@ namespace Minecraft
 			// TODO: Weird that I have to re-enable that here. Try to find out why?
 			glEnable(GL_CULL_FACE);
 
-			int commandIndex = 0;
 			for (int i = 0; i < subChunks().size(); i++)
 			{
 				if (subChunks()[i]->state != SubChunkState::Unloaded)
@@ -485,10 +580,6 @@ namespace Minecraft
 					}
 					else if (iter != chunkIndices.end() && loadedChunks.test(iter->second))
 					{
-						// Otherwise render it
-						shader.uploadVec3("uPlayerPosition", playerPosition);
-						shader.uploadInt("uChunkRadius", World::ChunkRadius);
-
 						if (subChunks()[i]->state == SubChunkState::UploadVerticesToGpu)
 						{
 							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
@@ -503,30 +594,41 @@ namespace Minecraft
 
 						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices)
 						{
-							DrawArraysIndirectCommand& drawCommand = gpuDrawCommandBuffer[commandIndex];
+							DrawArraysIndirectCommand drawCommand;
 							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							drawCommand.baseInstance = commandIndex;
+							drawCommand.baseInstance = 0;
 							drawCommand.instanceCount = 1;
 							drawCommand.count = subChunks()[i]->numVertsUsed;
 							drawCommand.first = subChunks()[i]->first;
-							chunkPosBuffer[(commandIndex * 2)] = subChunks()[i]->chunkCoordinates.x;
-							chunkPosBuffer[(commandIndex * 2) + 1] = subChunks()[i]->chunkCoordinates.y;
-							commandIndex++;
+							commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, playerPositionInChunkCoords);
 							DebugStats::numDrawCalls++;
 						}
 					}
 				}
 			}
 
-			if (commandIndex > 0)
+			if (commandBuffer().getNumCommands() > 0)
 			{
+				static int tick = 0;
+				tick++;
+				double timeStart = glfwGetTime();
+				commandBuffer().sort(playerPositionInChunkCoords, glm::mat4(), glm::mat4());
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandIndex, chunkPosBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandBuffer().getNumCommands(), commandBuffer().getChunkPosBuffer());
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
-				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, commandIndex * sizeof(DrawArraysIndirectCommand), gpuDrawCommandBuffer);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * commandBuffer().getNumCommands(), commandBuffer().getCommandBuffer());
 
 				glBindVertexArray(globalVao);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandIndex, 0);
+				shader.uploadVec3("uPlayerPosition", playerPosition);
+				shader.uploadInt("uChunkRadius", World::ChunkRadius);
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandBuffer().getNumCommands(), sizeof(DrawCommand));
+				double deltaTime = glfwGetTime() - timeStart;
+				if (tick >= 15)
+				{
+					DebugStats::chunkRenderTime = (float)deltaTime;
+					tick = 0;
+				}
+				commandBuffer().softReset();
 			}
 		}
 

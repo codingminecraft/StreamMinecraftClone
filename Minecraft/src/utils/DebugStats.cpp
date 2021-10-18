@@ -17,6 +17,7 @@ namespace Minecraft
 		extern uint32 minVertCount = 0;
 		extern uint32 maxVertCount = 0;
 		extern float avgVertCount = 0;
+		extern float chunkRenderTime = 0.0f;
 
 		void render()
 		{
@@ -91,7 +92,7 @@ namespace Minecraft
 
 				// Draw third row of statistics
 				playerPosPos = glm::vec2(-2.95f, 1.11f);
-				playerPosStr = std::string("MaxVertCount: " + CMath::toString((float)DebugStats::maxVertCount));
+				playerPosStr = std::string("Chunk Render Time: " + CMath::toString((float)DebugStats::chunkRenderTime));
 				Renderer::drawString(
 					playerPosStr,
 					*font,
