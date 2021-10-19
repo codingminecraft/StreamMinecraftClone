@@ -339,28 +339,6 @@ namespace Minecraft
 
 			void sort(const glm::ivec2& playerPosChunkCoords, const glm::mat4& cameraProjection, const glm::mat4& cameraView)
 			{
-				// Remove chunks not in the view frustum
-				//glm::mat4 pv = cameraProjection * cameraView;
-				//Frustum frustum(pv);
-
-				//float subChunkRadius = 8.0f;
-				//for (int i = 0; i < numCommands; i++)
-				//{
-				//	const DrawCommand& command = commandBuffer[i];
-				//	float yCenter = command.level * 16;
-				//	glm::vec3 chunkPos = glm::vec3(chunkPosBuffer[(i * 2)] * World::ChunkDepth, yCenter, chunkPosBuffer[(i * 2) + 1] * World::ChunkWidth);
-				//	if (!frustum.IsBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
-				//	{
-				//		// Cull the chunk since it's out of bounds of the view frustum
-				//		commandBuffer[i] = commandBuffer[numCommands - 1];
-				//		commandBuffer[i].command.baseInstance = i;
-				//		chunkPosBuffer[(i * 2)] = chunkPosBuffer[((numCommands - 1) * 2)];
-				//		chunkPosBuffer[(i * 2) + 1] = chunkPosBuffer[((numCommands - 1) * 2) + 1];
-				//		numCommands--;
-				//		i--;
-				//	}
-				//}
-
 				// Sort chunks front to back
 				std::sort(commandBuffer, commandBuffer + numCommands);
 			}
@@ -398,6 +376,7 @@ namespace Minecraft
 		static uint32 worldSeed = 0;
 		static std::bitset<World::ChunkCapacity> loadedChunks;
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
+		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
 
 		//static DrawArraysIndirectCommand* gpuDrawCommandBuffer;
 		static uint32 chunkPosInstancedBuffer;
@@ -605,23 +584,7 @@ namespace Minecraft
 
 			if (Chunk::setBlock(worldPosition, chunkCoords, blockData, newBlock))
 			{
-				FillChunkCommand cmd;
-				cmd.chunkCoordinates = chunkCoords;
-				cmd.type = CommandType::TesselateVertices;
-				cmd.subChunks = &subChunks();
-				cmd.blockData = blockData;
-
-				// Update the sub-chunks that are about to be deleted
-				for (int i = 0; i < subChunks().size(); i++)
-				{
-					if (subChunks()[i]->chunkCoordinates == chunkCoords && subChunks()[i]->state == SubChunkState::Uploaded)
-					{
-						subChunks()[i]->state = SubChunkState::RetesselateVertices;
-					}
-				}
-
-				chunkWorker().queueCommand(cmd);
-				chunkWorker().beginWork(false);
+				retesselateChunkBlockUpdate(chunkCoords, worldPosition, blockData);
 			}
 		}
 
@@ -645,23 +608,7 @@ namespace Minecraft
 
 			if (Chunk::removeBlock(worldPosition, chunkCoords, blockData))
 			{
-				FillChunkCommand cmd;
-				cmd.chunkCoordinates = chunkCoords;
-				cmd.type = CommandType::TesselateVertices;
-				cmd.subChunks = &subChunks();
-				cmd.blockData = blockData;
-
-				// Update the sub-chunks that are about to be deleted
-				for (int i = 0; i < subChunks().size(); i++)
-				{
-					if (subChunks()[i]->chunkCoordinates == chunkCoords && subChunks()[i]->state == SubChunkState::Uploaded)
-					{
-						subChunks()[i]->state = SubChunkState::RetesselateVertices;
-					}
-				}
-
-				chunkWorker().queueCommand(cmd);
-				chunkWorker().beginWork(false);
+				retesselateChunkBlockUpdate(chunkCoords, worldPosition, blockData);
 			}
 		}
 
@@ -718,7 +665,7 @@ namespace Minecraft
 							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
-						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices || 
+						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices ||
 							subChunks()[i]->state == SubChunkState::DoneRetesselating)
 						{
 							float yCenter = subChunks()[i]->subChunkLevel * 16;
@@ -836,6 +783,69 @@ namespace Minecraft
 			}
 
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
+			chunkWorker().beginWork();
+		}
+
+		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData)
+		{
+			FillChunkCommand cmd;
+			cmd.chunkCoordinates = chunkCoords;
+			cmd.type = CommandType::TesselateVertices;
+			cmd.subChunks = &subChunks();
+			cmd.blockData = blockData;
+
+			// Get any neighboring chunks that need to be updated
+			int numChunksToUpdate = 1;
+			glm::ivec2 chunksToUpdate[3];
+			chunksToUpdate[0] = chunkCoords;
+			glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoords.x * 16.0f, 0.0f, chunkCoords.y * 16.0f));
+			if (localPosition.x == 0)
+			{
+				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x - 1, chunkCoords.y);
+			}
+			else if (localPosition.x == 15)
+			{
+				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x + 1, chunkCoords.y);
+			}
+			if (localPosition.z == 0)
+			{
+				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x, chunkCoords.y - 1);
+			}
+			else if (localPosition.z == 15)
+			{
+				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x, chunkCoords.y + 1);
+			}
+
+			// Update the sub-chunks that are about to be deleted
+			for (int i = 0; i < subChunks().size(); i++)
+			{
+				if (subChunks()[i]->state == SubChunkState::Uploaded)
+				{
+					for (int j = 0; j < numChunksToUpdate; j++)
+					{
+						if (subChunks()[i]->chunkCoordinates == chunksToUpdate[j])
+						{
+							subChunks()[i]->state = SubChunkState::RetesselateVertices;
+						}
+					}
+				}
+			}
+
+			// Queue up all the chunks
+			chunkWorker().queueCommand(cmd);
+			for (int i = 1; i < numChunksToUpdate; i++)
+			{
+				Block* blockData = nullptr;
+
+				auto iter = chunkIndices.find(chunksToUpdate[i]);
+				if (iter != chunkIndices.end())
+				{
+					blockData = blockPool()[iter->second];
+					cmd.blockData = blockPool()[iter->second];
+					cmd.chunkCoordinates = chunksToUpdate[i];
+					chunkWorker().queueCommand(cmd);
+				}
+			}
 			chunkWorker().beginWork();
 		}
 	}
