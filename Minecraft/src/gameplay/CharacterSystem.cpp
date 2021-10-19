@@ -5,6 +5,7 @@
 #include "physics/Physics.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
+#include "utils/CMath.h"
 
 namespace Minecraft
 {
@@ -12,6 +13,7 @@ namespace Minecraft
 	{
 		// Internal variables
 		static Ecs::EntityId cameraEntity = Ecs::nullEntity;
+		static glm::vec2 smoothMouse = glm::vec2();
 
 		void update(Ecs::Registry& registry, float dt)
 		{
@@ -69,9 +71,12 @@ namespace Minecraft
 				float my = controller.viewAxis.y;
 				mx *= controller.movementSensitivity;
 				my *= controller.movementSensitivity;
+				smoothMouse.x = (smoothMouse.x - mx) * 0.1f;
+				smoothMouse.y = (smoothMouse.y - my) * 0.1f;
 
-				transform.orientation.x += my;
-				transform.orientation.y += mx;
+				float lerp = 0.1f;
+				transform.orientation.x -= smoothMouse.y;
+				transform.orientation.y -= smoothMouse.x;
 				transform.orientation.x = glm::clamp(transform.orientation.x, -89.9f, 89.9f);
 				if (transform.orientation.y > 360.0f)
 				{

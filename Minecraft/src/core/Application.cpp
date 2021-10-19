@@ -47,12 +47,27 @@ namespace Minecraft
 			// Run game loop
 			// Start with a 60 fps frame rate
 			Window& window = getWindow();
-			float previousTime = (float)glfwGetTime() - 0.16f;
+			float previousTime = (float)glfwGetTime() - 0.016f;
 			bool inMainMenu = true;
+			const float targetFps = 0.016f;
+			const float nextTarget = 0.032f;
 			while (!window.shouldClose())
 			{
 				float deltaTime = (float)glfwGetTime() - previousTime;
 				previousTime = (float)glfwGetTime();
+
+				// TODO: Do I want to keep this?
+				float actualFps = deltaTime;
+				if (targetFps - actualFps > 0)
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds((int)((targetFps - actualFps) * 1000)));
+					deltaTime = targetFps;
+				}
+				else if (targetFps - nextTarget > 0)
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds((int)((nextTarget - actualFps) * 1000)));
+					deltaTime = nextTarget;
+				}
 
 				Scene::update(deltaTime);
 

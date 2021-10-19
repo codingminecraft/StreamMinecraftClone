@@ -90,7 +90,7 @@ namespace Minecraft
 			controller.lockedToCamera = true;
 			controller.controllerBaseSpeed = 4.0f;
 			controller.controllerRunSpeed = 7.0f;
-			controller.movementSensitivity = 0.1f;
+			controller.movementSensitivity = 0.6f;
 			controller.isRunning = false;
 			controller.movementAxis = glm::vec3();
 			controller.viewAxis = glm::vec2();
@@ -121,7 +121,7 @@ namespace Minecraft
 			controller2.isRunning = false;
 			controller2.movementAxis = glm::vec3();
 			controller2.viewAxis = glm::vec2();
-			controller2.movementSensitivity = 0.1f;
+			controller2.movementSensitivity = 0.6f;
 			controller2.applyJumpForce = false;
 			controller2.jumpForce = 16.0f;
 			Tag& tag2 = registry->getComponent<Tag>(randomEntity);

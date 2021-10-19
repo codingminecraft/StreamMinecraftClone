@@ -340,26 +340,26 @@ namespace Minecraft
 			void sort(const glm::ivec2& playerPosChunkCoords, const glm::mat4& cameraProjection, const glm::mat4& cameraView)
 			{
 				// Remove chunks not in the view frustum
-				glm::mat4 pv = cameraProjection * cameraView;
-				Frustum frustum(pv);
+				//glm::mat4 pv = cameraProjection * cameraView;
+				//Frustum frustum(pv);
 
-				float subChunkRadius = 8.0f;
-				for (int i = 0; i < numCommands; i++)
-				{
-					const DrawCommand& command = commandBuffer[i];
-					float yCenter = command.level * 16;
-					glm::vec3 chunkPos = glm::vec3(chunkPosBuffer[(i * 2)] * World::ChunkDepth, yCenter, chunkPosBuffer[(i * 2) + 1] * World::ChunkWidth);
-					if (!frustum.IsBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
-					{
-						// Cull the chunk since it's out of bounds of the view frustum
-						commandBuffer[i] = commandBuffer[numCommands - 1];
-						commandBuffer[i].command.baseInstance = i;
-						chunkPosBuffer[(i * 2)] = chunkPosBuffer[((numCommands - 1) * 2)];
-						chunkPosBuffer[(i * 2) + 1] = chunkPosBuffer[((numCommands - 1) * 2) + 1];
-						numCommands--;
-						i--;
-					}
-				}
+				//float subChunkRadius = 8.0f;
+				//for (int i = 0; i < numCommands; i++)
+				//{
+				//	const DrawCommand& command = commandBuffer[i];
+				//	float yCenter = command.level * 16;
+				//	glm::vec3 chunkPos = glm::vec3(chunkPosBuffer[(i * 2)] * World::ChunkDepth, yCenter, chunkPosBuffer[(i * 2) + 1] * World::ChunkWidth);
+				//	if (!frustum.IsBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
+				//	{
+				//		// Cull the chunk since it's out of bounds of the view frustum
+				//		commandBuffer[i] = commandBuffer[numCommands - 1];
+				//		commandBuffer[i].command.baseInstance = i;
+				//		chunkPosBuffer[(i * 2)] = chunkPosBuffer[((numCommands - 1) * 2)];
+				//		chunkPosBuffer[(i * 2) + 1] = chunkPosBuffer[((numCommands - 1) * 2) + 1];
+				//		numCommands--;
+				//		i--;
+				//	}
+				//}
 
 				// Sort chunks front to back
 				std::sort(commandBuffer, commandBuffer + numCommands);
@@ -668,6 +668,7 @@ namespace Minecraft
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix)
 		{
 			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
+			Frustum frustm(projectionMatrix * viewMatrix);
 
 			// TODO: Remove me, this is for debugging purposes
 			static uint32 maxVertCount = 0;
@@ -719,13 +720,18 @@ namespace Minecraft
 
 						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices)
 						{
-							DrawArraysIndirectCommand drawCommand;
-							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							drawCommand.baseInstance = 0;
-							drawCommand.instanceCount = 1;
-							drawCommand.count = subChunks()[i]->numVertsUsed;
-							drawCommand.first = subChunks()[i]->first;
-							commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords);
+							float yCenter = subChunks()[i]->subChunkLevel * 16;
+							glm::vec3 chunkPos = glm::vec3(subChunks()[i]->chunkCoordinates.x * World::ChunkDepth, yCenter, subChunks()[i]->chunkCoordinates.y * World::ChunkWidth);
+							if (frustm.IsBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
+							{
+								DrawArraysIndirectCommand drawCommand;
+								g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
+								drawCommand.baseInstance = 0;
+								drawCommand.instanceCount = 1;
+								drawCommand.count = subChunks()[i]->numVertsUsed;
+								drawCommand.first = subChunks()[i]->first;
+								commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords);
+							}
 						}
 					}
 				}
