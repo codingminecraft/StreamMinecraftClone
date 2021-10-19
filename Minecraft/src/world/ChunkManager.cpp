@@ -718,7 +718,8 @@ namespace Minecraft
 							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
-						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices)
+						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices || 
+							subChunks()[i]->state == SubChunkState::DoneRetesselating)
 						{
 							float yCenter = subChunks()[i]->subChunkLevel * 16;
 							glm::vec3 chunkPos = glm::vec3(subChunks()[i]->chunkCoordinates.x * World::ChunkDepth, yCenter, subChunks()[i]->chunkCoordinates.y * World::ChunkWidth);
@@ -731,6 +732,13 @@ namespace Minecraft
 								drawCommand.count = subChunks()[i]->numVertsUsed;
 								drawCommand.first = subChunks()[i]->first;
 								commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords);
+							}
+
+							if (subChunks()[i]->state == SubChunkState::DoneRetesselating)
+							{
+								subChunks()[i]->numVertsUsed = 0;
+								subChunks()[i]->state = SubChunkState::Unloaded;
+								subChunks().freePool(i);
 							}
 						}
 					}
@@ -1128,9 +1136,7 @@ namespace Minecraft
 				if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::RetesselateVertices)
 				{
 					SubChunk* subChunkToUnload = (*subChunks)[i];
-					subChunkToUnload->numVertsUsed = 0;
-					subChunkToUnload->state = SubChunkState::Unloaded;
-					subChunks->freePool(i);
+					subChunkToUnload->state = SubChunkState::DoneRetesselating;
 				}
 			}
 		}

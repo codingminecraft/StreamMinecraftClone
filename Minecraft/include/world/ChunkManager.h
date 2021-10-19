@@ -15,6 +15,7 @@ namespace Minecraft
 		LoadBlockData,
 		LoadingBlockData,
 		RetesselateVertices,
+		DoneRetesselating,
 		TesselateVertices,
 		TesselatingVertices,
 		UploadVerticesToGpu,
