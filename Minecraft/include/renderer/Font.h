@@ -9,6 +9,7 @@ namespace Minecraft
 
 	struct RenderableChar
 	{
+		glm::vec2 charSize;
 		glm::vec2 texCoordStart;
 		glm::vec2 texCoordSize;
 		glm::vec2 advance;
@@ -28,11 +29,15 @@ namespace Minecraft
 		FT_Face fontFace;
 		Texture texture;
 		FontSize fontSize;
+		float lineHeight;
+		float ascender;
+		float descender;
 		std::unordered_map<char, RenderableChar> characterMap;
 
 		const RenderableChar& getCharInfo(char c) const;
 		float getKerning(char leftChar, char rightChar) const;
 		glm::vec2 getSize(const std::string& str, float scale = 1.0f) const;
+		glm::vec2 getVertSize(const std::string& str, float scale = 1.0f) const;
 	};
 
 	namespace Fonts

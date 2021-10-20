@@ -119,7 +119,7 @@ namespace Minecraft
 			WindowState& windowState = getCurrentWindow();
 			sameLine();
 			const float textBoxPadding = 0.02f;
-			float height = defaultFont->getSize("M").y + textBoxPadding;
+			float height = (defaultFont->lineHeight * scale) + (textBoxPadding * 2.0f);
 			label(text, scale, height);
 
 			float windowWidthLeft = windowState.size.x - windowState.cursorPos.x;
@@ -141,11 +141,16 @@ namespace Minecraft
 			guiStyle.color = "#ffffff"_hex;
 			std::string inputText = std::string(inputBuffer);
 			glm::vec2 inputTextStrSize = defaultFont->getSize(inputText, scale);
-			float inputCursorPosX = textBoxPadding / 2.0f;
+			float inputCursorPosX = textBoxPadding;
 			if (inputText.length() > 0)
 			{
-				float centeredHeight = (height - inputTextStrSize.y - textBoxPadding) / 2.0f;
-				Renderer::drawString(inputText, *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight), scale, guiStyle);
+				// TODO: Simplify this, there has to be a better way to center this stuff
+				RenderableChar charInfo = defaultFont->getCharInfo('|');
+				float heightOfPipe = charInfo.charSize.y * scale;
+				float centeredHeight = (height - heightOfPipe) / 2.0f;
+				Renderer::drawString(inputText, *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + ((charInfo.charSize.y - charInfo.bearingY) * scale) / 2.0f), scale, guiStyle);
+				Style style = Styles::defaultStyle;
+				style.strokeWidth = 0.01f;
 				inputCursorPosX += inputTextStrSize.x + 0.01f;
 			}
 
@@ -157,8 +162,11 @@ namespace Minecraft
 				cursorBlinkTick = (cursorBlinkTick + 1) % maxCursorBlink;
 				if (cursorBlinkTick > maxCursorBlink / 2)
 				{
-					float centeredHeight = -textBoxPadding / 2.0f;
-					Renderer::drawString("|", *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight), scale, guiStyle);
+					// TODO: Simplify this, there has to be a better way to center this stuff
+					RenderableChar charInfo = defaultFont->getCharInfo('|');
+					float heightOfPipe = charInfo.charSize.y * scale;
+					float centeredHeight = (height - heightOfPipe) / 2.0f;
+					Renderer::drawString("|", *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + (charInfo.charSize.y - charInfo.bearingY) * scale), scale, guiStyle);
 				}
 
 				uint32 c = Input::lastCharPressed();

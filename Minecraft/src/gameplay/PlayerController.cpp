@@ -84,7 +84,7 @@ namespace Minecraft
 			if (res.hit)
 			{
 				Renderer::drawBox(res.blockCenter, res.blockSize, blockHighlight);
-				Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
+				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
 				
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
 				{

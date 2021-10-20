@@ -24,7 +24,7 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.5f));
 			//Gui::fillNextElement();
 			static char worldSaveTitle[128];
-			if (Gui::input("World Name: ", 0.5f, worldSaveTitle, 128))
+			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128))
 			{
 				World::worldSavePath = std::string(worldSaveTitle);
 			}

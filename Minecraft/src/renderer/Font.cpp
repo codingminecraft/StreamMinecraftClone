@@ -26,6 +26,8 @@ namespace Minecraft
 		FT_UInt leftGlyph = FT_Get_Char_Index(fontFace, leftChar);
 		FT_UInt rightGlyph = FT_Get_Char_Index(fontFace, rightChar);
 		int error = FT_Get_Kerning(fontFace, leftGlyph, rightGlyph, FT_Kerning_Mode::FT_KERNING_DEFAULT, &kerning);
+
+		// Shift right 6 to divide by 64, since fonts are measured in 64ths of a pixel
 		return (float)(kerning.x >> 6);
 	}
 
@@ -40,18 +42,45 @@ namespace Minecraft
 		{
 			char c = str[i];
 			RenderableChar renderableChar = getCharInfo(c);
-			float charWidth = renderableChar.texCoordSize.x * fontSize * scale;
-			float charHeight = renderableChar.texCoordSize.y * fontSize * scale;
-			float adjustedY = y - renderableChar.bearingY * fontSize * scale;
+			float charWidth = renderableChar.charSize.x * scale;
+			float charHeight = renderableChar.charSize.y * scale;
+			float adjustedY = y - (renderableChar.charSize.y - renderableChar.bearingY) * scale;
 			minY = glm::min(adjustedY, minY);
 			maxY = glm::max(charHeight, maxY);
 
 			char nextC = i < str.length() - 1 ? str[i + 1] : '\0';
 			//x += font.getKerning(c, nextC) * scale * font.fontSize;
-			x += renderableChar.advance.x * scale * fontSize;
+			x += renderableChar.advance.x * scale;
 		}
 
 		return glm::vec2(x, maxY - minY);
+	}
+
+	glm::vec2 Font::getVertSize(const std::string& str, float scale) const
+	{
+		// TODO: Implement me
+		//float x = 0;
+		//float y = 0;
+		//float minY = 0;
+		//float maxY = 0;
+
+		//for (int i = 0; i < str.length(); i++)
+		//{
+		//	char c = str[i];
+		//	RenderableChar renderableChar = getCharInfo(c);
+		//	float charWidth = renderableChar.charSize.x * scale;
+		//	float charHeight = renderableChar.charSize.y * scale;
+		//	float adjustedY = y - (renderableChar.charSize.y - renderableChar.bearingY) * scale;
+		//	minY = glm::min(charHeight, minY);
+		//	maxY = glm::max(adjustedY, maxY);
+
+		//	char nextC = i < str.length() - 1 ? str[i + 1] : '\0';
+		//	//x += font.getKerning(c, nextC) * scale * font.fontSize;
+		//	x += renderableChar.advance.x * scale;
+		//}
+
+		//return glm::vec2(x, maxY - minY);
+		return glm::vec2();
 	}
 
 	namespace Fonts
@@ -123,6 +152,11 @@ namespace Minecraft
 				.setHeight(1024 * 4)
 				.setFilepath(formattedFilepath.c_str())
 				.generate();
+
+			// Shift right 6, because this is measured in 64ths of a pixel, so we divide by 64 here
+			font.lineHeight = face->size->metrics.height >> 6;
+			font.ascender = face->ascender >> 6;
+			font.descender = face->descender >> 6;
 
 			// TODO: Turn the preset characters into a parameter
 			generateDefaultCharset(font, defaultCharset);
@@ -236,12 +270,14 @@ namespace Minecraft
 					}
 				}
 
+				// Shift right 6 to divide by 64, since fonts are measured in 64ths of a pixel
 				int flippedY = font.texture.height - (currentY + 1 + font.fontFace->glyph->bitmap.rows);
 				font.characterMap[i] = {
+					{ (float)(font.fontFace->glyph->metrics.width >> 6), (float)(font.fontFace->glyph->metrics.height >> 6) },
 					{ (float)currentX / (float)font.texture.width, (float)flippedY / (float)font.texture.height },
 					{ (float)font.fontFace->glyph->bitmap.width / (float)font.texture.width, (float)font.fontFace->glyph->bitmap.rows / (float)font.texture.height },
-					{ (float)(font.fontFace->glyph->advance.x >> 6) / (float)font.texture.width, (float)(font.fontFace->glyph->bitmap.rows >> 6) / (float)font.texture.height },
-					{ (float)(font.fontFace->glyph->bitmap.rows - font.fontFace->glyph->bitmap_top) / (float)(font.texture.height) }
+					{ (float)(font.fontFace->glyph->metrics.horiAdvance >> 6), (float)(font.fontFace->glyph->metrics.vertAdvance >> 6) },
+					{ (float)(font.fontFace->glyph->metrics.horiBearingY >> 6) }
 				};
 
 				currentX += font.fontFace->glyph->bitmap.width + hzPadding;

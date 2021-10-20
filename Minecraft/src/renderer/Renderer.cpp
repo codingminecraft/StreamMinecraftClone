@@ -307,9 +307,9 @@ namespace Minecraft
 			{
 				char c = string[i];
 				RenderableChar renderableChar = font.getCharInfo(c);
-				float charWidth = renderableChar.texCoordSize.x * font.fontSize * scale;
-				float charHeight = renderableChar.texCoordSize.y * font.fontSize * scale;
-				float adjustedY = y - renderableChar.bearingY * font.fontSize * scale;
+				float charWidth = renderableChar.charSize.x * scale;
+				float charHeight = renderableChar.charSize.y * scale;
+				float adjustedY = y - (renderableChar.charSize.y - renderableChar.bearingY) * scale;
 
 				drawTexture2D(Sprite{
 					font.texture,
@@ -322,7 +322,7 @@ namespace Minecraft
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
 				//x += font.getKerning(c, nextC) * scale * font.fontSize;
-				x += renderableChar.advance.x * scale * font.fontSize;
+				x += renderableChar.advance.x * scale;
 			}
 		}
 
