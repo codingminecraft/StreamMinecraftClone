@@ -321,7 +321,7 @@ namespace Minecraft
 					style, zIndex, true);
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
-				//x += font.getKerning(c, nextC) * scale * font.fontSize;
+				x += font.getKerning(c, nextC) * scale;
 				x += renderableChar.advance.x * scale;
 			}
 		}

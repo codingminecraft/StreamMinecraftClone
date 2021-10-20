@@ -49,7 +49,7 @@ namespace Minecraft
 			maxY = glm::max(charHeight, maxY);
 
 			char nextC = i < str.length() - 1 ? str[i + 1] : '\0';
-			//x += font.getKerning(c, nextC) * scale * font.fontSize;
+			x += getKerning(c, nextC) * scale;
 			x += renderableChar.advance.x * scale;
 		}
 
