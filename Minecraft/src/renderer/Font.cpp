@@ -247,8 +247,24 @@ namespace Minecraft
 				currentX += font.fontFace->glyph->bitmap.width + hzPadding;
 			}
 
-			font.texture.uploadSubImage(0, 0, font.texture.width, font.texture.height, fontBuffer);
+			// Flip the texture vertically since OpenGL doesn't like it this direction
+			uint8* flippedBuffer = (uint8*)g_memory_allocate(sizeof(uint8) * font.texture.width * font.texture.height);
+			for (int y = 0; y < font.texture.height; y++)
+			{
+				uint8* srcScanline = fontBuffer + font.texture.width * y;
+				uint8* dstScanline = flippedBuffer + font.texture.width * (font.texture.height - y - 1);
+				memcpy(dstScanline, srcScanline, sizeof(uint8) * font.texture.width);
+			}
+
+			// Flip texture coords for all chars
+			for (std::pair<const char, RenderableChar>& tuple : font.characterMap)
+			{
+				tuple.second.texCoordStart.y = 1.0f - tuple.second.texCoordStart.y - tuple.second.texCoordSize.y;
+			}
+
+			font.texture.uploadSubImage(0, 0, font.texture.width, font.texture.height, flippedBuffer);
 			g_memory_free(fontBuffer);
+			g_memory_free(flippedBuffer);
 		}
 	}
 

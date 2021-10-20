@@ -272,61 +272,30 @@ namespace Minecraft
 			glm::vec2 uv2 = sprite.uvStart + glm::vec2{ sprite.uvSize.x, 0 };
 			glm::vec2 uv3 = sprite.uvStart + sprite.uvSize;
 
-			if (!isFont)
-			{
-				drawTexturedTriangle2D(
-					v0,
-					v2,
-					v1,
-					uv0,
-					uv2,
-					uv1,
-					&sprite.texture,
-					style,
-					zIndex,
-					isFont
-				);
-				drawTexturedTriangle2D(
-					v0,
-					v3,
-					v2,
-					uv0,
-					uv3,
-					uv2,
-					&sprite.texture,
-					style,
-					zIndex,
-					isFont
-				);
-			}
-			else
-			{
-				// TODO: FIX ME! Font textures are flipped I need to put them into the texture image the correct orientation when generating the font
-				drawTexturedTriangle2D(
-					v1,
-					v3,
-					v0,
-					uv0,
-					uv2,
-					uv1,
-					&sprite.texture,
-					style,
-					zIndex,
-					isFont
-				);
-				drawTexturedTriangle2D(
-					v1,
-					v2,
-					v3,
-					uv0,
-					uv3,
-					uv2,
-					&sprite.texture,
-					style,
-					zIndex,
-					isFont
-				);
-			}
+			drawTexturedTriangle2D(
+				v0,
+				v2,
+				v1,
+				uv0,
+				uv2,
+				uv1,
+				&sprite.texture,
+				style,
+				zIndex,
+				isFont
+			);
+			drawTexturedTriangle2D(
+				v0,
+				v3,
+				v2,
+				uv0,
+				uv3,
+				uv2,
+				&sprite.texture,
+				style,
+				zIndex,
+				isFont
+			);
 		}
 
 		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style, int zIndex)
