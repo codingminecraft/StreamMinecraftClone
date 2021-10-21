@@ -20,7 +20,7 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt);
 
-		RaycastStaticResult raycastStatic(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw = true);
+		RaycastStaticResult raycastStatic(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw = false);
 
 		//void raycastDynamic(Ecs::Registry& registry, const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance);
 	}

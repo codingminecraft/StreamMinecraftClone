@@ -7,6 +7,7 @@
 #include "renderer/Font.h"
 #include "renderer/Batch.hpp"
 #include "renderer/Sprites.h"
+#include "renderer/Frustum.h"
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
@@ -26,6 +27,7 @@ namespace Minecraft
 
 		static Ecs::Registry* registry;
 		static const Camera* camera;
+		static const Frustum* cameraFrustum;
 
 		// Internal functions
 		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture);
@@ -160,6 +162,11 @@ namespace Minecraft
 		void setCamera(const Camera& cameraRef)
 		{
 			camera = &cameraRef;
+		}
+
+		void setCameraFrustum(const Frustum& cameraFrustumRef)
+		{
+			cameraFrustum = &cameraFrustumRef;
 		}
 
 		void clearColor(const glm::vec4& color)
@@ -390,6 +397,12 @@ namespace Minecraft
 
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style)
 		{
+			// TODO: Do this in a better way... Maybe do sphere check before expensive box check
+			if (!cameraFrustum->isBoxVisible(center - (size * 0.5f), center + (size * 0.5f)))
+			{
+				return;
+			}
+
 			glm::vec3 v0 = center - (size * 0.5f);
 			glm::vec3 v1 = v0 + glm::vec3(size.x, 0, 0);
 			glm::vec3 v2 = v0 + glm::vec3(0, 0, size.z);

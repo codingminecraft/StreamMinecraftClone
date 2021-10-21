@@ -42,7 +42,7 @@ void main()
 	vec2 normal = vec2(-dir.y, dir.x);
 
 	// Extrude from the center and correct aspect ratio
-	normal *= aStrokeWidth / 2.0; //strokeWidth / 2.0;
+	normal *= aStrokeWidth / 2.0;
 	normal.x /= uAspectRatio;
 
 	// Offset by the direction of this point in the pair (-1 or 1)

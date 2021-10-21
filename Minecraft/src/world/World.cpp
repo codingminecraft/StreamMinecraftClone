@@ -7,6 +7,7 @@
 #include "renderer/Camera.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
+#include "renderer/Frustum.h"
 #include "input/Input.h"
 #include "input/KeyHandler.h"
 #include "core/Application.h"
@@ -38,6 +39,7 @@ namespace Minecraft
 		static Ecs::EntityId randomEntity;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
+		static Frustum cameraFrustum;
 
 		static int32 seed;
 
@@ -141,6 +143,12 @@ namespace Minecraft
 
 		void update(float dt)
 		{
+			Camera& camera = Scene::getCamera();
+			glm::mat4 projectionMatrix = camera.calculateProjectionMatrix(*registry);
+			glm::mat4 viewMatrix = camera.calculateViewMatrix(*registry);
+			cameraFrustum.update(projectionMatrix * viewMatrix);
+			Renderer::setCameraFrustum(cameraFrustum);
+
 			// Update all systems
 			KeyHandler::update(dt);
 			Physics::update(*registry, dt);
@@ -173,9 +181,6 @@ namespace Minecraft
 
 			// Upload shader variables
 			shader.bind();
-			Camera& camera = Scene::getCamera();
-			glm::mat4 projectionMatrix = camera.calculateProjectionMatrix(*registry);
-			glm::mat4 viewMatrix = camera.calculateViewMatrix(*registry);
 			shader.uploadMat4("uProjection", projectionMatrix);
 			shader.uploadMat4("uView", viewMatrix);
 			shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
@@ -191,7 +196,7 @@ namespace Minecraft
 			// Render all the loaded chunks
 			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
-			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader, projectionMatrix, viewMatrix);
+			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader, cameraFrustum);
 
 			// Check chunk radius if needed
 			static glm::vec3 lastPlayerLoadPosition = playerPosition;

@@ -12,6 +12,7 @@ namespace Minecraft
 	struct Camera;
 	struct Font;
 	struct Sprite;
+	class Frustum;
 
 	struct DrawArraysIndirectCommand
 	{
@@ -34,6 +35,7 @@ namespace Minecraft
 		void setShader2D(const Shader& shader);
 		void setShader(const Shader& shader);
 		void setCamera(const Camera& camera);
+		void setCameraFrustum(const Frustum& cameraFrustum);
 
 		// 2D Rendering stuff
 		void drawSquare2D(const glm::vec2& start, const glm::vec2& size, const Style& style, int zIndex = 0);
