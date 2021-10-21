@@ -274,8 +274,8 @@ namespace Minecraft
 				int flippedY = font.texture.height - (currentY + 1 + font.fontFace->glyph->bitmap.rows);
 				font.characterMap[i] = {
 					{ (float)(font.fontFace->glyph->metrics.width >> 6), (float)(font.fontFace->glyph->metrics.height >> 6) },
-					{ (float)currentX / (float)font.texture.width, (float)flippedY / (float)font.texture.height },
-					{ (float)font.fontFace->glyph->bitmap.width / (float)font.texture.width, (float)font.fontFace->glyph->bitmap.rows / (float)font.texture.height },
+					{ ((float)currentX + 0.5f) / (float)font.texture.width, ((float)flippedY + 0.5f) / (float)font.texture.height },
+					{ ((float)font.fontFace->glyph->bitmap.width - 1.0f) / (float)font.texture.width, ((float)font.fontFace->glyph->bitmap.rows - 0.5f) / (float)font.texture.height },
 					{ (float)(font.fontFace->glyph->metrics.horiAdvance >> 6), (float)(font.fontFace->glyph->metrics.vertAdvance >> 6) },
 					{ (float)(font.fontFace->glyph->metrics.horiBearingY >> 6) }
 				};

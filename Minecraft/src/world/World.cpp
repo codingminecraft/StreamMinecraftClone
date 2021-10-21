@@ -58,7 +58,8 @@ namespace Minecraft
 			g_logger_info("World seed: %d", seed);
 
 			// Initialize blocks
-			TexturePacker::packTextures("assets/images/block", "assets/custom/textureFormat.yaml", "assets/custom/test.png");
+			const char* packedTexturesFilepath = "assets/custom/packedTextures.png";
+			TexturePacker::packTextures("assets/images/block", "assets/custom/textureFormat.yaml", packedTexturesFilepath);
 			BlockMap::loadBlocks("assets/custom/textureFormat.yaml", "assets/custom/blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 
@@ -67,7 +68,7 @@ namespace Minecraft
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
-				.setFilepath("assets/custom/test.png")
+				.setFilepath(packedTexturesFilepath)
 				.generate(true);
 
 			// Setup player
