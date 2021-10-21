@@ -24,7 +24,7 @@ namespace Minecraft
 			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
 			if (font)
 			{
-				float textScale = 0.4f;
+				float textScale = 0.0015f;
 				float textHzPadding = 0.1f;
 				Style transparentSquare = Styles::defaultStyle;
 				transparentSquare.color = "#00000055"_hex;
@@ -119,6 +119,10 @@ namespace Minecraft
 					Styles::defaultStyle);
 
 				Renderer::drawFilledSquare2D(playerPosPos - glm::vec2(0.02f, 0.01f), glm::vec2(5.1f, 0.1f), transparentSquare, -1);
+			}
+			else
+			{
+				g_logger_warning("Could not find font for debug stat rendering.");
 			}
 		}
 	}
