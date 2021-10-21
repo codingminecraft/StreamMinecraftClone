@@ -25,6 +25,7 @@
 #include "utils/TexturePacker.h"
 #include "utils/DebugStats.h"
 #include "gui/Gui.h"
+#include "gui/MainHud.h"
 
 namespace Minecraft
 {
@@ -136,11 +137,13 @@ namespace Minecraft
 			ChunkManager::checkChunkRadius(playerTransform.position);
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
+			MainHud::init();
 		}
 
 		void free()
 		{
 			ChunkManager::free();
+			MainHud::free();
 		}
 
 		void update(float dt)
@@ -158,6 +161,7 @@ namespace Minecraft
 			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry, dt);
+			MainHud::update(dt);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;

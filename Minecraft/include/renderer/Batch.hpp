@@ -129,6 +129,7 @@ namespace Minecraft
 		{
 			if (numVertices <= 0)
 			{
+				clearTexSlots();
 				return;
 			}
 
@@ -141,11 +142,7 @@ namespace Minecraft
 
 			// Clear the batch
 			numVertices = 0;
-
-			for (int i = 0; i < textureGraphicsIds.size(); i++)
-			{
-				textureGraphicsIds[i] = UINT32_MAX;
-			}
+			clearTexSlots();
 		}
 
 		void free()
@@ -171,13 +168,27 @@ namespace Minecraft
 			return false;
 		}
 
-		bool hasTextureRoom()
+		// TODO: Change the way we store fonts vs regular textures
+		bool hasTextureRoom(bool isFont)
 		{
-			for (int i = 0; i < textureGraphicsIds.size(); i++)
+			if (isFont)
 			{
-				if (textureGraphicsIds[i] == UINT32_MAX)
+				for (int i = 0; i < 8; i++)
 				{
-					return true;
+					if (textureGraphicsIds[i] == UINT32_MAX)
+					{
+						return true;
+					}
+				}
+			}
+			else
+			{
+				for (int i = 8; i < 16; i++)
+				{
+					if (textureGraphicsIds[i] == UINT32_MAX)
+					{
+						return true;
+					}
 				}
 			}
 
@@ -215,7 +226,16 @@ namespace Minecraft
 
 		bool hasRoom() const
 		{
-			return numVertices < _Batch::maxBatchSize - 1;
+			return numVertices < _Batch::maxBatchSize;
+		}
+
+	private:
+		void clearTexSlots()
+		{
+			for (int i = 0; i < textureGraphicsIds.size(); i++)
+			{
+				textureGraphicsIds[i] = UINT32_MAX;
+			}
 		}
 	};
 }

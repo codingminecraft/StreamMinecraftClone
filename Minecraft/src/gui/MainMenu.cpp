@@ -22,7 +22,7 @@ namespace Minecraft
 		{
 			isCreatingWorld = false;
 
-			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/menuSpritesheet.yaml");
+			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 
 			titleSize = glm::vec2(2.0f, 0.5f);
 			title = menuSprites.at(std::string("title"));

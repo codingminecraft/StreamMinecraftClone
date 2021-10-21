@@ -1,5 +1,5 @@
 texture:
-  filepath: assets/images/menuSprites.png
+  filepath: assets/images/hudSprites.png
 buttonRegular:
   uvStart: 
     x: 0
@@ -28,3 +28,10 @@ title:
   uvSize:
     x: 88
     y: 19
+blockCursor:
+  uvStart:
+    x: 0
+    y: 128
+  uvSize:
+    x: 16
+    y: 16

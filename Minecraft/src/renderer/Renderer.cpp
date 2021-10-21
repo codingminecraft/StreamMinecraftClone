@@ -30,8 +30,8 @@ namespace Minecraft
 		static const Frustum* cameraFrustum;
 
 		// Internal functions
-		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture);
-		static Batch<RenderVertex2D>& createBatch2D(int zIndex);
+		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture, bool isFont);
+		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont);
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
 
@@ -106,7 +106,8 @@ namespace Minecraft
 			{
 				if (batch2D.numVertices <= 0)
 				{
-					return;
+					batch2D.flush();
+					continue;
 				}
 
 				for (int i = 0; i < batch.textureGraphicsIds.size(); i++)
@@ -244,10 +245,10 @@ namespace Minecraft
 
 		void drawFilledTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const Style& style, int zIndex)
 		{
-			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, {}, false);
+			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, {}, false, false);
 			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
 			{
-				batch2D = createBatch2D(zIndex);
+				batch2D = createBatch2D(zIndex, false);
 			}
 
 			RenderVertex2D v;
@@ -467,11 +468,10 @@ namespace Minecraft
 			int zIndex,
 			bool isFont)
 		{
-			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true);
-			if (batch2D.numVertices + 3 >= _Batch::maxBatchSize)
+			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true, isFont);
+			if (batch2D.numVertices + 3 > _Batch::maxBatchSize)
 			{
-				// TODO: Fix this it's broken
-				//batch2D = createBatch2D(zIndex);
+				batch2D = createBatch2D(zIndex, isFont);
 			}
 
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId, isFont);
@@ -497,21 +497,21 @@ namespace Minecraft
 			batch2D.addVertex(v);
 		}
 
-		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture)
+		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture, bool isFont)
 		{
 			for (Batch<RenderVertex2D>& batch : batches2D)
 			{
 				if (batch.hasRoom() && batch.zIndex == zIndex &&
-					(!useTexture || batch.hasTexture(texture.graphicsId) || batch.hasTextureRoom()))
+					(!useTexture || batch.hasTexture(texture.graphicsId) || batch.hasTextureRoom(isFont)))
 				{
 					return batch;
 				}
 			}
 
-			return createBatch2D(zIndex);
+			return createBatch2D(zIndex, isFont);
 		}
 
-		static Batch<RenderVertex2D>& createBatch2D(int zIndex)
+		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont)
 		{
 			// No batch found, create a new one and sort the batches
 			Batch<RenderVertex2D> newBatch;
@@ -533,7 +533,7 @@ namespace Minecraft
 
 			// Since we added stuff to the vector and everything recursively call this function
 			// so that we get the appropriate reference
-			return getBatch2D(zIndex, {}, false);
+			return getBatch2D(zIndex, {}, false, isFont);
 		}
 	}
 }
