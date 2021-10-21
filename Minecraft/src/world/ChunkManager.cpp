@@ -14,7 +14,8 @@ namespace Minecraft
 	enum class CommandType : uint8
 	{
 		FillBlockData,
-		TesselateVertices
+		TesselateVertices,
+		SaveBlockData
 	};
 
 	struct FillChunkCommand
@@ -36,7 +37,11 @@ namespace Minecraft
 			if (a.type != b.type)
 			{
 				// Fill block data has higher priority than other types of commands
-				return a.type != CommandType::FillBlockData;
+				return a.type == CommandType::SaveBlockData
+					? false
+					: a.type == CommandType::FillBlockData
+					? false
+					: true;
 			}
 
 			// They are the same type of command, the chunk closer to the player has higher priority
@@ -85,8 +90,15 @@ namespace Minecraft
 					{
 						// Wait until we need to do some work
 						std::unique_lock<std::mutex> lock(mtx);
-						cv.wait(lock, [&] { return !doWork || !commands.empty(); });
-						shouldContinue = doWork;
+						if (doWork)
+						{
+							cv.wait(lock, [&] { return !doWork || !commands.empty(); });
+							shouldContinue = true;
+						}
+						else
+						{
+							shouldContinue = false;
+						}
 					}
 
 					FillChunkCommand command;
@@ -125,6 +137,11 @@ namespace Minecraft
 						case CommandType::TesselateVertices:
 						{
 							Chunk::generateRenderData(command.subChunks, command.blockData, command.chunkCoordinates);
+						}
+						break;
+						case CommandType::SaveBlockData:
+						{
+							Chunk::serialize(World::chunkSavePath, command.blockData, command.chunkCoordinates);
 						}
 						break;
 						}
@@ -368,6 +385,25 @@ namespace Minecraft
 			commandBuffer().free();
 		}
 
+		void serialize()
+		{
+			FillChunkCommand cmd;
+			cmd.type = CommandType::SaveBlockData;
+			cmd.subChunks = &(subChunks());
+
+			for (auto& pair : chunkIndices)
+			{
+				const glm::ivec2& chunkCoords = pair.first;
+				int blockPoolIndex = pair.second;
+				if (loadedChunks.test(blockPoolIndex))
+				{
+					cmd.chunkCoordinates = chunkCoords;
+					cmd.blockData = blockPool()[blockPoolIndex];
+					chunkWorker().queueCommand(cmd);
+				}
+			}
+		}
+
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate)
 		{
 			// Only upload if we need to
@@ -426,6 +462,39 @@ namespace Minecraft
 				}
 
 				chunkWorker().queueCommand(cmd);
+			}
+		}
+
+		void queueSaveChunk(const glm::ivec2& chunkCoordinates)
+		{
+			// Only upload if we need to
+			bool save;
+			{
+				std::lock_guard<std::mutex> lock(chunkMtx);
+				save = chunkIndices.find(chunkCoordinates) != chunkIndices.end();
+			}
+			if (save)
+			{
+				FillChunkCommand cmd;
+				cmd.chunkCoordinates = chunkCoordinates;
+				cmd.type = CommandType::SaveBlockData;
+				cmd.blockData = nullptr;
+				cmd.subChunks = &(subChunks());
+
+				for (int i = 0; i < loadedChunks.size(); i++)
+				{
+					if (!loadedChunks.test(i))
+					{
+						loadedChunks.set(i, true);
+						{
+							std::lock_guard<std::mutex> lock(chunkMtx);
+							chunkIndices[chunkCoordinates] = i;
+						}
+						cmd.blockData = blockPool()[i];
+						chunkWorker().queueCommand(cmd);
+						break;
+					}
+				}
 			}
 		}
 
@@ -810,19 +879,6 @@ namespace Minecraft
 								1.0f
 							) * 255.0f;
 						int16 maxHeight = (int16)maxHeightFloat;
-
-						//float stoneHeightFloat =
-						//	CMath::mapRange(
-						//		generator.fractal(
-						//			7,
-						//			(float)(x + worldChunkX) * scale,
-						//			(float)(z + worldChunkZ) * scale
-						//		),
-						//		-1.0f,
-						//		1.0f,
-						//		0.0f,
-						//		1.0f
-						//	) * 255.0f;
 						int16 stoneHeight = (int16)(maxHeight - 3.0f);
 
 						if (y == 0)

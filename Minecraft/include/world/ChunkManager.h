@@ -65,12 +65,14 @@ namespace Minecraft
 	{
 		void init();
 		void free();
+		void serialize();
 
 		Block getBlock(const glm::vec3& worldPosition);
 		void setBlock(const glm::vec3& worldPosition, Block newBlock);
 		void removeBlock(const glm::vec3& worldPosition);
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate);
+		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition);
 	}

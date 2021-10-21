@@ -164,6 +164,7 @@ namespace Minecraft
 		void free()
 		{
 			serialize();
+			ChunkManager::serialize();
 			ChunkManager::free();
 			MainHud::free();
 		}
