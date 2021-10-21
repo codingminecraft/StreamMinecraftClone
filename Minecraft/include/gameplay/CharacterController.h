@@ -10,6 +10,7 @@ namespace Minecraft
 		float controllerRunSpeed;
 		float movementSensitivity;
 		float jumpForce;
+		float downJumpForce;
 
 		glm::vec3 cameraOffset;
 		glm::vec3 movementAxis;
@@ -17,6 +18,7 @@ namespace Minecraft
 		bool isRunning;
 		bool lockedToCamera;
 		bool applyJumpForce;
+		bool inMiddleOfJump;
 	};
 }
 

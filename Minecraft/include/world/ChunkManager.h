@@ -43,7 +43,7 @@ namespace Minecraft
 	// TODO: Make this internal to ChunkManager.cpp and remove includes above
 	namespace Chunk
 	{
-		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, int32 seed);
+		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, float seed);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Block* blockData, const glm::ivec2& chunkCoordinates);
 
@@ -63,7 +63,7 @@ namespace Minecraft
 
 	namespace ChunkManager
 	{
-		void init(uint32 worldSeed);
+		void init();
 		void free();
 
 		Block getBlock(const glm::vec3& worldPosition);

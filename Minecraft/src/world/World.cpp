@@ -31,7 +31,10 @@ namespace Minecraft
 {
 	namespace World
 	{
-		extern std::string worldSavePath = "";
+		extern std::string savePath = "";
+		extern uint32 seed = UINT32_MAX;
+		extern std::atomic<float> seedAsFloat = 0.0f;
+		extern std::string chunkSavePath = "";
 
 		// Members
 		static Shader shader;
@@ -42,23 +45,42 @@ namespace Minecraft
 		static Ecs::Registry* registry;
 		static Frustum cameraFrustum;
 
-		static int32 seed;
+		// Internal functions
+		static std::string getWorldDataFilepath();
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
 			// Initialize memory
 			registry = &sceneRegistry;
-			g_logger_assert(worldSavePath != "", "World save path must not be empty.");
+			g_logger_assert(savePath != "", "World save path must not be empty.");
 			std::filesystem::path appDataPath = std::filesystem::path(File::getSpecialAppFolder()) / std::filesystem::path(".minecraftClone");
 			File::createDirIfNotExists(appDataPath.string().c_str());
-			worldSavePath = (appDataPath / std::filesystem::path(worldSavePath)).string();
-			g_logger_info("World save folder at: %s", worldSavePath.c_str());
-			File::createDirIfNotExists(worldSavePath.c_str());
+			savePath = (appDataPath / std::filesystem::path(savePath)).string();
+			chunkSavePath = (savePath / std::filesystem::path("chunks")).string();
+			g_logger_info("World save folder at: %s", savePath.c_str());
+			File::createDirIfNotExists(savePath.c_str());
+			File::createDirIfNotExists(chunkSavePath.c_str());
 
 			// Generate a seed if needed
 			srand((unsigned long)time(NULL));
-			seed = (int32)(((float)rand() / (float)RAND_MAX) * 1000.0f);
-			g_logger_info("World seed: %d", seed);
+			if (File::isFile(getWorldDataFilepath().c_str()))
+			{
+				if (!deserialize())
+				{
+					g_logger_error("Could not load world. World.bin has been corrupted or does not exist.");
+					return;
+				}
+			}
+
+			if (seed == UINT32_MAX)
+			{
+				// Generate a seed between -INT32_MAX and INT32_MAX
+				seed = (uint32)(((float)rand() / (float)RAND_MAX) * UINT32_MAX);
+			}
+			seedAsFloat = (float)((double)seed / (double)UINT32_MAX) * 2.0f - 1.0f;
+			srand(seed);
+			g_logger_info("World seed: %u", seed);
+			g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
 			// Initialize blocks
 			const char* packedTexturesFilepath = "assets/custom/packedTextures.png";
@@ -92,14 +114,15 @@ namespace Minecraft
 			playerTransform.position.z = 55.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
 			controller.lockedToCamera = true;
-			controller.controllerBaseSpeed = 4.0f;
-			controller.controllerRunSpeed = 7.0f;
+			controller.controllerBaseSpeed = 1.4f;
+			controller.controllerRunSpeed = 2.0f;
 			controller.movementSensitivity = 0.6f;
 			controller.isRunning = false;
 			controller.movementAxis = glm::vec3();
 			controller.viewAxis = glm::vec2();
 			controller.applyJumpForce = false;
-			controller.jumpForce = 8.0f;
+			controller.jumpForce = 4.7f;
+			controller.downJumpForce = -10.2f;
 			controller.cameraOffset = glm::vec3(0, 0.65f, 0);
 			Tag& tag = registry->getComponent<Tag>(player);
 			tag.type = TagType::Player;
@@ -133,7 +156,7 @@ namespace Minecraft
 			Tag& tag2 = registry->getComponent<Tag>(randomEntity);
 			tag2.type = TagType::None;
 
-			ChunkManager::init(seed);
+			ChunkManager::init();
 			ChunkManager::checkChunkRadius(playerTransform.position);
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
@@ -142,6 +165,7 @@ namespace Minecraft
 
 		void free()
 		{
+			serialize();
 			ChunkManager::free();
 			MainHud::free();
 		}
@@ -213,12 +237,49 @@ namespace Minecraft
 			}
 		}
 
+		void serialize()
+		{
+			std::string filepath = getWorldDataFilepath();
+			FILE* fp = fopen(filepath.c_str(), "wb");
+			if (!fp)
+			{
+				g_logger_error("Could not serialize file '%s'", filepath.c_str());
+				return;
+			}
+
+			// Write data
+			fwrite(&seed, sizeof(uint32), 1, fp);
+			fclose(fp);
+		}
+
+		bool deserialize()
+		{
+			std::string filepath = getWorldDataFilepath();
+			FILE* fp = fopen(filepath.c_str(), "rb");
+			if (!fp)
+			{
+				g_logger_error("Could not open file '%s'", filepath.c_str());
+				return false;
+			}
+
+			// Read data
+			fread(&seed, sizeof(uint32), 1, fp);
+			fclose(fp);
+
+			return true;
+		}
+
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)
 		{
 			return {
 				glm::floor(worldCoordinates.x / 16.0f),
 				glm::floor(worldCoordinates.z / 16.0f)
 			};
+		}
+
+		static std::string getWorldDataFilepath()
+		{
+			return savePath + "/world.bin";
 		}
 	}
 }

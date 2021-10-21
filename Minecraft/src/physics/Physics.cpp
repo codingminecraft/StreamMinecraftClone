@@ -37,8 +37,9 @@ namespace Minecraft
 
 	namespace Physics
 	{
-		static glm::vec3 gravity = glm::vec3(0.0f, 18.2f, 0.0f);
-		static glm::vec3 terminalVelocity = glm::vec3(30.0f, 30.0f, 30.0f);
+		static glm::vec3 gravity = glm::vec3(0.0f, 7.2f, 0.0f);
+		static glm::vec3 terminalVelocity = glm::vec3(20.0f, 20.0f, 20.0f);
+		static const float physicsUpdateRate = 0.032f;
 
 		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider);
 		static CollisionManifold staticCollisionInformation(const Rigidbody& r1, const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
@@ -53,34 +54,50 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
-			for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
+			static float accumulatedDeltaTime = 0.0f;
+			accumulatedDeltaTime += dt;
+
+			// Never update the physics more than twice per frame. This means we will get skipped physics
+			// frames, but that's probably more ideal then lagging forever
+			int numUpdates = 0;
+			while (accumulatedDeltaTime > 0 && numUpdates < 2)
 			{
-				Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
-				Transform& transform = registry.getComponent<Transform>(entity);
-				BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);
-
-				transform.position += rb.velocity * dt;
-				rb.velocity += rb.acceleration * dt;
-				if (!rb.isSensor)
+				accumulatedDeltaTime -= dt;
+				numUpdates++;
+				if (numUpdates == 2 && accumulatedDeltaTime > 0)
 				{
-					rb.velocity -= gravity * dt;
-				}
-				rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
-
-				if (rb.isSensor)
-				{
-					// TODO: Change this
-					continue;
+					accumulatedDeltaTime = 0;
 				}
 
-				resolveStaticCollision(entity, rb, transform, boxCollider);
-
-				if (registry.getComponent<Tag>(entity).type != TagType::Player)
+				for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 				{
-					Style redStyle = Styles::defaultStyle;
-					redStyle.color = "#FF0000"_hex;
-					redStyle.strokeWidth = 0.3f;
-					Renderer::drawBox(transform.position, boxCollider.size, redStyle);
+					Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
+					Transform& transform = registry.getComponent<Transform>(entity);
+					BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);
+
+					transform.position += rb.velocity * physicsUpdateRate;
+					rb.velocity += rb.acceleration * physicsUpdateRate;
+					if (!rb.isSensor)
+					{
+						rb.velocity -= gravity * physicsUpdateRate;
+					}
+					rb.velocity = glm::clamp(rb.velocity, -terminalVelocity, terminalVelocity);
+
+					if (rb.isSensor)
+					{
+						// TODO: Change this
+						continue;
+					}
+
+					resolveStaticCollision(entity, rb, transform, boxCollider);
+
+					if (registry.getComponent<Tag>(entity).type != TagType::Player)
+					{
+						Style redStyle = Styles::defaultStyle;
+						redStyle.color = "#FF0000"_hex;
+						redStyle.strokeWidth = 0.3f;
+						Renderer::drawBox(transform.position, boxCollider.size, redStyle);
+					}
 				}
 			}
 		}
@@ -173,7 +190,7 @@ namespace Minecraft
 			int32 topY = (int32)glm::ceil(transform.position.y + boxCollider.size.y * 0.5f);
 
 			bool didCollide = false;
-			for (int32 y = bottomY; y <= topY; y++)
+			for (int32 y = topY; y >= bottomY; y--)
 			{
 				for (int32 x = leftX; x <= rightX; x++)
 				{
@@ -226,7 +243,7 @@ namespace Minecraft
 
 							// TODO: Is this hacky? Or should we have callbacks for this stuff??
 							// TODO: We need callbacks somehow when we collide with blocks...
-							rb.onGround = collision.face == CollisionFace::BOTTOM;
+							rb.onGround = rb.onGround || collision.face == CollisionFace::BOTTOM;
 							didCollide = true;
 						}
 					}
@@ -289,6 +306,10 @@ namespace Minecraft
 				// We are in the bottom-left-back quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::FRONT);
 			}
+			else
+			{
+				g_logger_error("Could not evaluate physics calculation.");
+			}
 
 			return res;
 		}
@@ -310,7 +331,9 @@ namespace Minecraft
 			case CollisionFace::BOTTOM:
 				return 1;
 			}
-			return 0;
+
+			g_logger_error("Could not get direction from face!");
+			return 0.0001f;
 		}
 
 		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res,

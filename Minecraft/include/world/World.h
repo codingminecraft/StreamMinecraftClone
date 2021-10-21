@@ -12,6 +12,8 @@ namespace Minecraft
 		void init(Ecs::Registry& registry);
 		void free();
 		void update(float dt);
+		void serialize();
+		bool deserialize();
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
@@ -24,7 +26,10 @@ namespace Minecraft
 
 		const uint16 MaxVertsPerSubChunk = 1'500;
 
-		extern std::string worldSavePath;
+		extern std::string savePath;
+		extern std::string chunkSavePath;
+		extern uint32 seed;
+		extern std::atomic<float> seedAsFloat;
 	}
 }
 

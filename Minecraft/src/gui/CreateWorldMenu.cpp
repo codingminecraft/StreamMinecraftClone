@@ -26,7 +26,7 @@ namespace Minecraft
 			static char worldSaveTitle[128];
 			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128))
 			{
-				World::worldSavePath = std::string(worldSaveTitle);
+				World::savePath = std::string(worldSaveTitle);
 			}
 
 			Gui::centerNextElement();

@@ -53,10 +53,9 @@ namespace Minecraft
 		class ChunkWorker
 		{
 		public:
-			ChunkWorker(int numThreads, int worldSeed)
+			ChunkWorker(int numThreads)
 				: cv(), mtx(), queueMtx(), doWork(true)
 			{
-				seed = worldSeed;
 				for (int i = 0; i < numThreads; i++)
 				{
 					workerThreads.push_back(std::thread(&ChunkWorker::threadWorker, this));
@@ -108,14 +107,13 @@ namespace Minecraft
 						{
 						case CommandType::FillBlockData:
 						{
-							// TODO: Fix this, this should be World::worldSavePath
-							if (Chunk::exists("world", command.chunkCoordinates))
+							if (Chunk::exists(World::chunkSavePath, command.chunkCoordinates))
 							{
-								Chunk::deserialize(command.blockData, "world", command.chunkCoordinates);
+								Chunk::deserialize(command.blockData, World::chunkSavePath, command.chunkCoordinates);
 							}
 							else
 							{
-								Chunk::generate(command.blockData, command.chunkCoordinates, seed);
+								Chunk::generate(command.blockData, command.chunkCoordinates, World::seedAsFloat);
 							}
 
 							// Queue the tesselation commands
@@ -168,8 +166,6 @@ namespace Minecraft
 			std::mutex mtx;
 			std::mutex queueMtx;
 			bool doWork;
-
-			uint32 seed;
 		};
 
 		struct DrawCommand
@@ -265,7 +261,6 @@ namespace Minecraft
 		// Internal variables
 		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
-		static uint32 worldSeed = 0;
 		static std::bitset<World::ChunkCapacity> loadedChunks;
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
 		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
@@ -278,7 +273,7 @@ namespace Minecraft
 		// Singletons
 		static ChunkWorker& chunkWorker()
 		{
-			static ChunkWorker instance(processorCount, worldSeed);
+			static ChunkWorker instance(processorCount);
 			return instance;
 		}
 
@@ -300,12 +295,11 @@ namespace Minecraft
 			return instance;
 		}
 
-		void init(uint32 seed)
+		void init()
 		{
 			// A chunk uses 55,000 vertices on average, so a sub-chunk can be estimated to use about 
 			// 4,500 vertices on average. That's the default vertex bucket size
 			processorCount = std::thread::hardware_concurrency();
-			worldSeed = seed;
 
 			// Initialize the singletons
 			chunkWorker();
@@ -786,14 +780,15 @@ namespace Minecraft
 			g_logger_info("Max %d size of vertex data", sizeof(Vertex) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth * 24);
 		}
 
-		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, int32 seed)
+		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, float seed)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
 			// TODO: Should we zero the memory in release mode as well? Or does it matter?
 			g_memory_zeroMem(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
-			const SimplexNoise generator = SimplexNoise();
+			const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
+			const float scale = 0.001f;
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{
 				for (int x = 0; x < World::ChunkDepth; x++)
@@ -801,14 +796,13 @@ namespace Minecraft
 					for (int z = 0; z < World::ChunkWidth; z++)
 					{
 						// 24 Vertices per cube
-						const float incrementSize = 1000.0f;
 						const int arrayExpansion = to1DArray(x, y, z);
 						float maxHeightFloat =
 							CMath::mapRange(
 								generator.fractal(
 									7,
-									(x + worldChunkX + seed) / incrementSize,
-									(z + worldChunkZ + seed) / incrementSize
+									(float)(x + worldChunkX) * scale,
+									(float)(z + worldChunkZ) * scale
 								),
 								-1.0f,
 								1.0f,
@@ -817,19 +811,19 @@ namespace Minecraft
 							) * 255.0f;
 						int16 maxHeight = (int16)maxHeightFloat;
 
-						float stoneHeightFloat =
-							CMath::mapRange(
-								generator.fractal(
-									7,
-									(x + worldChunkX + seed) / incrementSize,
-									(z + worldChunkZ + seed) / incrementSize
-								),
-								-1.0f,
-								1.0f,
-								0.0f,
-								1.0f
-							) * 255.0f;
-						int16 stoneHeight = (int16)((stoneHeightFloat * maxHeightFloat) / 127.0f);
+						//float stoneHeightFloat =
+						//	CMath::mapRange(
+						//		generator.fractal(
+						//			7,
+						//			(float)(x + worldChunkX) * scale,
+						//			(float)(z + worldChunkZ) * scale
+						//		),
+						//		-1.0f,
+						//		1.0f,
+						//		0.0f,
+						//		1.0f
+						//	) * 255.0f;
+						int16 stoneHeight = (int16)(maxHeight - 3.0f);
 
 						if (y == 0)
 						{

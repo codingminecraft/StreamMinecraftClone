@@ -91,6 +91,14 @@ namespace Minecraft
 				{
 					rb.velocity.y = controller.jumpForce;
 					controller.applyJumpForce = false;
+					controller.inMiddleOfJump = true;
+				}
+
+				// At the jump peak, we want to start falling fast
+				if (controller.inMiddleOfJump && rb.velocity.y <= 0)
+				{
+					rb.acceleration.y = controller.downJumpForce;
+					controller.inMiddleOfJump = false;
 				}
 
 				if (controller.lockedToCamera)
