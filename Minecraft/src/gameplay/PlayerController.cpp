@@ -40,7 +40,7 @@ namespace Minecraft
 		{
 			blockHighlight = Styles::defaultStyle;
 			blockHighlight.color = "#00000067"_hex;
-			blockHighlight.strokeWidth = 0.02f;
+			blockHighlight.strokeWidth = 0.01f;
 			gameMode = GameMode::Survival;
 			playerId = Ecs::nullEntity;
 		}
@@ -80,10 +80,10 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
-			RaycastStaticResult res = Physics::raycastStatic(transform.position, transform.forward, 5.0f);
+			RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
 			if (res.hit)
 			{
-				Renderer::drawBox(res.blockCenter, res.blockSize, blockHighlight);
+				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
 				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
 				
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)

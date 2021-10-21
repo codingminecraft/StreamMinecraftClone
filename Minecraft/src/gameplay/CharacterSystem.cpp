@@ -103,7 +103,7 @@ namespace Minecraft
 					if (cameraEntity != Ecs::nullEntity && registry.hasComponent<Transform>(cameraEntity))
 					{
 						Transform& cameraTransform = registry.getComponent<Transform>(cameraEntity);
-						cameraTransform.position = transform.position;
+						cameraTransform.position = transform.position + controller.cameraOffset;
 						cameraTransform.orientation = transform.orientation;
 					}
 					else

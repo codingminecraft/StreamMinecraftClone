@@ -82,9 +82,9 @@ namespace Minecraft
 			registry->addComponent<Rigidbody>(player);
 			registry->addComponent<Tag>(player);
 			BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
-			boxCollider.size.x = 0.5f;
-			boxCollider.size.y = 3.0f;
-			boxCollider.size.z = 0.75f;
+			boxCollider.size.x = 0.55f;
+			boxCollider.size.y = 1.8f;
+			boxCollider.size.z = 0.55f;
 			Transform& playerTransform = registry->getComponent<Transform>(player);
 			playerTransform.position.y = 289;
 			playerTransform.position.x = -145.0f;
@@ -99,6 +99,7 @@ namespace Minecraft
 			controller.viewAxis = glm::vec2();
 			controller.applyJumpForce = false;
 			controller.jumpForce = 8.0f;
+			controller.cameraOffset = glm::vec3(0, 0.65f, 0);
 			Tag& tag = registry->getComponent<Tag>(player);
 			tag.type = TagType::Player;
 
@@ -110,9 +111,9 @@ namespace Minecraft
 			registry->addComponent<CharacterController>(randomEntity);
 			registry->addComponent<Tag>(randomEntity);
 			BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
-			boxCollider2.size.x = 0.5f;
-			boxCollider2.size.y = 3.0f;
-			boxCollider2.size.z = 0.75f;
+			boxCollider2.size.x = 0.55f;
+			boxCollider2.size.y = 1.8f;
+			boxCollider2.size.z = 0.55f;
 			Transform& transform2 = registry->getComponent<Transform>(randomEntity);
 			transform2.position.y = 255;
 			transform2.position.x = -145.0f;
@@ -127,6 +128,7 @@ namespace Minecraft
 			controller2.movementSensitivity = 0.6f;
 			controller2.applyJumpForce = false;
 			controller2.jumpForce = 16.0f;
+			controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
 			Tag& tag2 = registry->getComponent<Tag>(randomEntity);
 			tag2.type = TagType::None;
 

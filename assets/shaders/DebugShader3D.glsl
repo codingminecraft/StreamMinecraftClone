@@ -8,6 +8,7 @@ layout (location = 4) in float aStrokeWidth;
 layout (location = 5) in vec4 aColor;
 
 out vec4 fColor;
+out vec2 fDistanceToCenter;
 
 uniform mat4 uProjection;
 uniform mat4 uView;
@@ -21,14 +22,14 @@ void main()
 
 	// Into clip space
 	vec3 pos = aIsStart == 1.0 ? aStart : aEnd;
-	vec4 currentProjected = projView * vec4(pos, 1.0);
-	vec4 endProjected = projView * vec4(aEnd, 1.0);
-	vec4 startProjected = projView * vec4(aStart, 1.0);
+	invariant vec4 currentProjected = projView * vec4(pos, 1.0);
+	invariant vec4 endProjected = projView * vec4(aEnd, 1.0);
+	invariant vec4 startProjected = projView * vec4(aStart, 1.0);
 
 	// Into NDC space [-1, 1]
-	vec2 currentScreen = currentProjected.xy / currentProjected.w;
-	vec2 endScreen = endProjected.xy / endProjected.w;
-	vec2 startScreen = startProjected.xy / startProjected.w;
+	invariant vec2 currentScreen = currentProjected.xy / currentProjected.w;
+	invariant vec2 endScreen = endProjected.xy / endProjected.w;
+	invariant vec2 startScreen = startProjected.xy / startProjected.w;
 
 	// Correct for aspect ratio
 	currentScreen.x *= uAspectRatio;
@@ -36,17 +37,18 @@ void main()
 	startScreen.x *= uAspectRatio;
 
 	// Normal of line (B - A)
-	vec2 dir = aIsStart == 1.0
+	invariant vec2 dir = aIsStart == 1.0
 		? normalize(endScreen - currentScreen)
 		: normalize(currentScreen - startScreen);
-	vec2 normal = vec2(-dir.y, dir.x);
+	invariant vec2 normal = vec2(-dir.y, dir.x);
 
 	// Extrude from the center and correct aspect ratio
 	normal *= aStrokeWidth / 2.0;
 	normal.x /= uAspectRatio;
 
 	// Offset by the direction of this point in the pair (-1 or 1)
-	vec4 offset = vec4(normal * aDirection, 0.0, 0.0);
+	invariant vec4 offset = vec4(normal * aDirection, 0.0, 0.0);
+	fDistanceToCenter = offset.xy;
 	gl_Position = currentProjected + offset;
 }
 
@@ -55,8 +57,10 @@ void main()
 out vec4 FragColor;
 
 in vec4 fColor;
+in vec2 fDistanceToCenter;
 
 void main()
 {
-	FragColor = fColor;
+	// TODO: Check if this anti-aliasing really helps
+	FragColor = vec4(fColor.rgb, fColor.a - fColor.a * length(fDistanceToCenter));
 }

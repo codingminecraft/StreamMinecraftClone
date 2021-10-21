@@ -11,6 +11,7 @@ namespace Minecraft
 		float movementSensitivity;
 		float jumpForce;
 
+		glm::vec3 cameraOffset;
 		glm::vec3 movementAxis;
 		glm::vec2 viewAxis;
 		bool isRunning;
