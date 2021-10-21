@@ -15,6 +15,8 @@ namespace Minecraft
 		void serialize();
 		bool deserialize();
 
+		std::string getWorldDataFilepath(const std::string& worldSavePath);
+
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
 		const uint16 ChunkRadius = 12;

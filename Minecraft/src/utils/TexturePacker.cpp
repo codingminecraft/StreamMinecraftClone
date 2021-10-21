@@ -22,7 +22,7 @@ namespace Minecraft
 			std::vector<Location> textureLocations;
 
 			int numFiles = 0;
-			for (auto image : std::filesystem::directory_iterator(filepath))
+			for (auto& image : std::filesystem::directory_iterator(filepath))
 			{
 				if (strcmp(image.path().extension().string().c_str(), ".png") == 0)
 				{

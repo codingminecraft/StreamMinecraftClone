@@ -17,6 +17,7 @@
 #include "core/Components.h"
 #include "core/TransformSystem.h"
 #include "core/Window.h"
+#include "core/AppData.h"
 #include "physics/Physics.h"
 #include "physics/PhysicsComponents.h"
 #include "gameplay/PlayerController.h"
@@ -45,25 +46,22 @@ namespace Minecraft
 		static Ecs::Registry* registry;
 		static Frustum cameraFrustum;
 
-		// Internal functions
-		static std::string getWorldDataFilepath();
-
 		void init(Ecs::Registry& sceneRegistry)
 		{
 			// Initialize memory
 			registry = &sceneRegistry;
 			g_logger_assert(savePath != "", "World save path must not be empty.");
-			std::filesystem::path appDataPath = std::filesystem::path(File::getSpecialAppFolder()) / std::filesystem::path(".minecraftClone");
-			File::createDirIfNotExists(appDataPath.string().c_str());
-			savePath = (appDataPath / std::filesystem::path(savePath)).string();
+
+			// Initialize and create any filepaths for save information
+			savePath = (std::filesystem::path(AppData::worldsRootPath) / std::filesystem::path(savePath)).string();
+			File::createDirIfNotExists(savePath.c_str());
 			chunkSavePath = (savePath / std::filesystem::path("chunks")).string();
 			g_logger_info("World save folder at: %s", savePath.c_str());
-			File::createDirIfNotExists(savePath.c_str());
 			File::createDirIfNotExists(chunkSavePath.c_str());
 
 			// Generate a seed if needed
 			srand((unsigned long)time(NULL));
-			if (File::isFile(getWorldDataFilepath().c_str()))
+			if (File::isFile(getWorldDataFilepath(savePath).c_str()))
 			{
 				if (!deserialize())
 				{
@@ -239,7 +237,7 @@ namespace Minecraft
 
 		void serialize()
 		{
-			std::string filepath = getWorldDataFilepath();
+			std::string filepath = getWorldDataFilepath(savePath);
 			FILE* fp = fopen(filepath.c_str(), "wb");
 			if (!fp)
 			{
@@ -254,7 +252,7 @@ namespace Minecraft
 
 		bool deserialize()
 		{
-			std::string filepath = getWorldDataFilepath();
+			std::string filepath = getWorldDataFilepath(savePath);
 			FILE* fp = fopen(filepath.c_str(), "rb");
 			if (!fp)
 			{
@@ -277,9 +275,9 @@ namespace Minecraft
 			};
 		}
 
-		static std::string getWorldDataFilepath()
+		std::string getWorldDataFilepath(const std::string& worldSavePath)
 		{
-			return savePath + "/world.bin";
+			return worldSavePath + "/world.bin";
 		}
 	}
 }

@@ -3,6 +3,7 @@
 #include "core/Window.h"
 #include "core/Ecs.h"
 #include "core/Scene.h"
+#include "core/AppData.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
 #include "physics/Physics.h"
@@ -32,6 +33,7 @@ namespace Minecraft
 			}
 
 			// Initialize all other subsystems
+			AppData::init();
 			Ecs::Registry& registry = getRegistry();
 			Renderer::init(registry);
 			Fonts::init();
