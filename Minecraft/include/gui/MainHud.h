@@ -10,6 +10,8 @@ namespace Minecraft
 		void update(float dt);
 
 		void free();
+
+		extern int currentInventorySlot;
 	}
 }
 

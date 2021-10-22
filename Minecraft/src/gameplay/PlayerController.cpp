@@ -11,10 +11,11 @@
 #include "gameplay/CharacterController.h"
 #include "world/ChunkManager.h"
 #include "world/BlockMap.h"
+#include "gui/MainHud.h"
 
 namespace Minecraft
 {
-	enum class GameMode : uint8 
+	enum class GameMode : uint8
 	{
 		None,
 		Adventure,
@@ -35,6 +36,7 @@ namespace Minecraft
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
+		static void updateInventory(float dt);
 
 		void init()
 		{
@@ -85,11 +87,11 @@ namespace Minecraft
 			{
 				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
 				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
-				
+
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
 				{
 					glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
-					static Block newBlock {
+					static Block newBlock{
 						3, 0, 0, 0
 					};
 					ChunkManager::setBlock(worldPos, newBlock);
@@ -138,6 +140,8 @@ namespace Minecraft
 				gameMode = GameMode::Spectator;
 				rb.isSensor = true;
 			}
+
+			updateInventory(dt);
 		}
 
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
@@ -169,6 +173,17 @@ namespace Minecraft
 			{
 				gameMode = GameMode::Survival;
 				rb.isSensor = false;
+			}
+		}
+
+		static void updateInventory(float dt)
+		{
+			for (int i = 0; i < 9; i++)
+			{
+				if (Input::keyBeginPress(GLFW_KEY_1 + i))
+				{
+					MainHud::currentInventorySlot = i;
+				}
 			}
 		}
 	}
