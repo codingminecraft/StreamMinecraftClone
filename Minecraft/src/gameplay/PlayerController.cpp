@@ -33,6 +33,8 @@ namespace Minecraft
 		static float blockPlaceDebounceTime = 0.2f;
 		static float blockPlaceDebounce = 0.0f;
 
+		static int hotbarBlockIds[9] = {2, 3, 4, 6, 8, 9, 10, 0, 0};
+
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
@@ -92,17 +94,15 @@ namespace Minecraft
 				{
 					glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 					static Block newBlock{
-						3, 0, 0, 0
+						0, 0, 0, 0
 					};
+					newBlock.id = hotbarBlockIds[MainHud::currentInventorySlot];
 					ChunkManager::setBlock(worldPos, newBlock);
 					blockPlaceDebounce = blockPlaceDebounceTime;
 				}
 				else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
 				{
 					glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
-					static Block newBlock{
-						3, 0, 0, 0
-					};
 					ChunkManager::removeBlock(worldPos);
 					blockPlaceDebounce = blockPlaceDebounceTime;
 				}

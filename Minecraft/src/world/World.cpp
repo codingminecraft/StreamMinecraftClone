@@ -212,8 +212,19 @@ namespace Minecraft
 			shader.bind();
 			shader.uploadMat4("uProjection", projectionMatrix);
 			shader.uploadMat4("uView", viewMatrix);
-			shader.uploadVec3("uSunPosition", glm::vec3{ 1, 355, 1 });
-
+			static int sunXRotation = 45;
+			static int sunTicks = 0;
+			sunTicks++;
+			if (sunTicks > 20)
+			{
+				//sunXRotation++;
+				sunTicks = 0;
+			}
+			glm::vec3 directionVector = glm::vec3(0.0f, glm::sin(glm::radians((float)sunXRotation)), glm::cos(glm::radians((float)sunXRotation)));
+			shader.uploadVec3("uSunDirection", directionVector);
+			shader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
+			sunXRotation = sunXRotation % 360;
+			directionVector.y = sunXRotation > 180 && sunXRotation < 360 ? -directionVector.y : directionVector.y;
 			glActiveTexture(GL_TEXTURE0);
 			worldTexture.bind();
 			shader.uploadInt("uTexture", 0);

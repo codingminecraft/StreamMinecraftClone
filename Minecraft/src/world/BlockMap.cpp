@@ -90,6 +90,9 @@ namespace Minecraft
 				std::string bottom = block.second["bottom"].as<std::string>();
 				bool isTransparent = block.second["isTransparent"].as<bool>();
 				bool isSolid = block.second["isSolid"].as<bool>();
+				bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
+				bool colorSideByBiome = block.second["colorSideByBiome"].IsDefined() ? block.second["colorSideByBiome"].as<bool>() : false;
+				bool colorBottomByBiome = block.second["colorBottomByBiome"].IsDefined() ? block.second["colorBottomByBiome"].as<bool>() : false;
 
 				g_logger_info("Loading Block Id: %d", id);
 				g_logger_info("Side: %s", side.c_str());
@@ -98,7 +101,7 @@ namespace Minecraft
 
 				nameToIdMap[block.first.as<std::string>()] = id;
 				blockFormats.emplace_back(BlockFormat{
-					side, top, bottom, isTransparent, isSolid
+					side, top, bottom, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome
 					});
 			}
 		}

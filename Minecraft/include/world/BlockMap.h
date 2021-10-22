@@ -29,6 +29,9 @@ namespace Minecraft
 		std::string bottomTexture;
 		bool isTransparent;
 		bool isSolid;
+		bool colorTopByBiome;
+		bool colorSideByBiome;
+		bool colorBottomByBiome;
 		// TODO: Add bounding box definition here. That way we can add custom bounding boxes for different blocks
 	};
 

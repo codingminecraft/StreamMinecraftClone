@@ -255,6 +255,12 @@ namespace Minecraft
 		int varLocation = GetVariableLocation(*this, varName);
 		glUniform1iv(varLocation, length, array);
 	}
+	
+	void Shader::uploadBool(const char* varName, bool value) const
+	{
+		int varLocation = GetVariableLocation(*this, varName);
+		glUniform1i(varLocation, value ? 1 : 0);
+	}
 
 	bool Shader::isNull() const
 	{

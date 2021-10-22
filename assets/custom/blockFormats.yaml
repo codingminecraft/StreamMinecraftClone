@@ -12,6 +12,7 @@ grass_block:
   bottom: dirt
   isSolid: true
   isTransparent: false
+  colorTopByBiome: true
 sand:
   id: 3
   side: sand
@@ -46,4 +47,28 @@ bedrock:
   top: bedrock
   bottom: bedrock
   isSolid: true
+  isTransparent: false
+oak_log:
+  id: 8
+  side: oak_log
+  top: oak_log_top
+  bottom: oak_log_top
+  isSolid: true 
+  isTransparent: false
+oak_leaves:
+  id: 9
+  side: oak_leaves
+  top: oak_leaves
+  bottom: oak_leaves
+  isSolid: true
+  isTransparent: true
+  colorTopByBiome: true
+  colorSideByBiome: true 
+  colorBottomByBiome: true
+oak_planks:
+  id: 8
+  side: oak_planks
+  top: oak_planks
+  bottom: oak_planks
+  isSolid: true 
   isTransparent: false

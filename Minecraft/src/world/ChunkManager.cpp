@@ -205,13 +205,15 @@ namespace Minecraft
 				this->maxNumCommands = maxNumCommands;
 				commandBuffer = nullptr;
 				chunkPosBuffer = nullptr;
+				biomeBuffer = nullptr;
 				numCommands = 0;
 			}
 
 			void init()
 			{
 				this->commandBuffer = (DrawCommand*)g_memory_allocate(sizeof(DrawCommand) * maxNumCommands);
-				this->chunkPosBuffer = (int32*)g_memory_allocate(sizeof(int32*) * maxNumCommands * 2);
+				this->chunkPosBuffer = (int32*)g_memory_allocate(sizeof(int32) * maxNumCommands * 2);
+				this->biomeBuffer = (int32*)g_memory_allocate(sizeof(int32) * maxNumCommands);
 				this->numCommands = 0;
 			}
 
@@ -228,9 +230,15 @@ namespace Minecraft
 					g_memory_free(chunkPosBuffer);
 					chunkPosBuffer = nullptr;
 				}
+
+				if (biomeBuffer)
+				{
+					g_memory_free(biomeBuffer);
+					biomeBuffer = nullptr;
+				}
 			}
 
-			void add(const DrawArraysIndirectCommand& command, const glm::ivec2& chunkCoords, int level, const glm::ivec2& playerPosChunkCoords)
+			void add(const DrawArraysIndirectCommand& command, const glm::ivec2& chunkCoords, int level, const glm::ivec2& playerPosChunkCoords, int biome)
 			{
 				g_logger_assert((numCommands + 1) < maxNumCommands, "Ran out of room in command buffer!");
 				glm::ivec2 d = chunkCoords - playerPosChunkCoords;
@@ -239,6 +247,7 @@ namespace Minecraft
 				commandBuffer[numCommands].command.baseInstance = numCommands;
 				chunkPosBuffer[(numCommands * 2)] = chunkCoords.x;
 				chunkPosBuffer[(numCommands * 2) + 1] = chunkCoords.y;
+				biomeBuffer[numCommands] = biome;
 				numCommands++;
 			}
 
@@ -263,6 +272,11 @@ namespace Minecraft
 				return chunkPosBuffer;
 			}
 
+			inline const int32* getBiomeBuffer() const
+			{
+				return biomeBuffer;
+			}
+
 			inline void softReset()
 			{
 				numCommands = 0;
@@ -273,6 +287,7 @@ namespace Minecraft
 			int numCommands;
 			DrawCommand* commandBuffer;
 			int32* chunkPosBuffer;
+			int32* biomeBuffer;
 		};
 
 		// Internal variables
@@ -282,8 +297,8 @@ namespace Minecraft
 		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
 		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
 
-		//static DrawArraysIndirectCommand* gpuDrawCommandBuffer;
 		static uint32 chunkPosInstancedBuffer;
+		static uint32 biomeInstancedVbo;
 		static uint32 globalVao;
 		static uint32 drawCommandVbo;
 
@@ -372,6 +387,15 @@ namespace Minecraft
 			glVertexAttribIPointer(10, 2, GL_INT, sizeof(int32) * 2, 0);
 			glVertexAttribDivisor(10, 1);
 			glEnableVertexAttribArray(10);
+
+			// Set up biome buffer
+			glCreateBuffers(1, &biomeInstancedVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+
+			glVertexAttribIPointer(11, 1, GL_INT, sizeof(int32), 0);
+			glVertexAttribDivisor(11, 1);
+			glEnableVertexAttribArray(11);
 
 			// Subchunk = 16x16x16  Blocks
 			// BigChunk = 16x256x16 Blocks
@@ -632,7 +656,7 @@ namespace Minecraft
 								drawCommand.instanceCount = 1;
 								drawCommand.count = subChunks()[i]->numVertsUsed;
 								drawCommand.first = subChunks()[i]->first;
-								commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords);
+								commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 							}
 
 							if (subChunks()[i]->state == SubChunkState::DoneRetesselating)
@@ -654,6 +678,8 @@ namespace Minecraft
 				commandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandBuffer().getNumCommands(), commandBuffer().getChunkPosBuffer());
+				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * commandBuffer().getNumCommands(), commandBuffer().getBiomeBuffer());
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
 				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * commandBuffer().getNumCommands(), commandBuffer().getCommandBuffer());
 				DebugStats::numDrawCalls += commandBuffer().getNumCommands();
@@ -822,14 +848,17 @@ namespace Minecraft
 			TOP_RIGHT = 0,
 			TOP_LEFT = 1,
 			BOTTOM_LEFT = 2,
-			BOTTOM_RIGHT = 3
+			BOTTOM_RIGHT = 3,
+			SIZE
 		};
 
 		// Internal Constants
 		static const int POSITION_INDEX_BITMASK = 0x1FFFF;
 		static const int TEX_ID_BITMASK = 0x1FFE0000;
 		static const int FACE_BITMASK = 0xE0000000;
+
 		static const int UV_INDEX_BITMASK = 0x3;
+		static const int COLOR_BLOCK_BIOME_BITMASK = 0x4;
 
 		static const int BASE_17_DEPTH = 17;
 		static const int BASE_17_WIDTH = 17;
@@ -841,7 +870,7 @@ namespace Minecraft
 		static bool setBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates, Block newBlock);
 		static bool removeBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
-		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face);
+		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome);
 
 		void info()
 		{
@@ -898,8 +927,8 @@ namespace Minecraft
 						}
 						else if (y == maxHeight)
 						{
-							// Green Concrete 
-							blockData[arrayExpansion].id = 5;
+							// Grass
+							blockData[arrayExpansion].id = 2;
 						}
 						else
 						{
@@ -1015,7 +1044,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
-								top, CUBE_FACE::TOP);
+								top, CUBE_FACE::TOP, blockFormat.colorTopByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
@@ -1026,7 +1055,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
-								bottom, CUBE_FACE::BOTTOM);
+								bottom, CUBE_FACE::BOTTOM, blockFormat.colorBottomByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
@@ -1037,7 +1066,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
-								side, CUBE_FACE::RIGHT);
+								side, CUBE_FACE::RIGHT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
@@ -1048,7 +1077,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
-								side, CUBE_FACE::LEFT);
+								side, CUBE_FACE::LEFT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
@@ -1059,7 +1088,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
-								side, CUBE_FACE::FRONT);
+								side, CUBE_FACE::FRONT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
@@ -1070,7 +1099,7 @@ namespace Minecraft
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
-								side, CUBE_FACE::BACK);
+								side, CUBE_FACE::BACK, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
 						}
 					}
@@ -1194,7 +1223,7 @@ namespace Minecraft
 			};
 		}
 
-		static Vertex compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face, UV_INDEX uvIndex)
+		static Vertex compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face, UV_INDEX uvIndex, bool colorVertexBasedOnBiome)
 		{
 			// Bits  0-16 position index
 			// Bits 17-28 texId
@@ -1208,7 +1237,10 @@ namespace Minecraft
 
 			uint32 data2 = 0;
 
+			// Bits 0-1 UV Index -- this tells us which corner to use for the texture coords
+			// Bit  2   Color the block based on biome
 			data2 |= (((uint32)uvIndex << 0) & UV_INDEX_BITMASK);
+			data2 |= (((uint32)(colorVertexBasedOnBiome ? 1 : 0) << 2) & COLOR_BLOCK_BIOME_BITMASK);
 
 			return {
 				data1,
@@ -1244,15 +1276,51 @@ namespace Minecraft
 			const glm::ivec3& vert3,
 			const glm::ivec3& vert4,
 			const TextureFormat& texture,
-			CUBE_FACE face)
+			CUBE_FACE face,
+			bool colorFaceBasedOnBiome)
 		{
-			vertexData[0] = compress(vert1, texture, face, UV_INDEX::BOTTOM_RIGHT);
-			vertexData[1] = compress(vert2, texture, face, UV_INDEX::TOP_RIGHT);
-			vertexData[2] = compress(vert3, texture, face, UV_INDEX::TOP_LEFT);
+			UV_INDEX uv0 = UV_INDEX::BOTTOM_RIGHT;
+			UV_INDEX uv1 = UV_INDEX::TOP_RIGHT;
+			UV_INDEX uv2 = UV_INDEX::TOP_LEFT;
 
-			vertexData[3] = compress(vert1, texture, face, UV_INDEX::BOTTOM_RIGHT);
-			vertexData[4] = compress(vert3, texture, face, UV_INDEX::TOP_LEFT);
-			vertexData[5] = compress(vert4, texture, face, UV_INDEX::BOTTOM_LEFT);
+			UV_INDEX uv3 = UV_INDEX::BOTTOM_RIGHT;
+			UV_INDEX uv4 = UV_INDEX::TOP_LEFT;
+			UV_INDEX uv5 = UV_INDEX::BOTTOM_LEFT;
+			switch (face)
+			{
+			case CUBE_FACE::BACK:
+				uv0 = (UV_INDEX)(((int)uv0 + 2) % (int)UV_INDEX::SIZE);
+				uv1 = (UV_INDEX)(((int)uv1 + 2) % (int)UV_INDEX::SIZE);
+				uv2 = (UV_INDEX)(((int)uv2 + 2) % (int)UV_INDEX::SIZE);
+				uv3 = (UV_INDEX)(((int)uv3 + 2) % (int)UV_INDEX::SIZE);
+				uv4 = (UV_INDEX)(((int)uv4 + 2) % (int)UV_INDEX::SIZE);
+				uv5 = (UV_INDEX)(((int)uv5 + 2) % (int)UV_INDEX::SIZE);
+				break;
+			case CUBE_FACE::RIGHT:
+				uv0 = (UV_INDEX)(((int)uv0 + 3) % (int)UV_INDEX::SIZE);
+				uv1 = (UV_INDEX)(((int)uv1 + 3) % (int)UV_INDEX::SIZE);
+				uv2 = (UV_INDEX)(((int)uv2 + 3) % (int)UV_INDEX::SIZE);
+				uv3 = (UV_INDEX)(((int)uv3 + 3) % (int)UV_INDEX::SIZE);
+				uv4 = (UV_INDEX)(((int)uv4 + 3) % (int)UV_INDEX::SIZE);
+				uv5 = (UV_INDEX)(((int)uv5 + 3) % (int)UV_INDEX::SIZE);
+				break;
+			case CUBE_FACE::LEFT:
+				uv0 = (UV_INDEX)(((int)uv0 + 3) % (int)UV_INDEX::SIZE);
+				uv1 = (UV_INDEX)(((int)uv1 + 3) % (int)UV_INDEX::SIZE);
+				uv2 = (UV_INDEX)(((int)uv2 + 3) % (int)UV_INDEX::SIZE);
+				uv3 = (UV_INDEX)(((int)uv3 + 3) % (int)UV_INDEX::SIZE);
+				uv4 = (UV_INDEX)(((int)uv4 + 3) % (int)UV_INDEX::SIZE);
+				uv5 = (UV_INDEX)(((int)uv5 + 3) % (int)UV_INDEX::SIZE);
+				break;
+			}
+
+			vertexData[0] = compress(vert1, texture, face, uv0, colorFaceBasedOnBiome);
+			vertexData[1] = compress(vert2, texture, face, uv1, colorFaceBasedOnBiome);
+			vertexData[2] = compress(vert3, texture, face, uv2, colorFaceBasedOnBiome);
+
+			vertexData[3] = compress(vert1, texture, face, uv3, colorFaceBasedOnBiome);
+			vertexData[4] = compress(vert3, texture, face, uv4, colorFaceBasedOnBiome);
+			vertexData[5] = compress(vert4, texture, face, uv5, colorFaceBasedOnBiome);
 
 #ifdef _DEBUG
 			// TODO: Remove this once you are confident you are getting the right values
@@ -1273,13 +1341,6 @@ namespace Minecraft
 			g_logger_assert(extractTexId(vertexData[1].data1) == texture.id, "Failed Texture Id");
 			g_logger_assert(extractTexId(vertexData[2].data1) == texture.id, "Failed Texture Id");
 			g_logger_assert(extractTexId(vertexData[3].data1) == texture.id, "Failed Texture Id");
-
-			g_logger_assert(extractCorner(vertexData[0].data2) == UV_INDEX::BOTTOM_RIGHT, "Failed on uv index");
-			g_logger_assert(extractCorner(vertexData[1].data2) == UV_INDEX::TOP_RIGHT, "Failed on uv index");
-			g_logger_assert(extractCorner(vertexData[2].data2) == UV_INDEX::TOP_LEFT, "Failed on uv index");
-			g_logger_assert(extractCorner(vertexData[3].data2) == UV_INDEX::BOTTOM_RIGHT, "Failed on uv index");
-			g_logger_assert(extractCorner(vertexData[4].data2) == UV_INDEX::TOP_LEFT, "Failed on uv index");
-			g_logger_assert(extractCorner(vertexData[5].data2) == UV_INDEX::BOTTOM_LEFT, "Failed on uv index");
 #endif
 		}
 	}
