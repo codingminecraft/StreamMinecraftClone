@@ -22,19 +22,35 @@ namespace Minecraft
 		glfwWindowHint(GLFW_SAMPLES, 16);
 	}
 
-	Window* Window::create(int width, int height, const char* title)
+	Window* Window::create(const char* title)
 	{
 		Window* res = new Window();
-		res->width = width;
-		res->height = height;
-		res->title = title;
-		Input::setWindowSize(glm::vec2((float)width, (float)height));
 
-		res->windowPtr = (void*)glfwCreateWindow(width, height, title, nullptr, nullptr);
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		if (!monitor)
+		{
+			g_logger_error("Failed to get primary monitor.");
+			return nullptr;
+		}
+		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+		if (!mode)
+		{
+			g_logger_error("Failed to get video mode of primary monitor.");
+			return nullptr;
+		}
+		g_logger_info("Montior size: %d, %d", mode->width, mode->height);
+		
+		// The smallest monitor size we accept is 300x200
+		res->width = glm::clamp(mode->width / 2, 300, INT_MAX);
+		res->height = glm::clamp(mode->height / 2, 200, INT_MAX);
+		res->title = title;
+		Input::setWindowSize(glm::vec2((float)res->width, (float)res->height));
+
+		res->windowPtr = (void*)glfwCreateWindow(res->width, res->height, title, nullptr, nullptr);
 		if (res->windowPtr == nullptr)
 		{
 			glfwTerminate();
-			g_logger_error("Window creation failed.");
+			g_logger_error("Failed to create window.");
 			return res;
 		}
 		g_logger_info("GLFW window created");
@@ -48,8 +64,6 @@ namespace Minecraft
 		glfwSetMouseButtonCallback((GLFWwindow*)res->windowPtr, Input::mouseButtonCallback);
 		glfwSetCharCallback((GLFWwindow*)res->windowPtr, Input::charCallback);
 
-		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 		int monitorX, monitorY;
 		glfwGetMonitorPos(monitor, &monitorX, &monitorY);
 

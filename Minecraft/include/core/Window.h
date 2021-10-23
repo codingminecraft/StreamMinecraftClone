@@ -30,7 +30,7 @@ namespace Minecraft
 		void setTitle(const char* title);
 		float getAspectRatio() const;
 
-		static Window* create(int width, int height, const char* title);
+		static Window* create(const char* title);
 		static void init();
 		static void free();
 	};

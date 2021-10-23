@@ -96,7 +96,7 @@ namespace Minecraft
 
 		Window& getWindow()
 		{
-			static Window* window = Window::create(Settings::Window::width, Settings::Window::height, Settings::Window::title);
+			static Window* window = Window::create(Settings::Window::title);
 			return *window;
 		}
 

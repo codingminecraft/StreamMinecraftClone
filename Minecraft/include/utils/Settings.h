@@ -8,8 +8,6 @@ namespace Minecraft
 	{
 		namespace Window
 		{
-			extern int width;
-			extern int height;
 			extern glm::vec4 clearColor;
 			extern const char* title;
 		}
