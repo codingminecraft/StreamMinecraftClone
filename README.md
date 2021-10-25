@@ -57,11 +57,18 @@ This is a list of tasks that still need to be done.
 ---
 
 - [ ] Save chunks when they unload from the chunk radius
+- [ ] Make stuff look pretty
+- [ ] Clean up the code in `ChunkManager.cpp`
+- [ ] Make the application handle out of memory errors gracefully
+    * Either make it allocate more memory, or just de-prioritize the furthest chunks
 - [ ] Add block level lighting
     * Add light sources
     * Add multi-color lighting
 - [ ] Add proper transparency support
 - [ ] Add inventory management
+    * Add icons for blocks in the inventory
+    * Add indicators for number of blocks in a slot
+- [ ] Add crafting support
 - [ ] Cubemaps
 - [ ] Day/Night cycle
 - [ ] Biome generation

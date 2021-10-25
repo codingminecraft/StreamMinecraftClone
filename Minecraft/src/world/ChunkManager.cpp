@@ -28,6 +28,53 @@ namespace Minecraft
 		CommandType type;
 	};
 
+	enum class ChunkState : uint8
+	{
+		None,
+		Unloaded,
+		Saving,
+		Loading,
+		Loaded
+	};
+
+	struct ChunkStateData
+	{
+		std::atomic<ChunkState> state;
+		glm::ivec2 chunkCoords;
+		Block* blockData;
+
+		ChunkStateData(const glm::ivec2& chunkCoords)
+		{
+			state = ChunkState::None;
+			this->chunkCoords = chunkCoords;
+			blockData = nullptr;
+		}
+
+		ChunkStateData(const ChunkStateData& other)
+			: state(other.state.load()), chunkCoords(other.chunkCoords), blockData(other.blockData)
+		{
+		}
+
+		bool operator==(const ChunkStateData& other) const
+		{
+			return chunkCoords == other.chunkCoords;
+		}
+
+		bool operator!=(const ChunkStateData& other) const
+		{
+			return !(*this == other);
+		}
+
+		struct HashFunction
+		{
+			std::size_t operator()(const ChunkStateData& key) const
+			{
+				return std::hash<int>()(key.chunkCoords.x) ^
+					std::hash<int>()(key.chunkCoords.y);
+			}
+		};
+	};
+
 	class CompareFillChunkCommand
 	{
 	public:
@@ -36,7 +83,10 @@ namespace Minecraft
 		{
 			if (a.type != b.type)
 			{
-				// Fill block data has higher priority than other types of commands
+				// Order of priorities
+				// 1. Save Block Data 
+				// 2. Fill Block Data
+				// 3. Tesselate
 				return a.type == CommandType::SaveBlockData
 					? false
 					: a.type == CommandType::FillBlockData
@@ -141,7 +191,23 @@ namespace Minecraft
 						break;
 						case CommandType::SaveBlockData:
 						{
+							// Unload all sub-chunks
+							for (int i = 0; i < command.subChunks->size(); i++)
+							{
+								if ((*command.subChunks)[i]->state == SubChunkState::Uploaded && (*command.subChunks)[i]->chunkCoordinates == command.chunkCoordinates)
+								{
+									(*command.subChunks)[i]->state = SubChunkState::Unloaded;
+									(*command.subChunks)[i]->numVertsUsed = 0;
+									command.subChunks->freePool(i);
+									DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (World::MaxVertsPerSubChunk * sizeof(Vertex));
+								}
+							}
+
+							// Serialize block data
 							Chunk::serialize(World::chunkSavePath, command.blockData, command.chunkCoordinates);
+
+							// Tell the chunk manager we are done
+							ChunkManager::unloadChunk(command.chunkCoordinates);
 						}
 						break;
 						}
@@ -293,8 +359,8 @@ namespace Minecraft
 		// Internal variables
 		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
-		static std::bitset<World::ChunkCapacity> loadedChunks;
-		static std::unordered_map<glm::ivec2, int> chunkIndices = {};
+		static std::unordered_set<ChunkStateData, ChunkStateData::HashFunction> chunkStates = {};
+		static std::list<Block*> chunkFreeList = {};
 		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
 
 		static uint32 chunkPosInstancedBuffer;
@@ -337,6 +403,12 @@ namespace Minecraft
 			chunkWorker();
 			blockPool();
 
+			// Initialize the free list
+			for (int i = 0; i < blockPool().size(); i++)
+			{
+				chunkFreeList.push_back(blockPool()[i]);
+			}
+
 			// Set up draw commands to relate to our sub chunks
 			commandBuffer().init();
 			glCreateBuffers(1, &drawCommandVbo);
@@ -344,7 +416,7 @@ namespace Minecraft
 			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
-			loadedChunks.reset();
+			chunkStates.clear();
 
 			// Generate a bunch of empty vertex buckets for GPU use
 			glCreateVertexArrays(1, &globalVao);
@@ -401,6 +473,7 @@ namespace Minecraft
 			// BigChunk = 16x256x16 Blocks
 			g_logger_info("Vertex Pool Total Size: %2.3f Gb", (float)(totalSizeOfSubChunkVertices / (1024.0f * 1024 * 1024)));
 			g_logger_info("Block Pool Total Size: %2.3f Gb", (float)(blockPool().totalSize() / (1024.0f * 1024 * 1024)));
+			DebugStats::totalChunkRamAvailable = totalSizeOfSubChunkVertices + blockPool().totalSize();
 		}
 
 		void free()
@@ -415,14 +488,14 @@ namespace Minecraft
 			cmd.type = CommandType::SaveBlockData;
 			cmd.subChunks = &(subChunks());
 
-			for (auto& pair : chunkIndices)
+			for (const ChunkStateData& chunkState : chunkStates)
 			{
-				const glm::ivec2& chunkCoords = pair.first;
-				int blockPoolIndex = pair.second;
-				if (loadedChunks.test(blockPoolIndex))
+				const glm::ivec2& chunkCoords = chunkState.chunkCoords;
+				Block* blockData = chunkState.blockData;
+				if (chunkState.state != ChunkState::Saving && blockData)
 				{
 					cmd.chunkCoordinates = chunkCoords;
-					cmd.blockData = blockPool()[blockPoolIndex];
+					cmd.blockData = blockData;
 					chunkWorker().queueCommand(cmd);
 				}
 			}
@@ -434,29 +507,33 @@ namespace Minecraft
 			bool upload;
 			{
 				std::lock_guard<std::mutex> lock(chunkMtx);
-				upload = chunkIndices.find(chunkCoordinates) == chunkIndices.end();
+				auto iter = chunkStates.find(ChunkStateData(chunkCoordinates));
+				upload = iter == chunkStates.end();
 			}
 			if (upload)
 			{
-				FillChunkCommand cmd;
-				cmd.chunkCoordinates = chunkCoordinates;
-				cmd.type = CommandType::FillBlockData;
-				cmd.blockData = nullptr;
-				cmd.subChunks = &(subChunks());
-
-				for (int i = 0; i < loadedChunks.size(); i++)
+				if (chunkFreeList.size() > 0)
 				{
-					if (!loadedChunks.test(i))
-					{
-						loadedChunks.set(i, true);
-						{
-							std::lock_guard<std::mutex> lock(chunkMtx);
-							chunkIndices[chunkCoordinates] = i;
-						}
-						cmd.blockData = blockPool()[i];
-						chunkWorker().queueCommand(cmd);
-						break;
-					}
+					FillChunkCommand cmd;
+					cmd.chunkCoordinates = chunkCoordinates;
+					cmd.type = CommandType::FillBlockData;
+					cmd.blockData = chunkFreeList.front();
+					chunkFreeList.pop_front();
+					cmd.subChunks = &(subChunks());
+					chunkWorker().queueCommand(cmd);
+
+					ChunkStateData newChunk = ChunkStateData(chunkCoordinates);
+					newChunk.blockData = cmd.blockData;
+					newChunk.state = ChunkState::Loaded;
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + blockPool().poolSize() * sizeof(Block);
+
+					std::lock_guard lock(chunkMtx);
+					chunkStates.emplace(newChunk);
+				}
+				else
+				{
+					// What do we do if there were no free blocks?
+					g_logger_warning("No free pools for block data.");
 				}
 			}
 			else if (retesselate)
@@ -468,12 +545,12 @@ namespace Minecraft
 				cmd.blockData = nullptr;
 				{
 					std::lock_guard<std::mutex> lock(chunkMtx);
-					auto iter = chunkIndices.find(chunkCoordinates);
-					if (iter == chunkIndices.end())
+					auto iter = chunkStates.find(ChunkStateData(chunkCoordinates));
+					if (iter == chunkStates.end())
 					{
 						return;
 					}
-					cmd.blockData = blockPool()[iter->second];
+					cmd.blockData = iter->blockData;
 				}
 
 				// Update the sub-chunks that are about to be deleted
@@ -492,32 +569,21 @@ namespace Minecraft
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates)
 		{
 			// Only upload if we need to
-			bool save;
+			std::unordered_set<ChunkStateData>::iterator iter;
 			{
 				std::lock_guard<std::mutex> lock(chunkMtx);
-				save = chunkIndices.find(chunkCoordinates) != chunkIndices.end();
+				iter = chunkStates.find(ChunkStateData(chunkCoordinates));
 			}
-			if (save)
+			if (iter != chunkStates.end())
 			{
-				FillChunkCommand cmd;
-				cmd.chunkCoordinates = chunkCoordinates;
-				cmd.type = CommandType::SaveBlockData;
-				cmd.blockData = nullptr;
-				cmd.subChunks = &(subChunks());
-
-				for (int i = 0; i < loadedChunks.size(); i++)
+				if (iter->state != ChunkState::Saving && iter->blockData)
 				{
-					if (!loadedChunks.test(i))
-					{
-						loadedChunks.set(i, true);
-						{
-							std::lock_guard<std::mutex> lock(chunkMtx);
-							chunkIndices[chunkCoordinates] = i;
-						}
-						cmd.blockData = blockPool()[i];
-						chunkWorker().queueCommand(cmd);
-						break;
-					}
+					FillChunkCommand cmd;
+					cmd.chunkCoordinates = chunkCoordinates;
+					cmd.type = CommandType::SaveBlockData;
+					cmd.blockData = iter->blockData;
+					cmd.subChunks = &(subChunks());
+					chunkWorker().queueCommand(cmd);
 				}
 			}
 		}
@@ -528,16 +594,16 @@ namespace Minecraft
 			Block* blockData = nullptr;
 
 			std::lock_guard<std::mutex> lock(chunkMtx);
-			auto iter = chunkIndices.find(chunkCoords);
-			if (iter != chunkIndices.end())
+			auto iter = chunkStates.find(ChunkStateData(chunkCoords));
+			if (iter != chunkStates.end())
 			{
-				blockData = blockPool()[iter->second];
+				blockData = iter->blockData;
 			}
 			else if (worldPosition.y >= 0 && worldPosition.y < 256)
 			{
 				// Assume it's a chunk that's out of bounds
-				// TODO: Make this only return air block if it's far far away from the player
-				return BlockMap::AIR_BLOCK;
+				// TODO: Make this only return null block if it's far far away from the player
+				return BlockMap::NULL_BLOCK;
 			}
 
 			return Chunk::getBlock(worldPosition, chunkCoords, blockData);
@@ -549,10 +615,10 @@ namespace Minecraft
 			Block* blockData = nullptr;
 
 			std::lock_guard<std::mutex> lock(chunkMtx);
-			auto iter = chunkIndices.find(chunkCoords);
-			if (iter != chunkIndices.end())
+			auto iter = chunkStates.find(ChunkStateData(chunkCoords));
+			if (iter != chunkStates.end())
 			{
-				blockData = blockPool()[iter->second];
+				blockData = iter->blockData;
 			}
 			else if (worldPosition.y >= 0 && worldPosition.y < 256)
 			{
@@ -573,10 +639,10 @@ namespace Minecraft
 			Block* blockData = nullptr;
 
 			std::lock_guard<std::mutex> lock(chunkMtx);
-			auto iter = chunkIndices.find(chunkCoords);
-			if (iter != chunkIndices.end())
+			auto iter = chunkStates.find(chunkCoords);
+			if (iter != chunkStates.end())
 			{
-				blockData = blockPool()[iter->second];
+				blockData = iter->blockData;
 			}
 			else if (worldPosition.y >= 0 && worldPosition.y < 256)
 			{
@@ -595,24 +661,6 @@ namespace Minecraft
 		{
 			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
 
-			// TODO: Remove me, this is for debugging purposes
-			static uint32 maxVertCount = 0;
-			static uint32 minVertCount = UINT32_MAX;
-			static uint32 last100Verts[100] = {};
-			int last100VertsIndex = 0;
-			float avgVertCount = 0.0f;
-			for (int i = 0; i < 100; i++)
-			{
-				avgVertCount += last100Verts[i];
-			}
-			if (avgVertCount > 0)
-			{
-				avgVertCount /= 100;
-			}
-			DebugStats::minVertCount = minVertCount;
-			DebugStats::maxVertCount = maxVertCount;
-			DebugStats::avgVertCount = avgVertCount;
-
 			// TODO: Weird that I have to re-enable that here. Try to find out why?
 			glEnable(GL_CULL_FACE);
 
@@ -621,31 +669,26 @@ namespace Minecraft
 				if (subChunks()[i]->state != SubChunkState::Unloaded)
 				{
 					glm::ivec2 chunkPos = subChunks()[i]->chunkCoordinates;
-					auto iter = chunkIndices.find(chunkPos);
-					if (iter == chunkIndices.end() && subChunks()[i]->state != SubChunkState::TesselatingVertices)
+					auto iter = chunkStates.find(ChunkStateData(chunkPos));
+					if (iter == chunkStates.end() && subChunks()[i]->state != SubChunkState::TesselatingVertices)
 					{
 						// If the chunk coords are no longer loaded, set this chunk as not in use anymore
 						subChunks()[i]->state = SubChunkState::Unloaded;
 						subChunks()[i]->numVertsUsed = 0;
 						subChunks().freePool(i);
 					}
-					else if (iter != chunkIndices.end() && loadedChunks.test(iter->second))
+					else if (iter != chunkStates.end() && iter->state == ChunkState::Loaded)
 					{
 						if (subChunks()[i]->state == SubChunkState::UploadVerticesToGpu)
 						{
 							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							subChunks()[i]->state = SubChunkState::Uploaded;
-
-							// TODO: Remove me this is for debugging purposes
-							last100Verts[last100VertsIndex] = subChunks()[i]->numVertsUsed;
-							maxVertCount = glm::max(subChunks()[i]->numVertsUsed.load(), maxVertCount);
-							minVertCount = glm::min(subChunks()[i]->numVertsUsed.load(), minVertCount);
-							last100VertsIndex = (last100VertsIndex + 1) % 100;
 						}
 
 						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices ||
 							subChunks()[i]->state == SubChunkState::DoneRetesselating)
 						{
+							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							float yCenter = subChunks()[i]->subChunkLevel * 16;
 							glm::vec3 chunkPos = glm::vec3(subChunks()[i]->chunkCoordinates.x * World::ChunkDepth, yCenter, subChunks()[i]->chunkCoordinates.y * World::ChunkWidth);
 							if (cameraFrustum.isBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
@@ -672,9 +715,6 @@ namespace Minecraft
 
 			if (commandBuffer().getNumCommands() > 0)
 			{
-				static int tick = 0;
-				tick++;
-				double timeStart = glfwGetTime();
 				commandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandBuffer().getNumCommands(), commandBuffer().getChunkPosBuffer());
@@ -688,13 +728,22 @@ namespace Minecraft
 				shader.uploadVec3("uPlayerPosition", playerPosition);
 				shader.uploadInt("uChunkRadius", World::ChunkRadius);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandBuffer().getNumCommands(), sizeof(DrawCommand));
-				double deltaTime = glfwGetTime() - timeStart;
-				if (tick >= 15)
-				{
-					DebugStats::chunkRenderTime = (float)deltaTime;
-					tick = 0;
-				}
 				commandBuffer().softReset();
+			}
+		}
+
+		void unloadChunk(const glm::ivec2& chunkCoordinates)
+		{
+			std::lock_guard lock(chunkMtx);
+			auto iter = chunkStates.find(ChunkStateData(chunkCoordinates));
+			// TODO: Investigate why sometimes iter->blockData is nullptr
+			// I think it might be because I wasn't locking the mutex, but double check just in case
+			if (iter != chunkStates.end() && iter->state != ChunkState::Saving)
+			{
+				DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool().poolSize() * sizeof(Block));
+
+				chunkFreeList.push_back(iter->blockData);
+				chunkStates.erase(iter);
 			}
 		}
 
@@ -716,16 +765,10 @@ namespace Minecraft
 						(World::ChunkRadius * World::ChunkRadius);
 					if (!inRangeOfPlayer)
 					{
-						subChunks()[i]->state = SubChunkState::Unloaded;
-						subChunks()[i]->numVertsUsed = 0;
-
-						auto iter = chunkIndices.find(chunkPos);
-						if (iter != chunkIndices.end())
+						auto iter = chunkStates.find(ChunkStateData(chunkPos));
+						if (iter != chunkStates.end() && iter->state != ChunkState::Saving)
 						{
-							int chunkIndex = iter->second;
-							loadedChunks.set(chunkIndex, false);
-							std::lock_guard lock(chunkMtx);
-							chunkIndices.erase(iter);
+							queueSaveChunk(subChunks()[i]->chunkCoordinates);
 						}
 					}
 				}
@@ -817,11 +860,10 @@ namespace Minecraft
 			{
 				Block* blockData = nullptr;
 
-				auto iter = chunkIndices.find(chunksToUpdate[i]);
-				if (iter != chunkIndices.end())
+				auto iter = chunkStates.find(ChunkStateData(chunksToUpdate[i]));
+				if (iter != chunkStates.end())
 				{
-					blockData = blockPool()[iter->second];
-					cmd.blockData = blockPool()[iter->second];
+					cmd.blockData = iter->blockData;
 					cmd.chunkCoordinates = chunksToUpdate[i];
 					chunkWorker().queueCommand(cmd);
 				}
@@ -986,10 +1028,20 @@ namespace Minecraft
 			SubChunk* ret = currentSubChunk;
 			if (needsNewChunk)
 			{
-				ret = subChunks->getNewPool();
-				ret->state = SubChunkState::TesselatingVertices;
-				ret->subChunkLevel = currentLevel;
-				ret->chunkCoordinates = chunkCoordinates;
+				if (!subChunks->empty())
+				{
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + (World::MaxVertsPerSubChunk * sizeof(Vertex));
+
+					ret = subChunks->getNewPool();
+					ret->state = SubChunkState::TesselatingVertices;
+					ret->subChunkLevel = currentLevel;
+					ret->chunkCoordinates = chunkCoordinates;
+				}
+				else
+				{
+					g_logger_warning("Ran out of sub-chunk vertex room.");
+					ret = nullptr;
+				}
 			}
 			return ret;
 		}
@@ -1040,9 +1092,14 @@ namespace Minecraft
 						// Top Face
 						const int topBlockId = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates).id;
 						const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
-						if (!topBlockId || topBlock.isTransparent)
+						if (topBlockId && topBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
 								top, CUBE_FACE::TOP, blockFormat.colorTopByBiome);
 							currentSubChunk->numVertsUsed += 6;
@@ -1051,9 +1108,14 @@ namespace Minecraft
 						// Bottom Face
 						const int bottomBlockId = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates).id;
 						const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
-						if (!bottomBlockId || bottomBlock.isTransparent)
+						if (bottomBlockId && bottomBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
 								bottom, CUBE_FACE::BOTTOM, blockFormat.colorBottomByBiome);
 							currentSubChunk->numVertsUsed += 6;
@@ -1062,9 +1124,14 @@ namespace Minecraft
 						// Right Face
 						const int rightBlockId = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates).id;
 						const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
-						if (!rightBlockId || rightBlock.isTransparent)
+						if (rightBlockId && rightBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
 								side, CUBE_FACE::RIGHT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
@@ -1073,9 +1140,14 @@ namespace Minecraft
 						// Left Face
 						const int leftBlockId = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates).id;
 						const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
-						if (!leftBlockId || leftBlock.isTransparent)
+						if (leftBlockId && leftBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
 								side, CUBE_FACE::LEFT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
@@ -1084,9 +1156,18 @@ namespace Minecraft
 						// Forward Face
 						const int forwardBlockId = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates).id;
 						const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
-						if (!forwardBlockId || forwardBlock.isTransparent)
+						if (!forwardBlockId)
+						{
+							;
+						}
+						if (forwardBlockId && forwardBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
 								side, CUBE_FACE::FRONT, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;
@@ -1095,9 +1176,14 @@ namespace Minecraft
 						// Back Face
 						const int backBlockId = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates).id;
 						const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
-						if (!backBlockId || backBlock.isTransparent)
+						if (backBlockId && backBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+							if (!currentSubChunk)
+							{
+								// TODO: Handle running out of memory better than this
+								break;
+							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
 								side, CUBE_FACE::BACK, blockFormat.colorSideByBiome);
 							currentSubChunk->numVertsUsed += 6;

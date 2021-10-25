@@ -75,6 +75,9 @@ namespace Minecraft
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition);
+
+		// TODO: Make this private
+		void unloadChunk(const glm::ivec2& chunkCoordinates);
 	}
 }
 

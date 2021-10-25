@@ -77,6 +77,11 @@ namespace Minecraft
 
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
+			if (key < 0 || key > GLFW_KEY_LAST)
+			{
+				return;
+			}
+
 			if (action == GLFW_PRESS)
 			{
 				keyPressed[key] = true;

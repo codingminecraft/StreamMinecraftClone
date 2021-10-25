@@ -10,10 +10,8 @@ namespace Minecraft
 		extern float lastFrameTime;
 		extern glm::vec3 playerPos;
 		extern glm::vec3 playerOrientation;
-		extern uint32 minVertCount;
-		extern uint32 maxVertCount;
-		extern float avgVertCount;
-		extern float chunkRenderTime;
+		extern std::atomic<float> totalChunkRamUsed;
+		extern float totalChunkRamAvailable;
 
 		void render();
 	}

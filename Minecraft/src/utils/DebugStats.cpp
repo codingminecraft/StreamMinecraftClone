@@ -14,10 +14,8 @@ namespace Minecraft
 		extern float lastFrameTime = 0.16f;
 		extern glm::vec3 playerPos = glm::vec3();
 		extern glm::vec3 playerOrientation = glm::vec3();
-		extern uint32 minVertCount = 0;
-		extern uint32 maxVertCount = 0;
-		extern float avgVertCount = 0;
-		extern float chunkRenderTime = 0.0f;
+		extern std::atomic<float> totalChunkRamUsed = 0.0f;
+		extern float totalChunkRamAvailable = 0.0f;
 
 		void render()
 		{
@@ -92,29 +90,15 @@ namespace Minecraft
 
 				// Draw third row of statistics
 				playerPosPos = glm::vec2(-2.95f, 1.11f);
-				playerPosStr = std::string("Chunk Render Time: " + CMath::toString((float)DebugStats::chunkRenderTime));
+				playerPosStr = std::string("Chunk RAM: " + 
+					CMath::toString(DebugStats::totalChunkRamUsed / (1024.0f * 1024.0f)) + 
+					std::string("/") + 
+					CMath::toString(DebugStats::totalChunkRamAvailable / (1024.0f * 1024.0f)) +
+					std::string("MB"));
 				Renderer::drawString(
 					playerPosStr,
 					*font,
 					playerPosPos,
-					textScale,
-					Styles::defaultStyle);
-
-				playerPosChunkCoordsPos = glm::vec2(-1.48f, 1.11f);
-				playerPosChunkCoordsStr = std::string("MinVertCount: " + CMath::toString((float)DebugStats::minVertCount));
-				Renderer::drawString(
-					playerPosChunkCoordsStr,
-					*font,
-					playerPosChunkCoordsPos,
-					textScale,
-					Styles::defaultStyle);
-
-				playerOrientationPos = glm::vec2(-0.28f, 1.11f);
-				playerOrientationStr = std::string("AvgVertCount: " + CMath::toString(DebugStats::avgVertCount));
-				Renderer::drawString(
-					playerOrientationStr,
-					*font,
-					playerOrientationPos,
 					textScale,
 					Styles::defaultStyle);
 

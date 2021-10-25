@@ -87,6 +87,12 @@ namespace Minecraft
 			return dataLength * sizeof(T);
 		}
 
+		bool empty()
+		{
+			std::lock_guard<std::mutex> lock(bitsetMtx);
+			return poolsBeingUsed.all();
+		}
+
 	private:
 		std::mutex bitsetMtx;
 		std::bitset<NumPools> poolsBeingUsed;

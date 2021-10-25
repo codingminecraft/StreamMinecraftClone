@@ -112,8 +112,8 @@ namespace Minecraft
 			playerTransform.position.z = 55.0f;
 			CharacterController& controller = registry->getComponent<CharacterController>(player);
 			controller.lockedToCamera = true;
-			controller.controllerBaseSpeed = 1.4f;
-			controller.controllerRunSpeed = 2.0f;
+			controller.controllerBaseSpeed = 1.8f;
+			controller.controllerRunSpeed = 2.4f;
 			controller.movementSensitivity = 0.6f;
 			controller.isRunning = false;
 			controller.movementAxis = glm::vec3();
