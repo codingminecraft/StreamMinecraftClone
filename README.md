@@ -56,10 +56,10 @@ This is a list of tasks that still need to be done.
 ### Most Important
 ---
 
-- [ ] Save chunks when they unload from the chunk radius
-- [ ] Make stuff look pretty
+- [x] ~~Save chunks when they unload from the chunk radius~~
+- [ ] Make GUI stuff look pretty
 - [ ] Clean up the code in `ChunkManager.cpp`
-- [ ] Make the application handle out of memory errors gracefully
+- [ ] Make the application handle out of memory errors gracefully (Sort of done...)
     * Either make it allocate more memory, or just de-prioritize the furthest chunks
 - [ ] Add block level lighting
     * Add light sources
@@ -77,6 +77,7 @@ This is a list of tasks that still need to be done.
     * Tree generation
 - [ ] Water/Lava
 - [x] ~~Fullscreen support~~
+- Add sounds
 
 ### Less Important
 ---
