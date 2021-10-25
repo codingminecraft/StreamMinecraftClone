@@ -77,7 +77,7 @@ This is a list of tasks that still need to be done.
     * Tree generation
 - [ ] Water/Lava
 - [x] ~~Fullscreen support~~
-- Add sounds
+- [ ] Add sounds
 
 ### Less Important
 ---
