@@ -1092,9 +1092,6 @@ namespace Minecraft
 						}
 
 						const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
-						const TextureFormat& side = BlockMap::getTextureFormat(blockFormat.sideTexture);
-						const TextureFormat& top = BlockMap::getTextureFormat(blockFormat.topTexture);
-						const TextureFormat& bottom = BlockMap::getTextureFormat(blockFormat.bottomTexture);
 
 						glm::ivec3 verts[8];
 						verts[0] = glm::ivec3(
@@ -1111,155 +1108,86 @@ namespace Minecraft
 						verts[6] = verts[2] + glm::ivec3(0, 1, 0);
 						verts[7] = verts[3] + glm::ivec3(0, 1, 0);
 
-						// Top Face
-						Block topBlockData = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates);
-						// Bottom Face
-						Block bottomBlockData = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
-						// Right Face
-						Block rightBlockData = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
-						// Left Face
-						Block leftBlockData = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
-						// Forward Face
-						Block forwardBlockData = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
-						// Back Face
-						Block backBlockData = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
+						// The order of coordinates is LEFT, RIGHT, BOTTOM, TOP, BACK, FRONT blocks to check
+						int xCoords[6] = {x, x, x, x, x - 1, x + 1};
+						int yCoords[6] = {y, y, y - 1, y + 1, y, y};
+						int zCoords[6] = {z - 1, z + 1, z, z, z, z};
 
-						glm::ivec3 topBlockLightColor =
-							glm::ivec3(
-								((topBlockData.lightColor & 0x7) >> 0),  // R
-								((topBlockData.lightColor & 0x38) >> 3), // G
-								((topBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
-						glm::ivec3 bottomBlockLightColor =
-							glm::ivec3(
-								((bottomBlockData.lightColor & 0x7) >> 0),  // R
-								((bottomBlockData.lightColor & 0x38) >> 3), // G
-								((bottomBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
-						glm::ivec3 rightBlockLightColor =
-							glm::ivec3(
-								((rightBlockData.lightColor & 0x7) >> 0),  // R
-								((rightBlockData.lightColor & 0x38) >> 3), // G
-								((rightBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
-						glm::ivec3 leftBlockLightColor =
-							glm::ivec3(
-								((leftBlockData.lightColor & 0x7) >> 0),  // R
-								((leftBlockData.lightColor & 0x38) >> 3), // G
-								((leftBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
-						glm::ivec3 forwardBlockLightColor =
-							glm::ivec3(
-								((forwardBlockData.lightColor & 0x7) >> 0),  // R
-								((forwardBlockData.lightColor & 0x38) >> 3), // G
-								((forwardBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
-						glm::ivec3 backBlockLightColor =
-							glm::ivec3(
-								((backBlockData.lightColor & 0x7) >> 0),  // R
-								((backBlockData.lightColor & 0x38) >> 3), // G
-								((backBlockData.lightColor & 0x1C0) >> 6) // B;
-							);
+						// We are just making this into a loop
+						//// Top Face
+						//Block topBlockData = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates);
+						//// Bottom Face
+						//Block bottomBlockData = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
+						//// Right Face
+						//Block rightBlockData = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
+						//// Left Face
+						//Block leftBlockData = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
+						//// Forward Face
+						//Block forwardBlockData = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
+						//// Back Face
+						//Block backBlockData = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
 
-						int lightLevels[6];
-						lightLevels[(int)CUBE_FACE::TOP] = topBlockData.lightLevel;
-						lightLevels[(int)CUBE_FACE::BOTTOM] = bottomBlockData.lightLevel;
-						lightLevels[(int)CUBE_FACE::RIGHT] = rightBlockData.lightLevel;
-						lightLevels[(int)CUBE_FACE::LEFT] = leftBlockData.lightLevel;
-						lightLevels[(int)CUBE_FACE::FRONT] = forwardBlockData.lightLevel;
-						lightLevels[(int)CUBE_FACE::BACK] = backBlockData.lightLevel;
-
+						Block blocks[6];
 						glm::ivec3 lightColors[6];
-						lightColors[(int)CUBE_FACE::TOP] = topBlockLightColor;
-						lightColors[(int)CUBE_FACE::BOTTOM] = bottomBlockLightColor;
-						lightColors[(int)CUBE_FACE::RIGHT] = rightBlockLightColor;
-						lightColors[(int)CUBE_FACE::LEFT] = leftBlockLightColor;
-						lightColors[(int)CUBE_FACE::FRONT] = forwardBlockLightColor;
-						lightColors[(int)CUBE_FACE::BACK] = backBlockLightColor;
-
-						const BlockFormat& topBlock = BlockMap::getBlock(topBlockData.id);
-						if (topBlockData.id && topBlock.isTransparent)
+						int lightLevels[6];
+						const TextureFormat* textures[6] = {
+							&BlockMap::getTextureFormat(blockFormat.sideTexture),
+							&BlockMap::getTextureFormat(blockFormat.sideTexture),
+							&BlockMap::getTextureFormat(blockFormat.bottomTexture),
+							&BlockMap::getTextureFormat(blockFormat.topTexture),
+							&BlockMap::getTextureFormat(blockFormat.sideTexture),
+							&BlockMap::getTextureFormat(blockFormat.sideTexture)
+						};
+						static const glm::ivec4 vertIndices[6] = {
+							{0, 4, 7, 3}, // LEFT
+							{2, 6, 5, 1}, // RIGHT
+							{0, 3, 2, 1}, // BOTTOM
+							{5, 6, 7, 4}, // TOP
+							{0, 1, 5, 4}, // BACK
+							{7, 6, 2, 3}  // FRONT
+						};
+						for (int i = 0; i < 6; i++)
 						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
-							{
-								// TODO: Handle running out of memory better than this
-								break;
-							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
-								top, CUBE_FACE::TOP, blockFormat.colorTopByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
+							blocks[i] = getBlockInternal(blockData, xCoords[i], yCoords[i], zCoords[i], chunkCoordinates);
+							lightColors[i] = glm::ivec3(
+								((blocks[i].lightColor & 0x7) >> 0),  // R
+								((blocks[i].lightColor & 0x38) >> 3), // G
+								((blocks[i].lightColor & 0x1C0) >> 6) // B;
+							);
+							lightLevels[i] = blocks[i].lightLevel;
 						}
+						const BlockFormat* blockFormats[6] = {
+							&BlockMap::getBlock(blocks[0].id),
+							&BlockMap::getBlock(blocks[1].id),
+							&BlockMap::getBlock(blocks[2].id),
+							&BlockMap::getBlock(blocks[3].id),
+							&BlockMap::getBlock(blocks[4].id),
+							&BlockMap::getBlock(blocks[5].id)
+						};
 
-						// Bottom Face
-						const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockData.id);
-						if (bottomBlockData.id && bottomBlock.isTransparent)
+						// Only add the faces that are not culled by other blocks
+						for (int i = 0; i < 6; i++)
 						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
+							if (blocks[i].id && blockFormats[i]->isTransparent)
 							{
-								// TODO: Handle running out of memory better than this
-								break;
+								currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+								if (!currentSubChunk)
+								{
+									// TODO: Handle running out of memory better than this
+									break;
+								}
+								loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, 
+									verts[vertIndices[i][0]], 
+									verts[vertIndices[i][1]], 
+									verts[vertIndices[i][2]], 
+									verts[vertIndices[i][3]],
+									*textures[i], 
+									(CUBE_FACE)i, 
+									blockFormat.colorTopByBiome, 
+									lightLevels, 
+									lightColors);
+								currentSubChunk->numVertsUsed += 6;
 							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
-								bottom, CUBE_FACE::BOTTOM, blockFormat.colorBottomByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
-						}
-
-						const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockData.id);
-						if (rightBlockData.id && rightBlock.isTransparent)
-						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
-							{
-								// TODO: Handle running out of memory better than this
-								break;
-							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
-								side, CUBE_FACE::RIGHT, blockFormat.colorSideByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
-						}
-
-						const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockData.id);
-						if (leftBlockData.id && leftBlock.isTransparent)
-						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
-							{
-								// TODO: Handle running out of memory better than this
-								break;
-							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
-								side, CUBE_FACE::LEFT, blockFormat.colorSideByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
-						}
-
-						const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockData.id);
-						if (forwardBlockData.id && forwardBlock.isTransparent)
-						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
-							{
-								// TODO: Handle running out of memory better than this
-								break;
-							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
-								side, CUBE_FACE::FRONT, blockFormat.colorSideByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
-						}
-
-						const BlockFormat& backBlock = BlockMap::getBlock(backBlockData.id);
-						if (backBlockData.id && backBlock.isTransparent)
-						{
-							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
-							if (!currentSubChunk)
-							{
-								// TODO: Handle running out of memory better than this
-								break;
-							}
-							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
-								side, CUBE_FACE::BACK, blockFormat.colorSideByBiome, lightLevels, lightColors);
-							currentSubChunk->numVertsUsed += 6;
 						}
 					}
 				}
