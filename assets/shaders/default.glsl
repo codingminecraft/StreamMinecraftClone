@@ -10,6 +10,8 @@ out vec2 fTexCoords;
 flat out uint fFace;
 out vec3 fFragPosition;
 out vec3 fColor;
+out float fLightLevel;
+out vec3 fLightColor;
 
 uniform samplerBuffer uTexCoordTexture;
 uniform mat4 uProjection;
@@ -20,6 +22,11 @@ uniform mat4 uView;
 #define TEX_ID_BITMASK uint(0x1FFE0000)
 #define UV_INDEX_BITMASK uint(0x3)
 #define COLOR_BLOCK_BIOME_BITMASK uint(0x4)
+#define LIGHT_LEVEL_BITMASK uint(0xF8)
+#define LIGHT_COLOR_BITMASK_R uint(0x00700)
+#define LIGHT_COLOR_BITMASK_G uint(0x03800)
+#define LIGHT_COLOR_BITMASK_B uint(0x1C000)
+
 #define BASE_17_WIDTH uint(17)
 #define BASE_17_DEPTH uint(17)
 #define BASE_17_HEIGHT uint(289)
@@ -52,6 +59,18 @@ void extractColorVertexBiome(in uint data2, out bool colorVertexBiome)
 	colorVertexBiome = bool(data2 & COLOR_BLOCK_BIOME_BITMASK);
 }
 
+void extractLightLevel(in uint data2, out float lightLevel)
+{
+	lightLevel = float((data2 & LIGHT_LEVEL_BITMASK) >> 4);
+}
+
+void extractLightColor(in uint data2, out vec3 lightColor)
+{
+	lightColor.r = float((data2 & LIGHT_COLOR_BITMASK_R) >> 8) / 8.0;
+	lightColor.g = float((data2 & LIGHT_COLOR_BITMASK_G) >> 11) / 8.0;
+	lightColor.b = float((data2 & LIGHT_COLOR_BITMASK_B) >> 14) / 8.0;
+}
+
 void main()
 {
 	extractPosition(aData1, fFragPosition);
@@ -59,6 +78,8 @@ void main()
 	extractTexCoords(aData1, aData2, fTexCoords);
 	bool colorVertexByBiome;
 	extractColorVertexBiome(aData2, colorVertexByBiome);
+	extractLightLevel(aData2, fLightLevel);
+	extractLightColor(aData2, fLightColor);
 
 	// Convert from local Chunk Coords to world Coords
 	fFragPosition.x += float(aChunkPos.x) * 16.0;
@@ -81,6 +102,8 @@ in vec2 fTexCoords;
 flat in uint fFace;
 in vec3 fFragPosition;
 in vec3 fColor;
+in float fLightLevel;
+in vec3 fLightColor;
 
 uniform sampler2D uTexture;
 uniform vec3 uSunDirection;
@@ -137,7 +160,8 @@ void main()
 
 	vec4 objectColor = texture(uTexture, fTexCoords);
 	vec3 result = (diffuse + ambient) * objectColor.rgb;
-	FragColor = (vec4(result, 1.0) * (1 - d) + fogColor * d) * vec4(fColor, 1);
+
+	FragColor = (mix(vec4(result, 1.0), fogColor, d) + vec4(fLightColor * (fLightLevel / 32.0), 1.0)) * vec4(fColor, 1.0);
 	if (objectColor.a == 0) 
 	{
 		discard;

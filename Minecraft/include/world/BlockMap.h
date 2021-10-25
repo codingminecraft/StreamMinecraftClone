@@ -17,7 +17,8 @@ namespace Minecraft
 		int16 id;
 		int8 lightLevel;
 		int8 rotation;
-		int32 padding;
+		int16 lightColor;
+		int16 padding;
 	};
 
 	bool operator==(const Block& a, const Block& b);

@@ -901,6 +901,10 @@ namespace Minecraft
 
 		static const int UV_INDEX_BITMASK = 0x3;
 		static const int COLOR_BLOCK_BIOME_BITMASK = 0x4;
+		static const int LIGHT_LEVEL_BITMASK = 0xF8;
+		static const int LIGHT_COLOR_BITMASK_R = 0x00700;
+		static const int LIGHT_COLOR_BITMASK_G = 0x03800;
+		static const int LIGHT_COLOR_BITMASK_B = 0x1C000;
 
 		static const int BASE_17_DEPTH = 17;
 		static const int BASE_17_WIDTH = 17;
@@ -912,7 +916,7 @@ namespace Minecraft
 		static bool setBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates, Block newBlock);
 		static bool removeBlockInternal(Block* data, int x, int y, int z, const glm::ivec2& chunkCoordinates);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
-		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome);
+		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, int lightLevel[6], glm::ivec3 lightColor[6]);
 
 		void info()
 		{
@@ -929,7 +933,8 @@ namespace Minecraft
 			g_memory_zeroMem(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
 			const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
 			const float scale = 0.001f;
-			for (int y = 0; y < World::ChunkHeight; y++)
+			// TODO: This is going to go backwards through the array, probably for cache efficiency
+			for (int y = World::ChunkHeight - 1; y >= 0; y--)
 			{
 				for (int x = 0; x < World::ChunkDepth; x++)
 				{
@@ -976,6 +981,23 @@ namespace Minecraft
 						{
 							blockData[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
 						}
+
+						if (y == World::ChunkHeight - 1)
+						{
+							if (blockData[arrayExpansion].id == BlockMap::AIR_BLOCK.id)
+							{
+								blockData[arrayExpansion].lightLevel = 31;
+							}
+							else
+							{
+								// TODO: Only do this if this is not a transparent block
+								blockData[arrayExpansion].lightLevel = 0;
+							}
+						}
+						blockData[arrayExpansion].lightColor =
+							((7 << 0) & 0x7)  | // R
+							((7 << 3) & 0x38) | // G
+							((7 << 6) & 0x1C0); // B
 					}
 				}
 			}
@@ -1090,9 +1112,73 @@ namespace Minecraft
 						verts[7] = verts[3] + glm::ivec3(0, 1, 0);
 
 						// Top Face
-						const int topBlockId = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates).id;
-						const BlockFormat& topBlock = BlockMap::getBlock(topBlockId);
-						if (topBlockId && topBlock.isTransparent)
+						Block topBlockData = getBlockInternal(blockData, x, y + 1, z, chunkCoordinates);
+						// Bottom Face
+						Block bottomBlockData = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
+						// Right Face
+						Block rightBlockData = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
+						// Left Face
+						Block leftBlockData = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
+						// Forward Face
+						Block forwardBlockData = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
+						// Back Face
+						Block backBlockData = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
+
+						glm::ivec3 topBlockLightColor =
+							glm::ivec3(
+								((topBlockData.lightColor & 0x7) >> 0),  // R
+								((topBlockData.lightColor & 0x38) >> 3), // G
+								((topBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+						glm::ivec3 bottomBlockLightColor =
+							glm::ivec3(
+								((bottomBlockData.lightColor & 0x7) >> 0),  // R
+								((bottomBlockData.lightColor & 0x38) >> 3), // G
+								((bottomBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+						glm::ivec3 rightBlockLightColor =
+							glm::ivec3(
+								((rightBlockData.lightColor & 0x7) >> 0),  // R
+								((rightBlockData.lightColor & 0x38) >> 3), // G
+								((rightBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+						glm::ivec3 leftBlockLightColor =
+							glm::ivec3(
+								((leftBlockData.lightColor & 0x7) >> 0),  // R
+								((leftBlockData.lightColor & 0x38) >> 3), // G
+								((leftBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+						glm::ivec3 forwardBlockLightColor =
+							glm::ivec3(
+								((forwardBlockData.lightColor & 0x7) >> 0),  // R
+								((forwardBlockData.lightColor & 0x38) >> 3), // G
+								((forwardBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+						glm::ivec3 backBlockLightColor =
+							glm::ivec3(
+								((backBlockData.lightColor & 0x7) >> 0),  // R
+								((backBlockData.lightColor & 0x38) >> 3), // G
+								((backBlockData.lightColor & 0x1C0) >> 6) // B;
+							);
+
+						int lightLevels[6];
+						lightLevels[(int)CUBE_FACE::TOP] = topBlockData.lightLevel;
+						lightLevels[(int)CUBE_FACE::BOTTOM] = bottomBlockData.lightLevel;
+						lightLevels[(int)CUBE_FACE::RIGHT] = rightBlockData.lightLevel;
+						lightLevels[(int)CUBE_FACE::LEFT] = leftBlockData.lightLevel;
+						lightLevels[(int)CUBE_FACE::FRONT] = forwardBlockData.lightLevel;
+						lightLevels[(int)CUBE_FACE::BACK] = backBlockData.lightLevel;
+
+						glm::ivec3 lightColors[6];
+						lightColors[(int)CUBE_FACE::TOP] = topBlockLightColor;
+						lightColors[(int)CUBE_FACE::BOTTOM] = bottomBlockLightColor;
+						lightColors[(int)CUBE_FACE::RIGHT] = rightBlockLightColor;
+						lightColors[(int)CUBE_FACE::LEFT] = leftBlockLightColor;
+						lightColors[(int)CUBE_FACE::FRONT] = forwardBlockLightColor;
+						lightColors[(int)CUBE_FACE::BACK] = backBlockLightColor;
+
+						const BlockFormat& topBlock = BlockMap::getBlock(topBlockData.id);
+						if (topBlockData.id && topBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1101,14 +1187,13 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[5], verts[6], verts[7], verts[4],
-								top, CUBE_FACE::TOP, blockFormat.colorTopByBiome);
+								top, CUBE_FACE::TOP, blockFormat.colorTopByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
 						// Bottom Face
-						const int bottomBlockId = getBlockInternal(blockData, x, y - 1, z, chunkCoordinates).id;
-						const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockId);
-						if (bottomBlockId && bottomBlock.isTransparent)
+						const BlockFormat& bottomBlock = BlockMap::getBlock(bottomBlockData.id);
+						if (bottomBlockData.id && bottomBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1117,14 +1202,12 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[3], verts[2], verts[1],
-								bottom, CUBE_FACE::BOTTOM, blockFormat.colorBottomByBiome);
+								bottom, CUBE_FACE::BOTTOM, blockFormat.colorBottomByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
-						// Right Face
-						const int rightBlockId = getBlockInternal(blockData, x, y, z + 1, chunkCoordinates).id;
-						const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockId);
-						if (rightBlockId && rightBlock.isTransparent)
+						const BlockFormat& rightBlock = BlockMap::getBlock(rightBlockData.id);
+						if (rightBlockData.id && rightBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1133,14 +1216,12 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[2], verts[6], verts[5], verts[1],
-								side, CUBE_FACE::RIGHT, blockFormat.colorSideByBiome);
+								side, CUBE_FACE::RIGHT, blockFormat.colorSideByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
-						// Left Face
-						const int leftBlockId = getBlockInternal(blockData, x, y, z - 1, chunkCoordinates).id;
-						const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockId);
-						if (leftBlockId && leftBlock.isTransparent)
+						const BlockFormat& leftBlock = BlockMap::getBlock(leftBlockData.id);
+						if (leftBlockData.id && leftBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1149,18 +1230,12 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[4], verts[7], verts[3],
-								side, CUBE_FACE::LEFT, blockFormat.colorSideByBiome);
+								side, CUBE_FACE::LEFT, blockFormat.colorSideByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
-						// Forward Face
-						const int forwardBlockId = getBlockInternal(blockData, x + 1, y, z, chunkCoordinates).id;
-						const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockId);
-						if (!forwardBlockId)
-						{
-							;
-						}
-						if (forwardBlockId && forwardBlock.isTransparent)
+						const BlockFormat& forwardBlock = BlockMap::getBlock(forwardBlockData.id);
+						if (forwardBlockData.id && forwardBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1169,14 +1244,12 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[7], verts[6], verts[2], verts[3],
-								side, CUBE_FACE::FRONT, blockFormat.colorSideByBiome);
+								side, CUBE_FACE::FRONT, blockFormat.colorSideByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 
-						// Back Face
-						const int backBlockId = getBlockInternal(blockData, x - 1, y, z, chunkCoordinates).id;
-						const BlockFormat& backBlock = BlockMap::getBlock(backBlockId);
-						if (backBlockId && backBlock.isTransparent)
+						const BlockFormat& backBlock = BlockMap::getBlock(backBlockData.id);
+						if (backBlockData.id && backBlock.isTransparent)
 						{
 							currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
 							if (!currentSubChunk)
@@ -1185,7 +1258,7 @@ namespace Minecraft
 								break;
 							}
 							loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed, verts[0], verts[1], verts[5], verts[4],
-								side, CUBE_FACE::BACK, blockFormat.colorSideByBiome);
+								side, CUBE_FACE::BACK, blockFormat.colorSideByBiome, lightLevels, lightColors);
 							currentSubChunk->numVertsUsed += 6;
 						}
 					}
@@ -1268,6 +1341,11 @@ namespace Minecraft
 			}
 
 			data[index] = newBlock;
+			data[index].lightLevel = 15;
+			data[index].lightColor =
+				((6 << 0) & 0x7) | // R
+				((6 << 3) & 0x38) | // G
+				((1 << 6) & 0x1C0); // B
 			return true;
 		}
 
@@ -1309,7 +1387,14 @@ namespace Minecraft
 			};
 		}
 
-		static Vertex compress(const glm::ivec3& vertex, const TextureFormat& texture, CUBE_FACE face, UV_INDEX uvIndex, bool colorVertexBasedOnBiome)
+		static Vertex compress(
+			const glm::ivec3& vertex,
+			const TextureFormat& texture,
+			CUBE_FACE face,
+			UV_INDEX uvIndex,
+			bool colorVertexBasedOnBiome,
+			int lightLevel,
+			const glm::ivec3& lightColor)
 		{
 			// Bits  0-16 position index
 			// Bits 17-28 texId
@@ -1323,36 +1408,21 @@ namespace Minecraft
 
 			uint32 data2 = 0;
 
-			// Bits 0-1 UV Index -- this tells us which corner to use for the texture coords
-			// Bit  2   Color the block based on biome
+			// Bits 0-1  UV Index -- this tells us which corner to use for the texture coords
+			// Bit  2    Color the block based on biome
+			// Bits 4-8  Light level
+			// Bits 9-17 Light color
 			data2 |= (((uint32)uvIndex << 0) & UV_INDEX_BITMASK);
 			data2 |= (((uint32)(colorVertexBasedOnBiome ? 1 : 0) << 2) & COLOR_BLOCK_BIOME_BITMASK);
+			data2 |= (((uint32)(lightLevel << 4) & LIGHT_LEVEL_BITMASK));
+			data2 |= (((uint32)(lightColor.r << 8) & LIGHT_COLOR_BITMASK_R));
+			data2 |= (((uint32)(lightColor.g << 11) & LIGHT_COLOR_BITMASK_G));
+			data2 |= (((uint32)(lightColor.b << 14) & LIGHT_COLOR_BITMASK_B));
 
 			return {
 				data1,
 				data2
 			};
-		}
-
-		static glm::ivec3 extractPosition(uint32 data)
-		{
-			int positionIndex = data & POSITION_INDEX_BITMASK;
-			return toCoordinates(positionIndex);
-		}
-
-		static uint16 extractTexId(uint32 data)
-		{
-			return (data & TEX_ID_BITMASK) >> 17;
-		}
-
-		static CUBE_FACE extractFace(uint32 data)
-		{
-			return (CUBE_FACE)((data & FACE_BITMASK) >> 29);
-		}
-
-		static UV_INDEX extractCorner(uint32 data)
-		{
-			return (UV_INDEX)((data & UV_INDEX_BITMASK) >> 0);
 		}
 
 		static void loadBlock(
@@ -1363,7 +1433,9 @@ namespace Minecraft
 			const glm::ivec3& vert4,
 			const TextureFormat& texture,
 			CUBE_FACE face,
-			bool colorFaceBasedOnBiome)
+			bool colorFaceBasedOnBiome,
+			int lightLevels[6],
+			glm::ivec3 lightColors[6])
 		{
 			UV_INDEX uv0 = UV_INDEX::BOTTOM_RIGHT;
 			UV_INDEX uv1 = UV_INDEX::TOP_RIGHT;
@@ -1372,6 +1444,7 @@ namespace Minecraft
 			UV_INDEX uv3 = UV_INDEX::BOTTOM_RIGHT;
 			UV_INDEX uv4 = UV_INDEX::TOP_LEFT;
 			UV_INDEX uv5 = UV_INDEX::BOTTOM_LEFT;
+
 			switch (face)
 			{
 			case CUBE_FACE::BACK:
@@ -1400,34 +1473,23 @@ namespace Minecraft
 				break;
 			}
 
-			vertexData[0] = compress(vert1, texture, face, uv0, colorFaceBasedOnBiome);
-			vertexData[1] = compress(vert2, texture, face, uv1, colorFaceBasedOnBiome);
-			vertexData[2] = compress(vert3, texture, face, uv2, colorFaceBasedOnBiome);
+			glm::ivec3 lightColor0 = lightColors[(int)CUBE_FACE::TOP] + lightColors[(int)CUBE_FACE::BACK] + lightColors[(int)CUBE_FACE::LEFT] / 3;
+			glm::ivec3 lightColor1 = lightColors[(int)CUBE_FACE::TOP] + lightColors[(int)CUBE_FACE::BACK] + lightColors[(int)CUBE_FACE::RIGHT] / 3;;
+			glm::ivec3 lightColor2 = lightColors[(int)CUBE_FACE::TOP] + lightColors[(int)CUBE_FACE::FRONT] + lightColors[(int)CUBE_FACE::LEFT] / 3;;
+			glm::ivec3 lightColor3 = lightColors[(int)CUBE_FACE::TOP] + lightColors[(int)CUBE_FACE::FRONT] + lightColors[(int)CUBE_FACE::RIGHT] / 3;;
 
-			vertexData[3] = compress(vert1, texture, face, uv3, colorFaceBasedOnBiome);
-			vertexData[4] = compress(vert3, texture, face, uv4, colorFaceBasedOnBiome);
-			vertexData[5] = compress(vert4, texture, face, uv5, colorFaceBasedOnBiome);
+			int lightLevel0 = lightLevels[(int)CUBE_FACE::TOP] + lightLevels[(int)CUBE_FACE::BACK] + lightLevels[(int)CUBE_FACE::LEFT] / 3;
+			int lightLevel1 = lightLevels[(int)CUBE_FACE::TOP] + lightLevels[(int)CUBE_FACE::BACK] + lightLevels[(int)CUBE_FACE::RIGHT] / 3;;
+			int lightLevel2 = lightLevels[(int)CUBE_FACE::TOP] + lightLevels[(int)CUBE_FACE::FRONT] + lightLevels[(int)CUBE_FACE::LEFT] / 3;;
+			int lightLevel3 = lightLevels[(int)CUBE_FACE::TOP] + lightLevels[(int)CUBE_FACE::FRONT] + lightLevels[(int)CUBE_FACE::RIGHT] / 3;;
 
-#ifdef _DEBUG
-			// TODO: Remove this once you are confident you are getting the right values
-			g_logger_assert(extractPosition(vertexData[0].data1) == vert1, "Failed Position.");
-			g_logger_assert(extractPosition(vertexData[1].data1) == vert2, "Failed Position.");
-			g_logger_assert(extractPosition(vertexData[2].data1) == vert3, "Failed Position.");
+			vertexData[0] = compress(vert1, texture, face, uv0, colorFaceBasedOnBiome, lightLevel0, lightColor0);
+			vertexData[1] = compress(vert2, texture, face, uv1, colorFaceBasedOnBiome, lightLevel1, lightColor1);
+			vertexData[2] = compress(vert3, texture, face, uv2, colorFaceBasedOnBiome, lightLevel2, lightColor2);
 
-			g_logger_assert(extractPosition(vertexData[3].data1) == vert1, "Failed Position.");
-			g_logger_assert(extractPosition(vertexData[4].data1) == vert3, "Failed Position.");
-			g_logger_assert(extractPosition(vertexData[5].data1) == vert4, "Failed Position.");
-
-			g_logger_assert(extractFace(vertexData[0].data1) == face, "Failed Face");
-			g_logger_assert(extractFace(vertexData[1].data1) == face, "Failed Face");
-			g_logger_assert(extractFace(vertexData[2].data1) == face, "Failed Face");
-			g_logger_assert(extractFace(vertexData[3].data1) == face, "Failed Face");
-
-			g_logger_assert(extractTexId(vertexData[0].data1) == texture.id, "Failed Texture Id");
-			g_logger_assert(extractTexId(vertexData[1].data1) == texture.id, "Failed Texture Id");
-			g_logger_assert(extractTexId(vertexData[2].data1) == texture.id, "Failed Texture Id");
-			g_logger_assert(extractTexId(vertexData[3].data1) == texture.id, "Failed Texture Id");
-#endif
+			vertexData[3] = compress(vert1, texture, face, uv3, colorFaceBasedOnBiome, lightLevel0, lightColor0);
+			vertexData[4] = compress(vert3, texture, face, uv4, colorFaceBasedOnBiome, lightLevel2, lightColor2);
+			vertexData[5] = compress(vert4, texture, face, uv5, colorFaceBasedOnBiome, lightLevel3, lightColor3);
 		}
 	}
 }
