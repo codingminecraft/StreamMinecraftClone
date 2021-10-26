@@ -286,8 +286,8 @@ namespace Minecraft
 			return iter->second;
 		}
 
-		g_logger_warning("Could not find shader variable '%s' for shader '%s'. Hint, maybe the shader variable is not used in the program? If so, then it will be compiled out of existence.",
-			varName, shader.filepath.string().c_str());
+		//g_logger_warning("Could not find shader variable '%s' for shader '%s'. Hint, maybe the shader variable is not used in the program? If so, then it will be compiled out of existence.",
+		//	varName, shader.filepath.string().c_str());
 		return -1;
 	}
 

@@ -61,7 +61,7 @@ void extractColorVertexBiome(in uint data2, out bool colorVertexBiome)
 
 void extractLightLevel(in uint data2, out float lightLevel)
 {
-	lightLevel = float((data2 & LIGHT_LEVEL_BITMASK) >> 4);
+	lightLevel = float((data2 & LIGHT_LEVEL_BITMASK) >> 3);
 }
 
 void extractLightColor(in uint data2, out vec3 lightColor)
@@ -161,7 +161,11 @@ void main()
 	vec4 objectColor = texture(uTexture, fTexCoords);
 	vec3 result = (diffuse + ambient) * objectColor.rgb;
 
-	FragColor = (mix(vec4(result, 1.0), fogColor, d) + vec4(fLightColor * (fLightLevel / 32.0), 1.0)) * vec4(fColor, 1.0);
+	float baseLightColor = .2;
+	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
+	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
+
+	FragColor = mix(lightColor * vec4(fColor, 1.0) * objectColor, fogColor, d);
 	if (objectColor.a == 0) 
 	{
 		discard;

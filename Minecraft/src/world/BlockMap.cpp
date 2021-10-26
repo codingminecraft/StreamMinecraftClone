@@ -154,4 +154,9 @@ namespace Minecraft
 	{
 		return a.id == b.id;
 	}
+
+	bool operator!=(const Block& a, const Block& b)
+	{
+		return !(a == b);
+	}
 }

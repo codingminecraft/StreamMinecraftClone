@@ -15,13 +15,14 @@ namespace Minecraft
 	struct Block
 	{
 		int16 id;
-		int8 lightLevel;
+		uint8 lightLevel;
 		int8 rotation;
 		int16 lightColor;
 		int16 padding;
 	};
 
 	bool operator==(const Block& a, const Block& b);
+	bool operator!=(const Block& a, const Block& b);
 
 	struct BlockFormat
 	{

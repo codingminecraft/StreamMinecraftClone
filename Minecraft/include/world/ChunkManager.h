@@ -46,6 +46,8 @@ namespace Minecraft
 		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, float seed);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Block* blockData, const glm::ivec2& chunkCoordinates);
+		void floodFillLightFromChunk(const glm::ivec2& chunkCoordinates);
+		void calculateLighting(Block* blockData, const glm::ivec2& chunkCoordinates);
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
 		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Block* blockData);
@@ -70,6 +72,9 @@ namespace Minecraft
 		Block getBlock(const glm::vec3& worldPosition);
 		void setBlock(const glm::vec3& worldPosition, Block newBlock);
 		void removeBlock(const glm::vec3& worldPosition);
+
+		Block* getChunk(const glm::vec3& worldPosition);
+		Block* getChunk(const glm::ivec2& chunkCoords);
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates, bool retesselate);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
