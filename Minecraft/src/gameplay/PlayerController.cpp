@@ -33,7 +33,7 @@ namespace Minecraft
 		static float blockPlaceDebounceTime = 0.2f;
 		static float blockPlaceDebounce = 0.0f;
 
-		static int hotbarBlockIds[9] = {2, 3, 4, 6, 8, 9, 10, 0, 0};
+		static int hotbarBlockIds[9] = {2, 3, 4, 6, 8, 9, 10, 11, 2};
 
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);

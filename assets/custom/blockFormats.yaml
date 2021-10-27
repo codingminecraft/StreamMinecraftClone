@@ -5,6 +5,8 @@ air_block:
   bottom: none 
   isSolid: false
   isTransparent: true
+  isLightSource: true
+  lightLevel: 0
 grass_block:
   id: 2
   side: grass_block_side
@@ -66,9 +68,18 @@ oak_leaves:
   colorSideByBiome: true 
   colorBottomByBiome: true
 oak_planks:
-  id: 8
+  id: 10
   side: oak_planks
   top: oak_planks
   bottom: oak_planks
   isSolid: true 
   isTransparent: false
+glowstone:
+  id: 11
+  side: glowstone
+  top: glowstone
+  bottom: glowstone
+  isSolid: true 
+  isTransparent: false 
+  isLightSource: true 
+  lightLevel: 15

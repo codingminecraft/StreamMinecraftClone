@@ -1121,22 +1121,22 @@ namespace Minecraft
 						{
 							// If the 32 bit is set in the block above, this is a sky block
 							const Block& topNeighbor = y + 1 >= 256 ? BlockMap::NULL_BLOCK : blockData[to1DArray(x, y + 1, z)];
-							int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
+							int topNeighborLight = topNeighbor.isLightSource() ? topNeighbor.lightLevel & 31 : 0;
 							Block bottomNeighbor = y - 1 < 0 ? BlockMap::NULL_BLOCK :
 								getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
-							int bottomNeighborLight = bottomNeighbor == BlockMap::AIR_BLOCK ? bottomNeighbor.lightLevel & 31 : 0;
+							int bottomNeighborLight = bottomNeighbor.isLightSource() ? bottomNeighbor.lightLevel & 31 : 0;
 							Block leftNeighbor = internalOnly && z - 1 < 0 ? BlockMap::NULL_BLOCK :
 								getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
-							int leftNeighborLight = leftNeighbor == BlockMap::AIR_BLOCK ? leftNeighbor.lightLevel & 31 : 0;
+							int leftNeighborLight = leftNeighbor.isLightSource() ? leftNeighbor.lightLevel & 31 : 0;
 							Block rightNeighbor = internalOnly && z + 1 >= World::ChunkWidth ? BlockMap::NULL_BLOCK :
 								getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
-							int rightNeighborLight = rightNeighbor == BlockMap::AIR_BLOCK ? rightNeighbor.lightLevel & 31 : 0;
+							int rightNeighborLight = rightNeighbor.isLightSource() ? rightNeighbor.lightLevel & 31 : 0;
 							Block frontNeighbor = internalOnly && x + 1 >= World::ChunkDepth ? BlockMap::NULL_BLOCK :
 								getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
-							int frontNeighborLight = frontNeighbor == BlockMap::AIR_BLOCK ? frontNeighbor.lightLevel & 31 : 0;
+							int frontNeighborLight = frontNeighbor.isLightSource() ? frontNeighbor.lightLevel & 31 : 0;
 							Block backNeighbor = internalOnly && x - 1 < 0 ? BlockMap::NULL_BLOCK :
 								getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
-							int backNeighborLight = backNeighbor == BlockMap::AIR_BLOCK ? backNeighbor.lightLevel & 31 : 0;
+							int backNeighborLight = backNeighbor.isLightSource() ? backNeighbor.lightLevel & 31 : 0;
 
 							// Check what the light level should be, if it's not set properly, then
 							// we'll do a flood-fill from here to fill in this light properly
@@ -1230,7 +1230,7 @@ namespace Minecraft
 			int localY = localPosition.y;
 			int localZ = localPosition.z;
 			Block blockThatsUpdating = blockData[to1DArray(localX, localY, localZ)];
-			if (blockThatsUpdating != BlockMap::AIR_BLOCK)
+			if (!blockThatsUpdating.isLightSource())
 			{
 				bool offsetsAdded[6];
 				// First update all blocks surrounding this block that are inside this chunk
@@ -1264,7 +1264,7 @@ namespace Minecraft
 			}
 			else
 			{
-				updateBlockLightLevel(blockData, localX, localY, localZ, chunkCoordinates, false, false);
+				updateBlockLightLevel(blockData, localX, localY, localZ, chunkCoordinates, false, true);
 			}
 		}
 
@@ -1536,7 +1536,7 @@ namespace Minecraft
 				return;
 			}
 
-			if (blockData[to1DArray(localX, localY, localZ)] != BlockMap::AIR_BLOCK)
+			if (!blockData[to1DArray(localX, localY, localZ)].isLightSource())
 			{
 				return;
 			}
@@ -1573,7 +1573,7 @@ namespace Minecraft
 				}
 
 				int arrayExpansion = to1DArray(x, y, z);
-				if (blockData[arrayExpansion] != BlockMap::AIR_BLOCK)
+				if (!blockData[arrayExpansion].isLightSource())
 				{
 					continue;
 				}
@@ -1581,22 +1581,22 @@ namespace Minecraft
 				// If the 32 bit is set in the block above, this is a sky block
 				Block topNeighbor = y + 1 >= World::ChunkHeight ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x, y + 1, z, chunkCoordinates);
-				int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
+				int topNeighborLight = topNeighbor.isLightSource() ? topNeighbor.lightLevel & 31 : 0;
 				Block bottomNeighbor = y - 1 < 0 ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
-				int bottomNeighborLight = bottomNeighbor == BlockMap::AIR_BLOCK ? bottomNeighbor.lightLevel & 31 : 0;
+				int bottomNeighborLight = bottomNeighbor.isLightSource() ? bottomNeighbor.lightLevel & 31 : 0;
 				Block leftNeighbor = internalBlocksOnly && z - 1 < 0 ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
-				int leftNeighborLight = leftNeighbor == BlockMap::AIR_BLOCK ? leftNeighbor.lightLevel & 31 : 0;
+				int leftNeighborLight = leftNeighbor.isLightSource() ? leftNeighbor.lightLevel & 31 : 0;
 				Block rightNeighbor = internalBlocksOnly && z + 1 >= World::ChunkWidth ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
-				int rightNeighborLight = rightNeighbor == BlockMap::AIR_BLOCK ? rightNeighbor.lightLevel & 31 : 0;
+				int rightNeighborLight = rightNeighbor.isLightSource() ? rightNeighbor.lightLevel & 31 : 0;
 				Block frontNeighbor = internalBlocksOnly && x + 1 >= World::ChunkDepth ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
-				int frontNeighborLight = frontNeighbor == BlockMap::AIR_BLOCK ? frontNeighbor.lightLevel & 31 : 0;
+				int frontNeighborLight = frontNeighbor.isLightSource() ? frontNeighbor.lightLevel & 31 : 0;
 				Block backNeighbor = internalBlocksOnly && x - 1 < 0 ? BlockMap::NULL_BLOCK :
 					getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
-				int backNeighborLight = backNeighbor == BlockMap::AIR_BLOCK ? backNeighbor.lightLevel & 31 : 0;
+				int backNeighborLight = backNeighbor.isLightSource() ? backNeighbor.lightLevel & 31 : 0;
 
 				// We don't have to worry about sky blocks, because those have been set properly already
 				// Check if the new light level is correct
@@ -1615,6 +1615,11 @@ namespace Minecraft
 				if (topNeighbor.lightLevel & 32)
 				{
 					newLightLevel = 31 | 32;
+				}
+				// If this block is a light source and it's not air, use the block format's base light source level for it
+				if (blockData[arrayExpansion] != BlockMap::AIR_BLOCK && blockData[arrayExpansion].isLightSource())
+				{
+					newLightLevel = BlockMap::getBlock(blockData[arrayExpansion].id).lightLevel;
 				}
 
 				if (blockData[arrayExpansion].lightLevel != newLightLevel)
@@ -1730,7 +1735,7 @@ namespace Minecraft
 			}
 
 			data[index] = newBlock;
-			data[index].lightLevel = 0;
+			data[index].lightLevel = BlockMap::getBlock(newBlock.id).lightLevel;
 
 			return true;
 		}
@@ -1749,11 +1754,17 @@ namespace Minecraft
 				return false;
 			}
 
+			bool wasLightSource = data[index].isLightSource();
+			int oldLightLevel = data[index].lightLevel;
 			data[index] = BlockMap::AIR_BLOCK;
 			data[index].lightColor =
 				((7 << 0) & 0x7) | // R
 				((7 << 3) & 0x38) | // G
 				((7 << 6) & 0x1C0); // B
+			if (wasLightSource)
+			{
+				data[index].lightLevel = oldLightLevel;
+			}
 
 			return true;
 		}

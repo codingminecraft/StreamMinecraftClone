@@ -19,6 +19,8 @@ namespace Minecraft
 		int8 rotation;
 		int16 lightColor;
 		int16 padding;
+
+		bool isLightSource() const;
 	};
 
 	bool operator==(const Block& a, const Block& b);
@@ -34,6 +36,8 @@ namespace Minecraft
 		bool colorTopByBiome;
 		bool colorSideByBiome;
 		bool colorBottomByBiome;
+		bool isLightSource;
+		int lightLevel;
 		// TODO: Add bounding box definition here. That way we can add custom bounding boxes for different blocks
 	};
 

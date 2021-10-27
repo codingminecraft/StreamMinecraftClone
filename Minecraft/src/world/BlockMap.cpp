@@ -57,7 +57,12 @@ namespace Minecraft
 				"",
 				"",
 				true,
-				false
+				false,
+				false,
+				false,
+				false,
+				false,
+				0
 				});
 
 			if (textureFormat["Blocks"])
@@ -93,6 +98,8 @@ namespace Minecraft
 				bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
 				bool colorSideByBiome = block.second["colorSideByBiome"].IsDefined() ? block.second["colorSideByBiome"].as<bool>() : false;
 				bool colorBottomByBiome = block.second["colorBottomByBiome"].IsDefined() ? block.second["colorBottomByBiome"].as<bool>() : false;
+				bool isLightSource = block.second["isLightSource"].IsDefined() ? block.second["isLightSource"].as<bool>() : false;
+				int lightLevel = block.second["lightLevel"].IsDefined() ? block.second["lightLevel"].as<int>() : 0;
 
 				g_logger_info("Loading Block Id: %d", id);
 				g_logger_info("Side: %s", side.c_str());
@@ -101,7 +108,8 @@ namespace Minecraft
 
 				nameToIdMap[block.first.as<std::string>()] = id;
 				blockFormats.emplace_back(BlockFormat{
-					side, top, bottom, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome
+					side, top, bottom, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
+					isLightSource, lightLevel
 					});
 			}
 		}
@@ -158,5 +166,10 @@ namespace Minecraft
 	bool operator!=(const Block& a, const Block& b)
 	{
 		return !(a == b);
+	}
+
+	bool Block::isLightSource() const
+	{
+		return BlockMap::getBlock(id).isLightSource;
 	}
 }
