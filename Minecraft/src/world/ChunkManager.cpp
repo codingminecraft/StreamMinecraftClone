@@ -1057,9 +1057,38 @@ namespace Minecraft
 							// Grass
 							blockData[arrayExpansion].id = 2;
 						}
-						else
+						else if (!blockData[arrayExpansion].id)
 						{
 							blockData[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
+						}
+
+						if (y == maxHeight)
+						{
+							// Generate some trees 
+							int num = (rand() % 100);
+							bool generateTree = num > 96;
+							int treeHeight = (rand() % 6) + 3;
+							int leavesBottomY = glm::clamp(treeHeight - (rand() % 3) + 1, 3, (int)World::ChunkHeight);
+							int leavesTopY = glm::clamp(treeHeight + (rand() % 3) + 1, treeHeight + 1, (int)World::ChunkHeight);
+							if (generateTree && maxHeight + 1 + leavesTopY < World::ChunkHeight)
+							{
+								for (int treeY = maxHeight + 1; treeY <= treeHeight + y; treeY++)
+								{
+									blockData[to1DArray(x, treeY, z)].id = 8;
+								}
+
+								for (int leavesY = leavesBottomY + y; leavesY <= leavesTopY + y; leavesY++)
+								{
+									if (x - 1 >= 0) 
+										blockData[to1DArray(x - 1, leavesY, z)].id = 9;
+									if (x + 1 < World::ChunkDepth)
+										blockData[to1DArray(x + 1, leavesY, z)].id = 9;
+									if (z - 1 >= 0)
+										blockData[to1DArray(x, leavesY, z - 1)].id = 9;
+									if (z + 1 < World::ChunkWidth)
+										blockData[to1DArray(x, leavesY, z + 1)].id = 9;
+								}
+							}
 						}
 					}
 				}
