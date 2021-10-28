@@ -195,18 +195,6 @@ namespace Minecraft
 				ticks = 0;
 			}
 
-			if (Input::keyBeginPress(GLFW_KEY_F8))
-			{
-				Chunk::doStepLogic = !Chunk::doStepLogic;
-				g_logger_info("Step Logic: %d", Chunk::doStepLogic);
-			}
-
-			if (Input::keyBeginPress(GLFW_KEY_F7))
-			{
-				Chunk::stepOnce = true;
-				g_logger_info("Steping once");
-			}
-
 			// TODO: Remove me, I'm just here for testing purposes
 			if (Input::keyBeginPress(GLFW_KEY_F5))
 			{

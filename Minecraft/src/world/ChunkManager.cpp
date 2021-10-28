@@ -1264,7 +1264,7 @@ namespace Minecraft
 			}
 			else
 			{
-				updateBlockLightLevel(blockData, localX, localY, localZ, chunkCoordinates, false, true);
+				updateBlockLightLevel(blockData, localX, localY, localZ, chunkCoordinates, false, false);
 			}
 		}
 
@@ -1735,7 +1735,7 @@ namespace Minecraft
 			}
 
 			data[index] = newBlock;
-			data[index].lightLevel = BlockMap::getBlock(newBlock.id).lightLevel;
+			data[index].lightLevel = 0;// BlockMap::getBlock(newBlock.id).lightLevel;
 
 			return true;
 		}
@@ -1754,17 +1754,17 @@ namespace Minecraft
 				return false;
 			}
 
-			bool wasLightSource = data[index].isLightSource();
-			int oldLightLevel = data[index].lightLevel;
+			//bool wasLightSource = data[index].isLightSource();
+			//int oldLightLevel = data[index].lightLevel;
 			data[index] = BlockMap::AIR_BLOCK;
 			data[index].lightColor =
 				((7 << 0) & 0x7) | // R
 				((7 << 3) & 0x38) | // G
 				((7 << 6) & 0x1C0); // B
-			if (wasLightSource)
-			{
-				data[index].lightLevel = oldLightLevel;
-			}
+			//if (wasLightSource)
+			//{
+			//	data[index].lightLevel = oldLightLevel;
+			//}
 
 			return true;
 		}
