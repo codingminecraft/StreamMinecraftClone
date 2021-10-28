@@ -92,6 +92,24 @@ namespace Minecraft
 		return *this;
 	}
 
+	TextureBuilder& TextureBuilder::generateTextureObject()
+	{
+		glGenTextures(1, &texture.graphicsId);
+		return *this;
+	}
+
+	TextureBuilder& TextureBuilder::setTextureObject(uint32 textureObjectId)
+	{
+		texture.graphicsId = textureObjectId;
+		return *this;
+	}
+
+	TextureBuilder& TextureBuilder::bindTextureObject()
+	{
+		glBindTexture(TextureUtil::toGlType(texture.type) , texture.graphicsId);
+		return *this;
+	}
+
 	Texture TextureBuilder::generate(bool generateFromFilepath)
 	{
 		if (generateFromFilepath)
@@ -314,6 +332,30 @@ namespace Minecraft
 			return false;
 		}
 
+		uint32 toGlType(TextureType type)
+		{
+			switch (type)
+			{
+			case TextureType::_1D:
+				return GL_TEXTURE_1D;
+			case TextureType::_2D:
+				return GL_TEXTURE_2D;
+			case TextureType::_CUBEMAP:
+				return GL_TEXTURE_CUBE_MAP;
+			case TextureType::_CUBEMAP_POSITIVE_X:
+			case TextureType::_CUBEMAP_NEGATIVE_X:
+			case TextureType::_CUBEMAP_POSITIVE_Y:
+			case TextureType::_CUBEMAP_NEGATIVE_Y:
+			case TextureType::_CUBEMAP_POSITIVE_Z:
+			case TextureType::_CUBEMAP_NEGATIVE_Z:
+				return GL_TEXTURE_CUBE_MAP_POSITIVE_X + ((int)type - (int)TextureType::_CUBEMAP_POSITIVE_X);
+
+			}
+
+			g_logger_warning("Unknown texture type.");
+			return GL_NONE;
+		}
+
 		int32 toGlSwizzle(ColorChannel colorChannel)
 		{
 			switch (colorChannel)
@@ -360,21 +402,25 @@ namespace Minecraft
 				return;
 			}
 
-			glGenTextures(1, &texture.graphicsId);
-			glBindTexture(GL_TEXTURE_2D, texture.graphicsId);
-
 			bindTextureParameters(texture);
 
 			uint32 internalFormat = TextureUtil::toGlSizedInternalFormat(texture.format);
 			uint32 externalFormat = TextureUtil::toGlExternalFormat(texture.format);
 			g_logger_assert(internalFormat != GL_NONE && externalFormat != GL_NONE, "Tried to load image from file, but failed to identify internal format for image '%s'", texture.path.string().c_str());
+			uint32 textureType = TextureUtil::toGlType(texture.type);
 			switch (texture.type)
 			{
 			case TextureType::_1D:
 				g_logger_error("Cannot use 1D texture with stb.");
 				break;
 			case TextureType::_2D:
-				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, texture.width, texture.height, 0, externalFormat, GL_UNSIGNED_BYTE, pixels);
+			case TextureType::_CUBEMAP_POSITIVE_X:
+			case TextureType::_CUBEMAP_NEGATIVE_X:
+			case TextureType::_CUBEMAP_POSITIVE_Y:
+			case TextureType::_CUBEMAP_NEGATIVE_Y:
+			case TextureType::_CUBEMAP_POSITIVE_Z:
+			case TextureType::_CUBEMAP_NEGATIVE_Z:
+				glTexImage2D(textureType, 0, internalFormat, texture.width, texture.height, 0, externalFormat, GL_UNSIGNED_BYTE, pixels);
 				break;
 			default:
 				g_logger_error("Invalid texture type '%d'.", texture.type);
@@ -382,6 +428,7 @@ namespace Minecraft
 
 			stbi_image_free(pixels);
 		}
+
 
 		void generateEmptyTexture(Texture& texture)
 		{
@@ -394,15 +441,24 @@ namespace Minecraft
 			uint32 internalFormat = TextureUtil::toGlSizedInternalFormat(texture.format);
 			uint32 externalFormat = TextureUtil::toGlExternalFormat(texture.format);
 			uint32 dataType = TextureUtil::toGlDataType(texture.format);
+			uint32 textureType = TextureUtil::toGlType(texture.type);
 
 			// Here the GL_UNSIGNED_BYTE does nothing since we are just allocating space
 			switch (texture.type)
 			{
 			case TextureType::_1D:
-				glTexImage1D(GL_TEXTURE_1D, 0, internalFormat, texture.width, 0, externalFormat, dataType, nullptr);
+				glTexImage1D(textureType, 0, internalFormat, texture.width, 0, externalFormat, dataType, nullptr);
 				break;
 			case TextureType::_2D:
-				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, texture.width, texture.height, 0, externalFormat, dataType, nullptr);
+				glTexImage2D(textureType, 0, internalFormat, texture.width, texture.height, 0, externalFormat, dataType, nullptr);
+				break;
+			case TextureType::_CUBEMAP_NEGATIVE_X:
+			case TextureType::_CUBEMAP_POSITIVE_X:
+			case TextureType::_CUBEMAP_NEGATIVE_Y:
+			case TextureType::_CUBEMAP_POSITIVE_Y:
+			case TextureType::_CUBEMAP_NEGATIVE_Z:
+			case TextureType::_CUBEMAP_POSITIVE_Z:
+				glTexImage2D(textureType, 0, internalFormat, texture.width, texture.height, 0, externalFormat, dataType, nullptr);
 				break;
 			default:
 				g_logger_error("Invalid texture type '%d'.", texture.type);
@@ -415,11 +471,7 @@ namespace Minecraft
 	// ========================================================
 	static void bindTextureParameters(const Texture& texture)
 	{
-		uint32 type = texture.type == TextureType::_2D
-			? GL_TEXTURE_2D
-			: texture.type == TextureType::_1D ?
-			GL_TEXTURE_1D
-			: GL_NONE;
+		uint32 type = TextureUtil::toGlType(texture.type);
 		if (texture.wrapS != WrapMode::None)
 		{
 			glTexParameteri(type, GL_TEXTURE_WRAP_S, TextureUtil::toGl(texture.wrapS));
@@ -437,12 +489,13 @@ namespace Minecraft
 			glTexParameteri(type, GL_TEXTURE_MAG_FILTER, TextureUtil::toGl(texture.magFilter));
 		}
 
-		GLint swizzleMask[4] = {
-			TextureUtil::toGlSwizzle(texture.swizzleFormat[0]),
-			TextureUtil::toGlSwizzle(texture.swizzleFormat[1]),
-			TextureUtil::toGlSwizzle(texture.swizzleFormat[2]),
-			TextureUtil::toGlSwizzle(texture.swizzleFormat[3])
-		};
-		glTexParameteriv(type, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+		
+		//GLint swizzleMask[4] = {
+		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[0]),
+		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[1]),
+		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[2]),
+		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[3])
+		//};
+		//glTexParameteriv(type, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 	}
 }

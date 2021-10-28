@@ -60,6 +60,8 @@ namespace Minecraft
 				.setTextureType(TextureType::_2D)
 				.setWrapS(WrapMode::None)
 				.setWrapT(WrapMode::None)
+				.generateTextureObject()
+				.bindTextureObject()
 				.generate(true);
 
 			for (auto spriteConfig : spritesheetConfig)

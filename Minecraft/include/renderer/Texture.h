@@ -46,7 +46,14 @@ namespace Minecraft
 	{
 		None = 0,
 		_1D,
-		_2D
+		_2D,
+		_CUBEMAP,
+		_CUBEMAP_POSITIVE_X,
+		_CUBEMAP_NEGATIVE_X,
+		_CUBEMAP_POSITIVE_Y,
+		_CUBEMAP_NEGATIVE_Y,
+		_CUBEMAP_POSITIVE_Z,
+		_CUBEMAP_NEGATIVE_Z
 	};
 
 	struct Texture
@@ -91,6 +98,9 @@ namespace Minecraft
 		TextureBuilder& setHeight(uint32 height);
 		TextureBuilder& setSwizzle(std::initializer_list<ColorChannel> swizzleMask);
 		TextureBuilder& setTextureType(TextureType type);
+		TextureBuilder& generateTextureObject();
+		TextureBuilder& setTextureObject(uint32 textureObjectId);
+		TextureBuilder& bindTextureObject();
 
 		Texture generate(bool generateFromFilepath = false);
 		Texture build();
@@ -107,6 +117,7 @@ namespace Minecraft
 		uint32 toGl(FilterMode filterMode);
 		uint32 toGlDataType(ByteFormat format);
 		int32 toGlSwizzle(ColorChannel colorChannel);
+		uint32 toGlType(TextureType type);
 
 		bool byteFormatIsInt(const Texture& texture);
 		bool byteFormatIsRgb(const Texture& texture);

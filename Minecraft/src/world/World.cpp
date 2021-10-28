@@ -6,6 +6,7 @@
 #include "renderer/Texture.h"
 #include "renderer/Camera.h"
 #include "renderer/Font.h"
+#include "renderer/Cubemap.h"
 #include "renderer/Renderer.h"
 #include "renderer/Frustum.h"
 #include "input/Input.h"
@@ -39,7 +40,9 @@ namespace Minecraft
 
 		// Members
 		static Shader shader;
+		static Shader cubemapShader;
 		static Texture worldTexture;
+		static Cubemap skybox;
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
@@ -92,7 +95,18 @@ namespace Minecraft
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
 				.setFilepath(packedTexturesFilepath)
+				.generateTextureObject()
+				.bindTextureObject()
 				.generate(true);
+
+			cubemapShader.compile("assets/shaders/Cubemap.glsl");
+			skybox = Cubemap::generateCubemap(
+				"assets/images/sky/dayTop.jpg",
+				"assets/images/sky/dayBottom.jpg",
+				"assets/images/sky/dayLeft.jpg",
+				"assets/images/sky/dayRight.jpg",
+				"assets/images/sky/dayFront.jpg",
+				"assets/images/sky/dayBack.jpg");
 
 			// Setup player
 			Ecs::EntityId player = registry->createEntity();
@@ -176,6 +190,9 @@ namespace Minecraft
 			glm::mat4 viewMatrix = camera.calculateViewMatrix(*registry);
 			cameraFrustum.update(projectionMatrix * viewMatrix);
 			Renderer::setCameraFrustum(cameraFrustum);
+
+			// Render cubemap
+			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
 
 			// Update all systems
 			KeyHandler::update(dt);

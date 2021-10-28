@@ -82,4 +82,4 @@ glowstone:
   isSolid: true 
   isTransparent: false 
   isLightSource: true 
-  lightLevel: 15
+  lightLevel: 31

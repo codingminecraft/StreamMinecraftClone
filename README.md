@@ -61,7 +61,7 @@ This is a list of tasks that still need to be done.
 - [ ] Clean up the code in `ChunkManager.cpp`
 - [ ] Make the application handle out of memory errors gracefully (Sort of done...)
     * Either make it allocate more memory, or just de-prioritize the furthest chunks
-- [ ] Add block level lighting
+- [x] ~~Add block level lighting~~
     * Add light sources
     * Add multi-color lighting
 - [ ] Add proper transparency support

@@ -151,6 +151,8 @@ namespace Minecraft
 				.setWidth(1024 * 4)
 				.setHeight(1024 * 4)
 				.setFilepath(formattedFilepath.c_str())
+				.generateTextureObject()
+				.bindTextureObject()
 				.generate();
 
 			// Shift right 6, because this is measured in 64ths of a pixel, so we divide by 64 here
