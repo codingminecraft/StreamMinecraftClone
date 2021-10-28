@@ -88,3 +88,63 @@ This is a list of tasks that still need to be done.
 - [ ] Mobs
 - [ ] True survival mode
 - [ ] Settings Menu
+
+### Current Bugs
+    Current BUGS 26 October CST:
+    BUG #1:
+        Description of the bug: You glitch into the world in physics mode.
+        Steps to reproduce the behavior:
+            1. Mine 2 blocks down.
+            2. Place a block at the bottom without jumping.
+            3. You glitch into the world.
+        Expected behaviour:
+            1. You are supposed to not place a block there for that to happen or #2
+            2. You are supposed to automatically jump.
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+    BUG #2:
+        Description of the bug: You glitch into the world in physics mode.
+        Steps to reproduce the behavior:
+            1. Mine 2 blocks down.
+            2. Place a block at the head level of the player.
+            3. You glitch into the world./
+        Expected behaviour:
+            1. You are supposed to not place a block there for that to happen or #2
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+    BUG #3:
+        Description of the bug: Textures disappear.
+        Steps to reproduce the behavior:
+            1. Select item slot 9 (or) 8
+            2. Place it
+            3. It only disappears rarely but it is still a bug.
+        Expected behaviour:
+            1. You are supposed to place the block fully with the textures.
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+    BUG #3:
+        Description of the bug: Font not correctly rendering. like for example, "e" is in the middle of the letter height instead of being at the bottom
+        Steps to reproduce: ***NO STEPS TO REPRODUCE IT OCCURS AT THE START OR THE GAME***.
+        Expected behaviour:
+            1. It are supposed to render the letters at their correct `Y` position. 
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+    BUG #4:
+        Description of the bug: You glitch into the world in spectator mode.
+        Steps to reproduce the behavior:
+            1. Go to spectator mode by pressing `F4`.
+            2. Go down into a block.
+            3. Go to physics mode. by pressing `F4`.
+            4. You glitch into the world. Same as bug #1
+        Expected behaviour:
+            1. You are not supposed to be able to switch to physics mode while in a block.
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+    BUG #5:
+        Description of the bug: The game breaks in certain computers, the font does not show up.
+        Steps to reproduce the behavior: ***NO STEPS TO REPRODUCE THE BUG AVAILABLE***
+        Expected behaviour:
+            2. You are supposed to render the font.
+        OS:
+            ***ENGINE CURRENTLY SUPPORTS ONLY WINDOWS***
+        Additional context: `LOG: Missing glyph of font '127'`
