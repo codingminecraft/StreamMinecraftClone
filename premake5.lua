@@ -87,7 +87,8 @@ project "Minecraft"
 
         defines  {
             "_GLFW_WIN32",
-            "_CRT_SECURE_NO_WARNINGS"
+            "_CRT_SECURE_NO_WARNINGS",
+            "_ITERATOR_DEBUG_LEVEL=0"
         }
 
         postbuildcommands {

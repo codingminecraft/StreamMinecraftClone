@@ -14,6 +14,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "utils/DebugStats.h"
+#include "utils/CMath.h"
 
 namespace Minecraft
 {
@@ -37,7 +38,7 @@ namespace Minecraft
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont);
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
-		static void drawTexturedTriangle3D(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture);
+		static void drawTexturedTriangle3D(const glm::vec4& p0, const glm::vec4& p1, const glm::vec4& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture);
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
@@ -349,9 +350,9 @@ namespace Minecraft
 					font.texture,
 					renderableChar.texCoordStart,
 					renderableChar.texCoordSize
-					}, 
-					{ x, adjustedY }, 
-					{ charWidth, charHeight }, 
+					},
+					{ x, adjustedY },
+					{ charWidth, charHeight },
 					style, zIndex, true);
 
 				char nextC = i < string.length() - 1 ? string[i + 1] : '\0';
@@ -456,7 +457,7 @@ namespace Minecraft
 			drawLine(v3, v7, style);
 		}
 
-		void drawTexturedCube(const glm::vec3& center, const glm::vec3& size, const TextureFormat& sideSprite, const TextureFormat& topSprite, const TextureFormat& bottomSprite)
+		void drawTexturedCube(const glm::vec3& center, const glm::vec3& size, const TextureFormat& sideSprite, const TextureFormat& topSprite, const TextureFormat& bottomSprite, float rotation)
 		{
 			glm::vec3 halfSize = size * 0.5f;
 			// TODO: Do this in a better way... Maybe do sphere check before expensive box check
@@ -465,37 +466,54 @@ namespace Minecraft
 				return;
 			}
 
-			const glm::vec3 offsets[6] = {
-				{1, 0, 0},
-				{-1, 0, 0},
-				{0, 1, 0},
-				{0, -1, 0},
-				{0, 0, 1},
-				{0, 0, -1}
+			const glm::vec4 offsets[6] = {
+				{1, 0, 0, 1},
+				{-1, 0, 0, 1},
+				{0, 1, 0, 1},
+				{0, -1, 0, 1},
+				{0, 0, 1, 1},
+				{0, 0, -1, 1}
 			};
-			const glm::vec3 squareOffsets[6][4] = {
-				{{0, 1, 1}, {0, -1, 1}, {0, -1, -1}, {0, 1, -1}}, // Triangle order for front face
-				{{0, 1, -1}, {0, -1, -1}, {0, -1, 1}, {0, 1, 1}}, // Triangle order for back face
-				{{1, 0, 1}, {1, 0, -1}, {-1, 0, -1}, {-1, 0, 1}}, // Triangle order for top face
-				{{1, 0, 1}, {-1, 0, 1}, {-1, 0, -1}, {1, 0, -1}}, // Triangle order for bottom face
-				{{-1, 1, 0}, {-1, -1, 0}, {1, -1, 0}, {1, 1, 0}}, // Triangle order for right face
-				{{1, 1, 0}, {1, -1, 0}, {-1, -1, 0}, {-1, 1, 0}}  // Triangle order for left face
+			const glm::vec4 squareOffsets[6][4] = {
+				{{0, 1, 1, 0}, {0, -1, 1, 0}, {0, -1, -1, 0}, {0, 1, -1, 0}}, // Triangle order for front face
+				{{0, 1, -1, 0}, {0, -1, -1, 0}, {0, -1, 1, 0}, {0, 1, 1, 0}}, // Triangle order for back face
+				{{1, 0, 1, 0}, {1, 0, -1, 0}, {-1, 0, -1, 0}, {-1, 0, 1, 0}}, // Triangle order for top face
+				{{1, 0, 1, 0}, {-1, 0, 1, 0}, {-1, 0, -1, 0}, {1, 0, -1, 0}}, // Triangle order for bottom face
+				{{-1, 1, 0, 0}, {-1, -1, 0, 0}, {1, -1, 0, 0}, {1, 1, 0, 0}}, // Triangle order for right face
+				{{1, 1, 0, 0}, {1, -1, 0, 0}, {-1, -1, 0, 0}, {-1, 1, 0, 0}}  // Triangle order for left face
 			};
 			const TextureFormat* spriteToUse[6] = {
 				&sideSprite,
-				& sideSprite,
-				& topSprite, & bottomSprite, &sideSprite, &sideSprite
+				&sideSprite,
+				&topSprite, &bottomSprite, &sideSprite, &sideSprite
 			};
+			const glm::mat4 transformMatrix = 
+				glm::rotate(
+					glm::translate(glm::mat4(1.0f), center),
+					glm::radians(rotation),
+					glm::vec3(0, 1, 0)
+				);
+			const glm::vec4 center4 = glm::vec4(center, 1.0f);
+			const glm::vec4 halfSize4 = glm::vec4(halfSize, 1.0f);
+
 			// Six faces
 			for (int i = 0; i < 6; i++)
 			{
 				const TextureFormat* sprite = spriteToUse[i];
-				const glm::vec3& offset = offsets[i];
-				glm::vec3 p0 = center + halfSize * offset + halfSize * squareOffsets[i][0];
-				glm::vec3 p1 = center + halfSize * offset + halfSize * squareOffsets[i][1];
-				glm::vec3 p2 = center + halfSize * offset + halfSize * squareOffsets[i][2];
-				glm::vec3 p3 = center + halfSize * offset + halfSize * squareOffsets[i][3];
-				
+				glm::vec4 offset = offsets[i];
+
+				// Translate
+				glm::vec4 p0 = halfSize4 * offset + halfSize4 * squareOffsets[i][0];
+				glm::vec4 p1 = halfSize4 * offset + halfSize4 * squareOffsets[i][1];
+				glm::vec4 p2 = halfSize4 * offset + halfSize4 * squareOffsets[i][2];
+				glm::vec4 p3 = halfSize4 * offset + halfSize4 * squareOffsets[i][3];
+
+				// Transform
+				p0 = transformMatrix * p0;
+				p1 = transformMatrix * p1;
+				p2 = transformMatrix * p2;
+				p3 = transformMatrix * p3;
+
 				glm::vec2 uv0 = sprite->uvs[0];
 				glm::vec2 uv1 = sprite->uvs[1];
 				glm::vec2 uv2 = sprite->uvs[2];
@@ -575,9 +593,9 @@ namespace Minecraft
 		}
 
 		static void drawTexturedTriangle3D(
-			const glm::vec3& p0,
-			const glm::vec3& p1,
-			const glm::vec3& p2,
+			const glm::vec4& p0,
+			const glm::vec4& p1,
+			const glm::vec4& p2,
 			const glm::vec2& uv0,
 			const glm::vec2& uv1,
 			const glm::vec2& uv2,
@@ -593,17 +611,17 @@ namespace Minecraft
 
 			// One triangle per sector
 			RenderVertex3D v;
-			v.position = p0;
+			v.position = { p0.x, p0.y, p0.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv0;
 			batch3DRegular.addVertex(v);
 
-			v.position = p1;
+			v.position = { p1.x, p1.y, p1.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv1;
 			batch3DRegular.addVertex(v);
 
-			v.position = p2;
+			v.position = { p2.x, p2.y, p2.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv2;
 			batch3DRegular.addVertex(v);

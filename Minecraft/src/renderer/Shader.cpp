@@ -1,8 +1,6 @@
 #include "renderer/Shader.h"
 #include "utils/CMath.h"
 
-#include <unordered_map>
-
 
 namespace Minecraft
 {

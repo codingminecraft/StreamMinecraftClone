@@ -205,7 +205,7 @@ namespace Minecraft
 						break;
 						case CommandType::RecalculateLighting:
 						{
-							Chunk::calculateLightingUpdate(command.blockData, command.chunkCoordinates, command.blockThatUpdated);
+							//Chunk::calculateLightingUpdate(command.blockData, command.chunkCoordinates, command.blockThatUpdated);
 						}
 						break;
 						case CommandType::TesselateVertices:
@@ -1232,7 +1232,7 @@ namespace Minecraft
 						}
 						else
 						{
-							blockData[arrayExpansion].lightLevel = blockData[arrayExpansion].lightLevel & 31;
+							blockData[arrayExpansion].lightLevel = 0;
 						}
 
 						blockData[arrayExpansion].lightColor =
@@ -1623,17 +1623,6 @@ namespace Minecraft
 			}
 
 			fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
-			for (int y = 0; y < World::ChunkHeight; y++)
-			{
-				for (int x = 0; x < World::ChunkDepth; x++)
-				{
-					for (int z = 0; z < World::ChunkWidth; z++)
-					{
-						blockData[to1DArray(x, y, z)].lightLevel = 0;
-					}
-				}
-			}
-
 			fclose(fp);
 		}
 

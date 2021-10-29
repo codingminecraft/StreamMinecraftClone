@@ -12,6 +12,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 // My libraries
 #include <cppUtils/cppUtils.hpp>
@@ -24,7 +25,6 @@
 #include <array>
 #include <cstdio>
 #include <vector>
-#include <unordered_map>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <bitset>
 #include <optional>
+#include <unordered_map>
 
 // GLFW/glad
 #include <glad/glad.h>

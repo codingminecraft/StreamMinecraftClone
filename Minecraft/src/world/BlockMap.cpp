@@ -31,13 +31,13 @@ namespace Minecraft
 
 		const TextureFormat& getTextureFormat(const std::string& textureName)
 		{
-			auto iter = textureFormatMap.find(textureName);
+			const auto& iter = textureFormatMap.find(textureName);
 			if (iter != textureFormatMap.end())
 			{
 				return iter->second;
 			}
 
-			auto iter2 = itemTextureFormatMap.find(textureName);
+			const auto& iter2 = itemTextureFormatMap.find(textureName);
 			if (iter2 != itemTextureFormatMap.end())
 			{
 				return iter2->second;

@@ -35,7 +35,7 @@ namespace Minecraft
 		static float blockPlaceDebounceTime = 0.2f;
 		static float blockPlaceDebounce = 0.0f;
 
-		static int hotbarBlockIds[9] = {2, 3, 4, 6, 8, 9, 10, 11, 2};
+		static int hotbarBlockIds[9] = { 2, 3, 4, 6, 8, 9, 10, 11, 2 };
 
 		static const TextureFormat* sideSprite;
 		static const TextureFormat* topSprite;
@@ -54,9 +54,9 @@ namespace Minecraft
 			gameMode = GameMode::Survival;
 			playerId = Ecs::nullEntity;
 
-			sideSprite = &BlockMap::getTextureFormat("grass_block_side");
-			topSprite = &BlockMap::getTextureFormat("grass_block_top");
-			bottomSprite = &BlockMap::getTextureFormat("dirt");
+			sideSprite = &BlockMap::getTextureFormat("oak_log");
+			topSprite = &BlockMap::getTextureFormat("oak_log_top");
+			bottomSprite = &BlockMap::getTextureFormat("oak_log_top");
 		}
 
 		void update(Ecs::Registry& registry, float dt)
@@ -99,7 +99,23 @@ namespace Minecraft
 			{
 				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
 				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
-				Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f), glm::vec3(0.1f, 0.1f, 0.1f), *sideSprite, *topSprite, *bottomSprite);
+				static float rotation = 0.0f;
+				static glm::vec3 verticalOffset = glm::vec3(0.0f);
+				static float speedDir = 0.05f;
+				static int changeDirTick = 0;
+				verticalOffset.y += speedDir * dt;
+				Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
+				rotation = rotation + 30.0f * dt;
+				changeDirTick++;
+				if (changeDirTick > 30)
+				{
+					changeDirTick = 0;
+					speedDir *= -1.0f;
+				}
+				if (rotation > 360.0f)
+				{
+					rotation = rotation / 360.0f;
+				}
 
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
 				{
