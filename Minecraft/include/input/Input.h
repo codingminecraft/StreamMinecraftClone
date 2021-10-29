@@ -12,6 +12,8 @@ namespace Minecraft
 		extern float mouseScreenY;
 		extern float deltaMouseX;
 		extern float deltaMouseY;
+		extern float mouseScrollX;
+		extern float mouseScrollY;
 		extern bool keyPressed[GLFW_KEY_LAST];
 		extern bool keyBeginPressData[GLFW_KEY_LAST];
 		extern bool mousePressed[GLFW_MOUSE_BUTTON_LAST];
@@ -20,6 +22,7 @@ namespace Minecraft
 		void setWindowSize(const glm::vec2& windowSize);
 		void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 		void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 		void charCallback(GLFWwindow* window, unsigned int codepoint);
 		void endFrame();
 		

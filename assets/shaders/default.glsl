@@ -161,7 +161,7 @@ void main()
 	vec4 objectColor = texture(uTexture, fTexCoords);
 	vec3 result = (diffuse + ambient) * objectColor.rgb;
 
-	float baseLightColor = .05;
+	float baseLightColor = .2;
 	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
 

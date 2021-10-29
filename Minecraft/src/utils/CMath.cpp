@@ -176,5 +176,17 @@ namespace Minecraft
 		{
 			return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z + vec.w * vec.w;
 		}
+
+		int negativeMod(int value, int lowerBound, int upperBound)
+		{
+			int rangeSize = upperBound - lowerBound + 1;
+
+			if (value < lowerBound)
+			{
+				value += rangeSize * ((lowerBound - value) / rangeSize + 1);
+			}
+
+			return lowerBound + (value - lowerBound) % rangeSize;
+		}
 	}
 }

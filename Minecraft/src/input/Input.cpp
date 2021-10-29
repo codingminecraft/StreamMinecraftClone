@@ -4,17 +4,19 @@ namespace Minecraft
 {
 	namespace Input
 	{
-		float mouseScreenX = 0;
-		float mouseScreenY = 0;
-		float mouseX = 0;
-		float mouseY = 0;
-		float deltaMouseX = 0;
-		float deltaMouseY = 0;
-		uint32 lastCharPressedData = '\0';
+		extern float mouseScreenX = 0;
+		extern float mouseScreenY = 0;
+		extern float mouseX = 0;
+		extern float mouseY = 0;
+		extern float deltaMouseX = 0;
+		extern float deltaMouseY = 0;
+		extern float mouseScrollX = 0;
+		extern float mouseScrollY = 0;
+		extern bool keyPressed[GLFW_KEY_LAST] = {};
+		extern bool keyBeginPressData[GLFW_KEY_LAST] = {};
+		extern bool mousePressed[GLFW_MOUSE_BUTTON_LAST] = {};
 
-		bool keyPressed[GLFW_KEY_LAST];
-		bool keyBeginPressData[GLFW_KEY_LAST];
-		bool mousePressed[GLFW_MOUSE_BUTTON_LAST];
+		uint32 lastCharPressedData = '\0';
 
 		static float mLastMouseX = 0;
 		static float mLastMouseY = 0;
@@ -67,14 +69,6 @@ namespace Minecraft
 			mouseScreenY = projectedScreen.y;
 		}
 
-		void endFrame()
-		{
-			deltaMouseX = 0;
-			deltaMouseY = 0;
-			lastCharPressedData = '\0';
-			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
-		}
-
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
 			if (key < 0 || key > GLFW_KEY_LAST)
@@ -94,9 +88,25 @@ namespace Minecraft
 			}
 		}
 
+		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+		{
+			mouseScrollX = (float)xoffset;
+			mouseScrollY = (float)yoffset;
+		}
+
 		void charCallback(GLFWwindow* window, unsigned int codepoint)
 		{
 			lastCharPressedData = codepoint;
+		}
+
+		void endFrame()
+		{
+			deltaMouseX = 0;
+			deltaMouseY = 0;
+			lastCharPressedData = '\0';
+			mouseScrollX = 0;
+			mouseScrollY = 0;
+			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
 		}
 
 		bool isKeyPressed(int key)

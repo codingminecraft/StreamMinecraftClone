@@ -38,7 +38,7 @@ namespace Minecraft
 			if (regularInventorySlot && selectedInventorySlot)
 			{
 				float startXPosition = -(numHotBarInventorySlots * inventorySlotSize.x) / 2.0f;
-				glm::vec2 currentSlotPosition = glm::vec2(startXPosition, -1.4f);
+				glm::vec2 currentSlotPosition = glm::vec2(startXPosition, -1.48f);
 
 				for (int i = 0; i < numHotBarInventorySlots; i++)
 				{
@@ -48,7 +48,9 @@ namespace Minecraft
 					}
 					else
 					{
-						Renderer::drawTexture2D(*selectedInventorySlot, currentSlotPosition, inventorySlotSize, Styles::defaultStyle);
+						glm::vec2 bigSize = inventorySlotSize * 1.1f;
+						glm::vec2 adjustedPosition = currentSlotPosition - glm::vec2(((bigSize.x - inventorySlotSize.x) / 2.0f), 0);
+						Renderer::drawTexture2D(*selectedInventorySlot, adjustedPosition, bigSize, Styles::defaultStyle);
 					}
 					currentSlotPosition.x += inventorySlotSize.x;
 				}

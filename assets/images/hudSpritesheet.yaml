@@ -35,14 +35,14 @@ blockCursor:
   uvSize:
     x: 16
     y: 16
-regularInventorySlot:
+selectedInventorySlot:
   uvStart:
     x: 0
     y: 144
   uvSize:
     x: 32
     y: 32
-selectedInventorySlot:
+regularInventorySlot:
   uvStart:
     x: 0
     y: 176

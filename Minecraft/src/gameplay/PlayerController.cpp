@@ -6,6 +6,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "utils/DebugStats.h"
+#include "utils/CMath.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
 #include "gameplay/CharacterController.h"
@@ -184,6 +185,19 @@ namespace Minecraft
 				if (Input::keyBeginPress(GLFW_KEY_1 + i))
 				{
 					MainHud::currentInventorySlot = i;
+				}
+			}
+
+			if (Input::mouseScrollY != 0)
+			{
+				MainHud::currentInventorySlot += (int)Input::mouseScrollY;
+				if (MainHud::currentInventorySlot < 0)
+				{
+					MainHud::currentInventorySlot = CMath::negativeMod(MainHud::currentInventorySlot, 0, 8);
+				}
+				else if (MainHud::currentInventorySlot > 8)
+				{
+					MainHud::currentInventorySlot = MainHud::currentInventorySlot % 9;
 				}
 			}
 		}

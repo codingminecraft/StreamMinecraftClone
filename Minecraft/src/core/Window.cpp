@@ -63,6 +63,7 @@ namespace Minecraft
 		glfwSetFramebufferSizeCallback((GLFWwindow*)res->windowPtr, resizeCallback);
 		glfwSetMouseButtonCallback((GLFWwindow*)res->windowPtr, Input::mouseButtonCallback);
 		glfwSetCharCallback((GLFWwindow*)res->windowPtr, Input::charCallback);
+		glfwSetScrollCallback((GLFWwindow*)res->windowPtr, Input::scrollCallback);
 
 		int monitorX, monitorY;
 		glfwGetMonitorPos(monitor, &monitorX, &monitorY);

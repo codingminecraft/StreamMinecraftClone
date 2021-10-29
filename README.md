@@ -69,12 +69,12 @@ This is a list of tasks that still need to be done.
     * Add icons for blocks in the inventory
     * Add indicators for number of blocks in a slot
 - [ ] Add crafting support
-- [ ] Cubemaps
+- [x] ~~Cubemaps~~
 - [ ] Day/Night cycle
 - [ ] Biome generation
     * Ore generation
     * Structure generation
-    * Tree generation
+    * ~~Tree generation~~
 - [ ] Water/Lava
 - [x] ~~Fullscreen support~~
 - [ ] Add sounds

@@ -57,6 +57,8 @@ namespace Minecraft
 		int length2(const glm::ivec2& vec);
 		int length2(const glm::ivec3& vec);
 		int length2(const glm::ivec4& vec);
+
+		int negativeMod(int value, int lowerBound, int upperBound);
 	}
 }
 
