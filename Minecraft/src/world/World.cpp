@@ -48,6 +48,7 @@ namespace Minecraft
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
 		static Frustum cameraFrustum;
+		static glm::vec2 lastPlayerLoadPosition;
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
@@ -101,12 +102,12 @@ namespace Minecraft
 
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 			skybox = Cubemap::generateCubemap(
-				"assets/images/sky/dayTop.jpg",
-				"assets/images/sky/dayBottom.jpg",
-				"assets/images/sky/dayLeft.jpg",
-				"assets/images/sky/dayRight.jpg",
-				"assets/images/sky/dayFront.jpg",
-				"assets/images/sky/dayBack.jpg");
+				"assets/images/sky/dayTop.png",
+				"assets/images/sky/dayBottom.png",
+				"assets/images/sky/dayLeft.png",
+				"assets/images/sky/dayRight.png",
+				"assets/images/sky/dayFront.png",
+				"assets/images/sky/dayBack.png");
 
 			// Setup player
 			Ecs::EntityId player = registry->createEntity();
@@ -169,6 +170,7 @@ namespace Minecraft
 			tag2.type = TagType::None;
 
 			ChunkManager::init();
+			lastPlayerLoadPosition = glm::vec2(playerTransform.position.x, playerTransform.position.z);
 			ChunkManager::checkChunkRadius(playerTransform.position);
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
@@ -201,7 +203,6 @@ namespace Minecraft
 			PlayerController::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry, dt);
-			MainHud::update(dt);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
@@ -256,10 +257,9 @@ namespace Minecraft
 			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader, cameraFrustum);
 
 			// Check chunk radius if needed
-			static glm::vec3 lastPlayerLoadPosition = playerPosition;
-			if (glm::distance2(playerPosition, lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
+			if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
 			{
-				lastPlayerLoadPosition = playerPosition;
+				lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
 				ChunkManager::checkChunkRadius(playerPosition);
 			}
 		}

@@ -142,6 +142,7 @@ namespace Minecraft
 			}
 
 			updateInventory(dt);
+			MainHud::update(dt);
 		}
 
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)

@@ -46,7 +46,8 @@ namespace Minecraft
 		extern bool stepOnce;
 		extern bool doStepLogic;
 
-		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, float seed);
+		void generateTerrain(Block* blockData, const glm::ivec2& chunkCoordinates, float seed);
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Block* blockData, const glm::ivec2& chunkCoordinates);
 		void calculateLighting(Block* blockData, const glm::ivec2& chunkCoordinates, bool internalOnly);
@@ -78,7 +79,9 @@ namespace Minecraft
 
 		Block* getChunk(const glm::vec3& worldPosition);
 		Block* getChunk(const glm::ivec2& chunkCoords);
+		void setNeedsGenerateDecorations(const glm::ivec2& chunkCoords, bool value);
 
+		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated);

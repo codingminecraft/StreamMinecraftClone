@@ -14,11 +14,12 @@ namespace Minecraft
 	enum class CommandType : uint8
 	{
 		SaveBlockData = 0,
-		FillBlockData = 1,
-		CalculateLighting = 2,
-		CalculateChunkBorderLighting = 3,
-		RecalculateLighting = 4,
-		TesselateVertices = 5
+		GenerateTerrain = 1,
+		GenerateDecorations = 2,
+		CalculateLighting = 3,
+		CalculateChunkBorderLighting = 4,
+		RecalculateLighting = 5,
+		TesselateVertices = 6
 	};
 
 	struct FillChunkCommand
@@ -46,16 +47,19 @@ namespace Minecraft
 		std::atomic<ChunkState> state;
 		glm::ivec2 chunkCoords;
 		Block* blockData;
+		bool needsToGenerateDecorations;
 
 		ChunkStateData(const glm::ivec2& chunkCoords)
 		{
 			state = ChunkState::None;
 			this->chunkCoords = chunkCoords;
 			blockData = nullptr;
+			needsToGenerateDecorations = true;
 		}
 
 		ChunkStateData(const ChunkStateData& other)
-			: state(other.state.load()), chunkCoords(other.chunkCoords), blockData(other.blockData)
+			: state(other.state.load()), chunkCoords(other.chunkCoords), blockData(other.blockData), 
+			needsToGenerateDecorations(other.needsToGenerateDecorations)
 		{
 		}
 
@@ -139,7 +143,7 @@ namespace Minecraft
 						std::unique_lock<std::mutex> lock(mtx);
 						if (doWork)
 						{
-							cv.wait(lock, [&] { return !doWork || !commands.empty(); });
+							cv.wait(lock, [&] { return (!doWork || !commands.empty()) && !waitingOnCommand; });
 							shouldContinue = true;
 						}
 						else
@@ -164,16 +168,25 @@ namespace Minecraft
 					{
 						switch (command.type)
 						{
-						case CommandType::FillBlockData:
+						case CommandType::GenerateTerrain:
 						{
 							if (Chunk::exists(World::chunkSavePath, command.chunkCoordinates))
 							{
 								Chunk::deserialize(command.blockData, World::chunkSavePath, command.chunkCoordinates);
+								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, false);
 							}
 							else
 							{
-								Chunk::generate(command.blockData, command.chunkCoordinates, World::seedAsFloat);
+								Chunk::generateTerrain(command.blockData, command.chunkCoordinates, World::seedAsFloat);
+								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, true);
 							}
+						}
+						break;
+						case CommandType::GenerateDecorations:
+						{
+							//waitingOnCommand = true;
+							//Chunk::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat);
+							//waitingOnCommand = false;
 						}
 						break;
 						case CommandType::CalculateLighting:
@@ -260,6 +273,7 @@ namespace Minecraft
 			std::mutex mtx;
 			std::mutex queueMtx;
 			bool doWork;
+			std::atomic<bool> waitingOnCommand = false;
 		};
 
 		struct DrawCommand
@@ -370,6 +384,7 @@ namespace Minecraft
 		// Internal functions
 		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
 		static const ChunkStateData* getChunkState(const glm::ivec2& chunkCoords);
+		static std::unordered_set<ChunkStateData, ChunkStateData::HashFunction>& getAllChunkStates();
 
 		// Internal variables
 		static std::mutex chunkMtx;
@@ -525,7 +540,7 @@ namespace Minecraft
 				{
 					FillChunkCommand cmd;
 					cmd.chunkCoordinates = chunkCoordinates;
-					cmd.type = CommandType::FillBlockData;
+					cmd.type = CommandType::GenerateTerrain;
 					cmd.blockData = chunkFreeList.front();
 					chunkFreeList.pop_front();
 					cmd.subChunks = &(subChunks());
@@ -625,6 +640,14 @@ namespace Minecraft
 			}
 		}
 
+		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos)
+		{
+			FillChunkCommand cmd;
+			cmd.type = CommandType::GenerateDecorations;
+			cmd.playerPosChunkCoords = lastPlayerLoadChunkPos;
+			chunkWorker().queueCommand(cmd);
+		}
+
 		Block getBlock(const glm::vec3& worldPosition)
 		{
 			glm::ivec2 chunkCoords = World::toChunkCoords(worldPosition);
@@ -683,6 +706,22 @@ namespace Minecraft
 				retesselateChunkBlockUpdate(chunkCoords, worldPosition, blockData);
 				queueRecalculateLighting(chunkCoords, worldPosition);
 				chunkWorker().beginWork();
+			}
+		}
+
+		void setNeedsGenerateDecorations(const glm::ivec2& chunkCoords, bool value)
+		{
+			ChunkStateData* state = nullptr;
+			{
+				std::lock_guard<std::mutex> lock(chunkMtx);
+				auto& iter = chunkStates.find(chunkCoords);
+				if (iter != chunkStates.end())
+				{
+					ChunkStateData data = (*iter);
+					data.needsToGenerateDecorations = value;
+					chunkStates.erase(iter);
+					chunkStates.insert(data);
+				}
 			}
 		}
 
@@ -880,6 +919,7 @@ namespace Minecraft
 				}
 			}
 
+			ChunkManager::queueGenerateDecorations(playerPosChunkCoords);
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
 
 			if (needsWork)
@@ -950,6 +990,11 @@ namespace Minecraft
 			}
 			chunkWorker().beginWork();
 		}
+
+		static std::unordered_set<ChunkStateData, ChunkStateData::HashFunction>& getAllChunkStates()
+		{
+			return chunkStates;
+		}
 	}
 
 	namespace Chunk
@@ -1006,12 +1051,11 @@ namespace Minecraft
 			g_logger_info("Max %d size of vertex data", sizeof(Vertex) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth * 24);
 		}
 
-		void generate(Block* blockData, const glm::ivec2& chunkCoordinates, float seed)
+		void generateTerrain(Block* blockData, const glm::ivec2& chunkCoordinates, float seed)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
-			// TODO: Should we zero the memory in release mode as well? Or does it matter?
 			g_memory_zeroMem(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
 			const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
 			const float scale = 0.001f;
@@ -1061,38 +1105,105 @@ namespace Minecraft
 						{
 							blockData[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
 						}
-
-						if (y == maxHeight)
-						{
-							// Generate some trees 
-							int num = (rand() % 100);
-							bool generateTree = num > 96;
-							int treeHeight = (rand() % 6) + 3;
-							int leavesBottomY = glm::clamp(treeHeight - (rand() % 3) + 1, 3, (int)World::ChunkHeight);
-							int leavesTopY = glm::clamp(treeHeight + (rand() % 3) + 1, treeHeight + 1, (int)World::ChunkHeight);
-							if (generateTree && maxHeight + 1 + leavesTopY < World::ChunkHeight)
-							{
-								for (int treeY = maxHeight + 1; treeY <= treeHeight + y; treeY++)
-								{
-									blockData[to1DArray(x, treeY, z)].id = 8;
-								}
-
-								for (int leavesY = leavesBottomY + y; leavesY <= leavesTopY + y; leavesY++)
-								{
-									if (x - 1 >= 0) 
-										blockData[to1DArray(x - 1, leavesY, z)].id = 9;
-									if (x + 1 < World::ChunkDepth)
-										blockData[to1DArray(x + 1, leavesY, z)].id = 9;
-									if (z - 1 >= 0)
-										blockData[to1DArray(x, leavesY, z - 1)].id = 9;
-									if (z + 1 < World::ChunkWidth)
-										blockData[to1DArray(x, leavesY, z + 1)].id = 9;
-								}
-							}
-						}
 					}
 				}
 			}
+		}
+
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed)
+		{
+			//auto& allStates = ChunkManager::getAllChunkStates();
+
+			//for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
+			//{
+			//	for (int chunkX = lastPlayerLoadPosChunkCoords.x - World::ChunkRadius; chunkX <= lastPlayerLoadPosChunkCoords.x + World::ChunkRadius; chunkX++)
+			//	{
+			//		const int worldChunkX = chunkX * 16;
+			//		const int worldChunkZ = chunkZ * 16;
+
+			//		const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
+			//		const float scale = 0.001f;
+			//		glm::ivec2 chunkCoords = glm::ivec2(chunkX, chunkZ);
+			//		auto iter = allStates.find(ChunkStateData(chunkCoords));
+			//		if (iter == allStates.end())
+			//		{
+			//			continue;
+			//		}
+
+			//		ChunkStateData state = *iter;
+			//		Block* blockData = state.blockData;
+			//		if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+			//		{
+			//			// Skip over all chunks in range radius - 1
+			//			continue;
+			//		}
+
+			//		if (!state.needsToGenerateDecorations)
+			//		{
+			//			continue;
+			//		}
+			//		state.needsToGenerateDecorations = false;
+			//		allStates.erase(iter);
+			//		allStates.insert(state);
+
+			//		for (int y = 0; y < World::ChunkHeight; y++)
+			//		{
+			//			for (int x = 0; x < World::ChunkDepth; x++)
+			//			{
+			//				for (int z = 0; z < World::ChunkWidth; z++)
+			//				{
+			//					if (blockData[to1DArray(x, y, z)].id == 2)
+			//					{
+			//						// Generate some trees 
+			//						int num = (rand() % 100);
+			//						bool generateTree = num > 98;
+			//						int treeHeight = (rand() % 6) + 3;
+			//						int leavesBottomY = glm::clamp(treeHeight - 3, 3, (int)World::ChunkHeight - 1);
+			//						int leavesTopY = treeHeight + 1;
+			//						if (generateTree && (y + 1 + leavesTopY < World::ChunkHeight))
+			//						{
+			//							for (int treeY = y + 1; treeY <= treeHeight + y; treeY++)
+			//							{
+			//								blockData[to1DArray(x, treeY, z)].id = 8;
+			//							}
+
+			//							int ringLevel = 0;
+			//							for (int leavesY = leavesBottomY + y; leavesY <= leavesTopY + y; leavesY++)
+			//							{
+			//								int leafRadius = leavesY == leavesTopY ? 2 : 1;
+			//								for (int leavesX = x - leafRadius; leavesX <= x + leafRadius; leavesX++)
+			//								{
+			//									for (int leavesZ = z - leafRadius; leavesZ <= z + leafRadius; leavesZ++)
+			//									{
+			//										if (leavesX < World::ChunkDepth && leavesX >= 0 && leavesZ < World::ChunkWidth && leavesZ >= 0)
+			//										{
+			//											blockData[to1DArray(leavesX, leavesY, leavesZ)].id = 9;
+			//										}
+			//										else
+			//										{
+			//											glm::vec3 blockPosition = glm::vec3(worldChunkX + leavesX, leavesY, worldChunkZ + leavesZ);
+			//											glm::ivec2 blockToCheckChunkPos = World::toChunkCoords(blockPosition);
+			//											glm::ivec3 localPosition = glm::floor(blockPosition - glm::vec3(blockToCheckChunkPos.x * 16.0f, 0.0f, blockToCheckChunkPos.y * 16.0f));
+
+			//											Block* otherChunk = nullptr;
+			//											auto iter = allStates.find(ChunkStateData(glm::ivec2(chunkX, chunkZ)));
+			//											if (iter != allStates.end())
+			//											{
+			//												otherChunk = iter->blockData;
+			//												otherChunk[to1DArray(localPosition.x, localPosition.y, localPosition.z)].id = 9;
+			//											}
+			//										}
+			//									}
+			//								}
+			//								ringLevel++;
+			//							}
+			//						}
+			//					}
+			//				}
+			//			}
+			//		}
+			//	}
+			//}
 		}
 
 		void calculateLighting(Block* blockData, const glm::ivec2& chunkCoordinates, bool internalOnly)

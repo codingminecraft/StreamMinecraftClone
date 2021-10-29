@@ -53,6 +53,10 @@ namespace Minecraft
 		std::string toString(const glm::ivec2& vec2);
 
 		std::string toString(float value, int precision = 2);
+
+		int length2(const glm::ivec2& vec);
+		int length2(const glm::ivec3& vec);
+		int length2(const glm::ivec4& vec);
 	}
 }
 

@@ -161,5 +161,20 @@ namespace Minecraft
 			const int precisionIndex = (int)str.find(".") + precision + 1;
 			return str.substr(0, precisionIndex);
 		}
+
+		int length2(const glm::ivec2& vec) 
+		{
+			return vec.x * vec.x + vec.y * vec.y;
+		}
+
+		int length2(const glm::ivec3& vec)
+		{
+			return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+		}
+
+		int length2(const glm::ivec4& vec)
+		{
+			return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z + vec.w * vec.w;
+		}
 	}
 }
