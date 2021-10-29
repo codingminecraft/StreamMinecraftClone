@@ -15,3 +15,5 @@ world/**
 test.png
 
 **/freetype/**
+
+assets/generated/**
