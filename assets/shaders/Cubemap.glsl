@@ -1,5 +1,5 @@
 #type vertex
-#version 330 core
+#version 430 core
 layout (location = 0) in vec3 aPos;
 
 out vec3 TexCoords;
@@ -14,7 +14,7 @@ void main()
 } 
 
 #type fragment
-#version 330 core
+#version 430 core
 out vec4 FragColor;
 
 in vec3 TexCoords;

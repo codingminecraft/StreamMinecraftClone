@@ -1,5 +1,5 @@
 #type vertex
-#version 460 core
+#version 430 core
 layout (location = 0) in uint aData1;
 layout (location = 1) in uint aData2;
 
@@ -95,7 +95,7 @@ void main()
 }
 
 #type fragment
-#version 460 core
+#version 430 core
 out vec4 FragColor;
 
 in vec2 fTexCoords;

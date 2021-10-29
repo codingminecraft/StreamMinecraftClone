@@ -1,5 +1,5 @@
 #type vertex
-#version 330 core
+#version 430 core
 layout (location = 0) in vec2 aPos;
 layout (location = 1) in vec4 aColor;
 layout (location = 2) in uint aTexId;
@@ -22,7 +22,7 @@ void main()
 }
 
 #type fragment
-#version 330 core
+#version 430 core
 #define numTextures 8
 out vec4 FragColor;
 

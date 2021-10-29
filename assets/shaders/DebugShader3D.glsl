@@ -1,5 +1,5 @@
 #type vertex
-#version 330 core
+#version 430 core
 layout (location = 0) in vec3 aStart;
 layout (location = 1) in vec3 aEnd;
 layout (location = 2) in float aIsStart;
@@ -53,7 +53,7 @@ void main()
 }
 
 #type fragment
-#version 330 core
+#version 430 core
 out vec4 FragColor;
 
 in vec4 fColor;
