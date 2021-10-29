@@ -42,6 +42,7 @@ namespace Minecraft
 		static Shader shader;
 		static Shader cubemapShader;
 		static Texture worldTexture;
+		static Texture itemTexture;
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
@@ -85,9 +86,13 @@ namespace Minecraft
 			g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
 			// Initialize blocks
-			const char* packedTexturesFilepath = "assets/custom/packedTextures.png";
-			TexturePacker::packTextures("assets/images/block", "assets/custom/textureFormat.yaml", packedTexturesFilepath);
-			BlockMap::loadBlocks("assets/custom/textureFormat.yaml", "assets/custom/blockFormats.yaml");
+			File::createDirIfNotExists("assets/generated");
+
+			const char* packedTexturesFilepath = "assets/generated/packedTextures.png";
+			const char* packedItemTexturesFilepath = "assets/generated/packedItemTextures.png";
+			TexturePacker::packTextures("assets/images/block", "assets/generated/textureFormat.yaml", packedTexturesFilepath, "Blocks");
+			TexturePacker::packTextures("assets/images/item", "assets/generated/itemTextureFormat.yaml", packedItemTexturesFilepath, "Items");
+			BlockMap::loadBlocks("assets/generated/textureFormat.yaml", "assets/generated/itemTextureFormat.yaml", "assets/custom/blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
 
 			shader.compile("assets/shaders/default.glsl");
@@ -99,6 +104,15 @@ namespace Minecraft
 				.generateTextureObject()
 				.bindTextureObject()
 				.generate(true);
+			itemTexture = TextureBuilder()
+				.setFormat(ByteFormat::RGBA8_UI)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
+				.setFilepath(packedItemTexturesFilepath)
+				.generateTextureObject()
+				.bindTextureObject()
+				.generate(true);
+			BlockMap::patchTextureMaps(&worldTexture, &itemTexture);
 
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 			skybox = Cubemap::generateCubemap(

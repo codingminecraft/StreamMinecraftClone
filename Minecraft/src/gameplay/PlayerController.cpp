@@ -5,6 +5,7 @@
 #include "renderer/Camera.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
+#include "renderer/Sprites.h"
 #include "utils/DebugStats.h"
 #include "utils/CMath.h"
 #include "physics/PhysicsComponents.h"
@@ -36,6 +37,10 @@ namespace Minecraft
 
 		static int hotbarBlockIds[9] = {2, 3, 4, 6, 8, 9, 10, 11, 2};
 
+		static const TextureFormat* sideSprite;
+		static const TextureFormat* topSprite;
+		static const TextureFormat* bottomSprite;
+
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
@@ -48,6 +53,10 @@ namespace Minecraft
 			blockHighlight.strokeWidth = 0.01f;
 			gameMode = GameMode::Survival;
 			playerId = Ecs::nullEntity;
+
+			sideSprite = &BlockMap::getTextureFormat("grass_block_side");
+			topSprite = &BlockMap::getTextureFormat("grass_block_top");
+			bottomSprite = &BlockMap::getTextureFormat("dirt");
 		}
 
 		void update(Ecs::Registry& registry, float dt)
@@ -90,6 +99,7 @@ namespace Minecraft
 			{
 				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
 				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
+				Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f), glm::vec3(0.1f, 0.1f, 0.1f), *sideSprite, *topSprite, *bottomSprite);
 
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
 				{

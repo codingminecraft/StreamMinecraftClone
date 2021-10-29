@@ -12,7 +12,14 @@ namespace Minecraft
 		glm::vec2 textureCoords;
 	};
 
-	struct RenderVertex
+	struct RenderVertex3D
+	{
+		glm::vec3 position;
+		uint32 textureSlot;
+		glm::vec2 textureCoords;
+	};
+
+	struct RenderVertexLine
 	{
 		glm::vec3 start;
 		glm::vec3 end;
@@ -168,6 +175,19 @@ namespace Minecraft
 			return false;
 		}
 
+		bool hasTextureRoom3D()
+		{
+			for (int i = 0; i < textureGraphicsIds.size(); i++)
+			{
+				if (textureGraphicsIds[i] == UINT32_MAX)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		// TODO: Change the way we store fonts vs regular textures
 		bool hasTextureRoom(bool isFont)
 		{
@@ -193,6 +213,18 @@ namespace Minecraft
 			}
 
 			return false;
+		}
+
+		uint32 getTextureSlot3D(uint32 textureGraphicsId)
+		{
+			for (int i = 0; i < textureGraphicsIds.size(); i++)
+			{
+				if (textureGraphicsId == textureGraphicsIds[i] || textureGraphicsIds[i] == UINT32_MAX)
+				{
+					textureGraphicsIds[i] = textureGraphicsId;
+					return i;
+				}
+			}
 		}
 
 		uint32 getTextureSlot(uint32 textureGraphicsId, bool isFont)

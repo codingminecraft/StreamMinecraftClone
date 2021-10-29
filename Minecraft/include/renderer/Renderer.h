@@ -12,6 +12,7 @@ namespace Minecraft
 	struct Camera;
 	struct Font;
 	struct Sprite;
+	struct TextureFormat;
 	class Frustum;
 
 	struct DrawArraysIndirectCommand
@@ -49,6 +50,7 @@ namespace Minecraft
 		// 3D Rendering stuff
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style);
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style);
+		void drawTexturedCube(const glm::vec3& center, const glm::vec3& size, const TextureFormat& sideSprite, const TextureFormat& topSprite, const TextureFormat& bottomSprite);
 	}
 }
 

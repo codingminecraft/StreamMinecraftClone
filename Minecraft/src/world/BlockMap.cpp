@@ -1,6 +1,7 @@
 #include "world/BlockMap.h"
 #include "utils/YamlExtended.h"
 #include "renderer/Texture.h"
+#include "renderer/Sprites.h"
 
 namespace Minecraft
 {
@@ -23,13 +24,27 @@ namespace Minecraft
 		static std::unordered_map<std::string, int> nameToIdMap;
 		static std::vector<BlockFormat> blockFormats;
 		static std::unordered_map<std::string, TextureFormat> textureFormatMap;
+		static std::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
 
 		static uint32 texCoordsTextureId;
 		static uint32 texCoordsBufferId;
 
 		const TextureFormat& getTextureFormat(const std::string& textureName)
 		{
-			return textureFormatMap[textureName];
+			auto iter = textureFormatMap.find(textureName);
+			if (iter != textureFormatMap.end())
+			{
+				return iter->second;
+			}
+
+			auto iter2 = itemTextureFormatMap.find(textureName);
+			if (iter2 != itemTextureFormatMap.end())
+			{
+				return iter2->second;
+			}
+
+			g_logger_error("Unable to find texture '%s'", textureName.c_str());
+			return TextureFormat{};
 		}
 
 		const BlockFormat& getBlock(const std::string& name)
@@ -47,12 +62,14 @@ namespace Minecraft
 			return blockFormats.at(blockId);
 		}
 
-		void loadBlocks(const char* textureFormatConfig, const char* blockFormatConfig)
+		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig)
 		{
 			YAML::Node textureFormat = YamlExtended::readFile(textureFormatConfig);
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
+			YAML::Node itemFormat = YamlExtended::readFile(itemFormatConfig);
 
 			blockFormats.push_back({
+				"",
 				"",
 				"",
 				"",
@@ -80,9 +97,33 @@ namespace Minecraft
 						const uint16 texCoordId = texture.second["ID"].as<uint16>();
 						TextureFormat format = {
 							{ uv0, uv1, uv2, uv3 },
-							texCoordId
+							texCoordId,
+							nullptr
 						};
 						textureFormatMap[texture.first.as<std::string>()] = format;
+					}
+				}
+			}
+
+			if (itemFormat["Items"])
+			{
+				const YAML::Node& textureFormatItems = textureFormat["Items"];
+				for (auto texture : textureFormatItems)
+				{
+					if (texture.second["UVS"])
+					{
+						const YAML::Node& uvs = texture.second["UVS"];
+						glm::vec2 uv0 = YamlExtended::readVec2("0", uvs);
+						glm::vec2 uv1 = YamlExtended::readVec2("1", uvs);
+						glm::vec2 uv2 = YamlExtended::readVec2("2", uvs);
+						glm::vec2 uv3 = YamlExtended::readVec2("3", uvs);
+						const uint16 texCoordId = texture.second["ID"].as<uint16>();
+						TextureFormat format = {
+							{ uv0, uv1, uv2, uv3 },
+							texCoordId,
+							nullptr
+						};
+						itemTextureFormatMap[texture.first.as<std::string>()] = format;
 					}
 				}
 			}
@@ -93,6 +134,7 @@ namespace Minecraft
 				std::string side = block.second["side"].as<std::string>();
 				std::string top = block.second["top"].as<std::string>();
 				std::string bottom = block.second["bottom"].as<std::string>();
+				std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "";
 				bool isTransparent = block.second["isTransparent"].as<bool>();
 				bool isSolid = block.second["isSolid"].as<bool>();
 				bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
@@ -108,7 +150,7 @@ namespace Minecraft
 
 				nameToIdMap[block.first.as<std::string>()] = id;
 				blockFormats.emplace_back(BlockFormat{
-					side, top, bottom, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
+					side, top, bottom, itemPictureName, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
 					isLightSource, lightLevel
 					});
 			}
@@ -150,6 +192,19 @@ namespace Minecraft
 			glBindTexture(GL_TEXTURE_BUFFER, 0);
 
 			g_memory_free(texCoordsMap);
+		}
+
+		void patchTextureMaps(const Texture* blockTexture, const Texture* itemTexture)
+		{
+			for (auto& it : textureFormatMap)
+			{
+				it.second.texture = blockTexture;
+			}
+
+			for (auto& it : itemTextureFormatMap)
+			{
+				it.second.texture = itemTexture;
+			}
 		}
 
 		uint32 getTextureCoordinatesTextureId()

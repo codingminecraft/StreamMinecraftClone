@@ -8,6 +8,7 @@
 #include "renderer/Batch.hpp"
 #include "renderer/Sprites.h"
 #include "renderer/Frustum.h"
+#include "world/BlockMap.h"
 #include "world/World.h"
 #include "core/Components.h"
 #include "core/Application.h"
@@ -20,10 +21,12 @@ namespace Minecraft
 	{
 		// Internal variables		
 		static std::vector<Batch<RenderVertex2D>> batches2D;
-		static Batch<RenderVertex> batch;
+		static Batch<RenderVertexLine> batch3DLines;
+		static Batch<RenderVertex3D> batch3DRegular;
 
 		static Shader shader2D;
-		static Shader shader;
+		static Shader line3DShader;
+		static Shader regular3DShader;
 
 		static Ecs::Registry* registry;
 		static const Camera* camera;
@@ -34,12 +37,13 @@ namespace Minecraft
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont);
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
+		static void drawTexturedTriangle3D(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture);
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
 			registry = &sceneRegistry;
 			camera = nullptr;
-			batch.numVertices = 0;
+			batch3DLines.numVertices = 0;
 
 			// Load OpenGL functions using Glad
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -62,21 +66,29 @@ namespace Minecraft
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-			// Initialize default shader
+			// Initialize default line3DShader
 			shader2D.compile("assets/shaders/DebugShader2D.glsl");
-			shader.compile("assets/shaders/DebugShader3D.glsl");
+			line3DShader.compile("assets/shaders/DebugShader3D.glsl");
+			regular3DShader.compile("assets/shaders/RegularShader3D.glsl");
 
-			batch.init(
+			batch3DLines.init(
 				{
-					{0, 3, AttributeType::Float, offsetof(RenderVertex, start)},
-					{1, 3, AttributeType::Float, offsetof(RenderVertex, end)},
-					{2, 1, AttributeType::Float, offsetof(RenderVertex, isStart)},
-					{3, 1, AttributeType::Float, offsetof(RenderVertex, direction)},
-					{4, 1, AttributeType::Float, offsetof(RenderVertex, strokeWidth)},
-					{5, 4, AttributeType::Float, offsetof(RenderVertex, color)}
+					{0, 3, AttributeType::Float, offsetof(RenderVertexLine, start)},
+					{1, 3, AttributeType::Float, offsetof(RenderVertexLine, end)},
+					{2, 1, AttributeType::Float, offsetof(RenderVertexLine, isStart)},
+					{3, 1, AttributeType::Float, offsetof(RenderVertexLine, direction)},
+					{4, 1, AttributeType::Float, offsetof(RenderVertexLine, strokeWidth)},
+					{5, 4, AttributeType::Float, offsetof(RenderVertexLine, color)}
 				}
 			);
-			g_logger_info("Initializing the 3D debug batch succeeded.");
+			batch3DRegular.init(
+				{
+					{0, 3, AttributeType::Float, offsetof(RenderVertex3D, position)},
+					{1, 1, AttributeType::Uint, offsetof(RenderVertex3D, textureSlot)},
+					{2, 2, AttributeType::Float, offsetof(RenderVertex3D, textureCoords)}
+				}
+			);
+			g_logger_info("Initializing the 3D debug batch3DLines succeeded.");
 		}
 
 		void free()
@@ -85,7 +97,7 @@ namespace Minecraft
 			{
 				batch2D.free();
 			}
-			batch.free();
+			batch3DLines.free();
 		}
 
 		void render()
@@ -110,7 +122,7 @@ namespace Minecraft
 					continue;
 				}
 
-				for (int i = 0; i < batch.textureGraphicsIds.size(); i++)
+				for (int i = 0; i < batch2D.textureGraphicsIds.size(); i++)
 				{
 					if (batch2D.textureGraphicsIds[i] != UINT32_MAX)
 					{
@@ -131,23 +143,37 @@ namespace Minecraft
 
 		void flushBatches3D()
 		{
-			if (batch.numVertices <= 0)
+			if (batch3DLines.numVertices <= 0)
 			{
 				return;
 			}
 
 			glDisable(GL_CULL_FACE);
 
-			shader.bind();
-			shader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
-			shader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
-			shader.uploadFloat("uAspectRatio", Application::getWindow().getAspectRatio());
+			line3DShader.bind();
+			line3DShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
+			line3DShader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+			line3DShader.uploadFloat("uAspectRatio", Application::getWindow().getAspectRatio());
 
-			batch.flush();
+			batch3DLines.flush();
 
 			glEnable(GL_CULL_FACE);
 
-			DebugStats::numDrawCalls++;
+			regular3DShader.bind();
+			regular3DShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
+			regular3DShader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+			for (int i = 0; i < batch3DRegular.textureGraphicsIds.size(); i++)
+			{
+				if (batch3DRegular.textureGraphicsIds[i] != UINT32_MAX)
+				{
+					glBindTextureUnit(i, batch3DRegular.textureGraphicsIds[i]);
+				}
+			}
+			regular3DShader.uploadIntArray("uTextures[0]", 16, _Batch::textureIndices().data());
+
+			batch3DRegular.flush();
+
+			DebugStats::numDrawCalls += 2;
 		}
 
 		void setShader2D(const Shader& newShader)
@@ -157,7 +183,7 @@ namespace Minecraft
 
 		void setShader(const Shader& newShader)
 		{
-			shader = newShader;
+			line3DShader = newShader;
 		}
 
 		void setCamera(const Camera& cameraRef)
@@ -339,20 +365,20 @@ namespace Minecraft
 		// ===================================================
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style)
 		{
-			if (batch.numVertices + 6 >= _Batch::maxBatchSize)
+			if (batch3DLines.numVertices + 6 >= _Batch::maxBatchSize)
 			{
 				flushBatches3D();
 			}
 
 			// First triangle
-			RenderVertex v;
+			RenderVertexLine v;
 			v.isStart = 1.0f;
 			v.start = start;
 			v.end = end;
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 
 			v.isStart = 1.0f;
 			v.start = start;
@@ -360,7 +386,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -368,7 +394,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 
 			// Second triangle
 			v.isStart = 1.0f;
@@ -377,7 +403,7 @@ namespace Minecraft
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -385,7 +411,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -393,7 +419,7 @@ namespace Minecraft
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch.addVertex(v);
+			batch3DLines.addVertex(v);
 		}
 
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style)
@@ -428,6 +454,57 @@ namespace Minecraft
 			drawLine(v1, v5, style);
 			drawLine(v2, v6, style);
 			drawLine(v3, v7, style);
+		}
+
+		void drawTexturedCube(const glm::vec3& center, const glm::vec3& size, const TextureFormat& sideSprite, const TextureFormat& topSprite, const TextureFormat& bottomSprite)
+		{
+			glm::vec3 halfSize = size * 0.5f;
+			// TODO: Do this in a better way... Maybe do sphere check before expensive box check
+			if (!cameraFrustum->isBoxVisible(center - halfSize, center + halfSize))
+			{
+				return;
+			}
+
+			const glm::vec3 offsets[6] = {
+				{1, 0, 0},
+				{-1, 0, 0},
+				{0, 1, 0},
+				{0, -1, 0},
+				{0, 0, 1},
+				{0, 0, -1}
+			};
+			const glm::vec3 squareOffsets[6][4] = {
+				{{0, 1, 1}, {0, -1, 1}, {0, -1, -1}, {0, 1, -1}}, // Triangle order for front face
+				{{0, 1, -1}, {0, -1, -1}, {0, -1, 1}, {0, 1, 1}}, // Triangle order for back face
+				{{1, 0, 1}, {1, 0, -1}, {-1, 0, -1}, {-1, 0, 1}}, // Triangle order for top face
+				{{1, 0, 1}, {-1, 0, 1}, {-1, 0, -1}, {1, 0, -1}}, // Triangle order for bottom face
+				{{-1, 1, 0}, {-1, -1, 0}, {1, -1, 0}, {1, 1, 0}}, // Triangle order for right face
+				{{1, 1, 0}, {1, -1, 0}, {-1, -1, 0}, {-1, 1, 0}}  // Triangle order for left face
+			};
+			const TextureFormat* spriteToUse[6] = {
+				&sideSprite,
+				& sideSprite,
+				& topSprite, & bottomSprite, &sideSprite, &sideSprite
+			};
+			// Six faces
+			for (int i = 0; i < 6; i++)
+			{
+				const TextureFormat* sprite = spriteToUse[i];
+				const glm::vec3& offset = offsets[i];
+				glm::vec3 p0 = center + halfSize * offset + halfSize * squareOffsets[i][0];
+				glm::vec3 p1 = center + halfSize * offset + halfSize * squareOffsets[i][1];
+				glm::vec3 p2 = center + halfSize * offset + halfSize * squareOffsets[i][2];
+				glm::vec3 p3 = center + halfSize * offset + halfSize * squareOffsets[i][3];
+				
+				glm::vec2 uv0 = sprite->uvs[0];
+				glm::vec2 uv1 = sprite->uvs[1];
+				glm::vec2 uv2 = sprite->uvs[2];
+				glm::vec2 uv3 = sprite->uvs[3];
+
+				// Two triangles each face
+				drawTexturedTriangle3D(p0, p1, p2, uv0, uv1, uv2, sprite->texture);
+				drawTexturedTriangle3D(p0, p2, p3, uv0, uv2, uv3, sprite->texture);
+			}
 		}
 
 		// =========================================================
@@ -497,14 +574,49 @@ namespace Minecraft
 			batch2D.addVertex(v);
 		}
 
+		static void drawTexturedTriangle3D(
+			const glm::vec3& p0,
+			const glm::vec3& p1,
+			const glm::vec3& p2,
+			const glm::vec2& uv0,
+			const glm::vec2& uv1,
+			const glm::vec2& uv2,
+			const Texture* texture)
+		{
+			if (batch3DRegular.numVertices + 3 > _Batch::maxBatchSize)
+			{
+				g_logger_warning("Ran out of batch room for 3D stuff!");
+				return;
+			}
+
+			uint32 texSlot = batch3DRegular.getTextureSlot3D(texture->graphicsId);
+
+			// One triangle per sector
+			RenderVertex3D v;
+			v.position = p0;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv0;
+			batch3DRegular.addVertex(v);
+
+			v.position = p1;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv1;
+			batch3DRegular.addVertex(v);
+
+			v.position = p2;
+			v.textureSlot = texSlot;
+			v.textureCoords = uv2;
+			batch3DRegular.addVertex(v);
+		}
+
 		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture, bool isFont)
 		{
-			for (Batch<RenderVertex2D>& batch : batches2D)
+			for (Batch<RenderVertex2D>& batch3DLines : batches2D)
 			{
-				if (batch.hasRoom() && batch.zIndex == zIndex &&
-					(!useTexture || batch.hasTexture(texture.graphicsId) || batch.hasTextureRoom(isFont)))
+				if (batch3DLines.hasRoom() && batch3DLines.zIndex == zIndex &&
+					(!useTexture || batch3DLines.hasTexture(texture.graphicsId) || batch3DLines.hasTextureRoom(isFont)))
 				{
-					return batch;
+					return batch3DLines;
 				}
 			}
 
@@ -513,7 +625,7 @@ namespace Minecraft
 
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont)
 		{
-			// No batch found, create a new one and sort the batches
+			// No batch3DLines found, create a new one and sort the batches
 			Batch<RenderVertex2D> newBatch;
 			newBatch.init(
 				{

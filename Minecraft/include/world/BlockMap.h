@@ -4,6 +4,7 @@
 
 namespace Minecraft
 {
+	struct Sprite;
 	struct Texture;
 
 	// 64 bits per block 
@@ -31,6 +32,7 @@ namespace Minecraft
 		std::string sideTexture;
 		std::string topTexture;
 		std::string bottomTexture;
+		std::string itemPictureName;
 		bool isTransparent;
 		bool isSolid;
 		bool colorTopByBiome;
@@ -46,6 +48,7 @@ namespace Minecraft
 		// UV's are stored in bottom-right, top-right, top-left, bottom-left format
 		glm::vec2 uvs[4];
 		uint16 id;
+		const Texture* texture;
 	};
 
 	namespace BlockMap
@@ -56,8 +59,9 @@ namespace Minecraft
 		const TextureFormat& getTextureFormat(const std::string& textureName);
 		const BlockFormat& getBlock(const std::string& name);
 		const BlockFormat& getBlock(int blockId);
-		void loadBlocks(const char* textureFormatConfig, const char* blockFormatConfig);
+		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig);
 		void uploadTextureCoordinateMapToGpu();
+		void patchTextureMaps(const Texture* blockTexture, const Texture* itemTexture);
 
 		uint32 getTextureCoordinatesTextureId();
 	}

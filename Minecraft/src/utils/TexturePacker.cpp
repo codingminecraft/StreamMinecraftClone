@@ -11,7 +11,7 @@ namespace Minecraft
 
 	namespace TexturePacker
 	{
-		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath)
+		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName)
 		{
 			// Return early if the texture packer has already packed the textures.
 			if (std::filesystem::exists(configFilepath) && std::filesystem::exists(outputFilepath))
@@ -110,8 +110,8 @@ namespace Minecraft
 					glm::vec2{ location.x / pngOutputWidth, location.y / pngOutputHeight },
 					uvs["UVS"]);
 
-				textureFormat["Blocks"][location.name] = uvs;
-				textureFormat["Blocks"][location.name]["ID"] = uid++;
+				textureFormat[yamlKeyName][location.name] = uvs;
+				textureFormat[yamlKeyName][location.name]["ID"] = uid++;
 				g_logger_assert(uid <= 2 << 12, "We ran out of space. Add more bits to the vertex specification for texture IDs");
 			}
 			YamlExtended::writeFile(configFilepath, textureFormat);
