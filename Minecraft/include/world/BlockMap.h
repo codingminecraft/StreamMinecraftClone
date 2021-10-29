@@ -60,8 +60,11 @@ namespace Minecraft
 		const BlockFormat& getBlock(const std::string& name);
 		const BlockFormat& getBlock(int blockId);
 		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig);
+		void loadBlockItemTextures(const char* blockFormatConfig);
 		void uploadTextureCoordinateMapToGpu();
 		void patchTextureMaps(const Texture* blockTexture, const Texture* itemTexture);
+		void patchBlockItemTextureMaps(const Texture* blockItemTexture);
+		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath);
 
 		uint32 getTextureCoordinatesTextureId();
 	}

@@ -2,6 +2,11 @@
 #include "utils/YamlExtended.h"
 #include "renderer/Texture.h"
 #include "renderer/Sprites.h"
+#include "renderer/Framebuffer.h"
+#include "renderer/Shader.h"
+#include "renderer/Renderer.h"
+#include "core/Application.h"
+#include "core/Window.h"
 
 namespace Minecraft
 {
@@ -25,6 +30,7 @@ namespace Minecraft
 		static std::vector<BlockFormat> blockFormats;
 		static std::unordered_map<std::string, TextureFormat> textureFormatMap;
 		static std::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
+		static std::unordered_map<std::string, TextureFormat> blockItemTextureMap;
 
 		static uint32 texCoordsTextureId;
 		static uint32 texCoordsBufferId;
@@ -41,6 +47,12 @@ namespace Minecraft
 			if (iter2 != itemTextureFormatMap.end())
 			{
 				return iter2->second;
+			}
+
+			const auto& iter3 = blockItemTextureMap.find(textureName);
+			if (iter2 != blockItemTextureMap.end())
+			{
+				return iter3->second;
 			}
 
 			g_logger_error("Unable to find texture '%s'", textureName.c_str());
@@ -107,7 +119,7 @@ namespace Minecraft
 
 			if (itemFormat["Items"])
 			{
-				const YAML::Node& textureFormatItems = textureFormat["Items"];
+				const YAML::Node& textureFormatItems = itemFormat["Items"];
 				for (auto texture : textureFormatItems)
 				{
 					if (texture.second["UVS"])
@@ -154,6 +166,42 @@ namespace Minecraft
 					isLightSource, lightLevel
 					});
 			}
+		}
+
+		void loadBlockItemTextures(const char* blockFormatConfig)
+		{
+			YAML::Node itemFormat = YamlExtended::readFile(blockFormatConfig);
+
+			if (itemFormat["BlockItems"])
+			{
+				const YAML::Node& textureFormatItems = itemFormat["BlockItems"];
+				for (auto texture : textureFormatItems)
+				{
+					if (texture.second["UVS"])
+					{
+						const YAML::Node& uvs = texture.second["UVS"];
+						glm::vec2 uv0 = YamlExtended::readVec2("0", uvs);
+						glm::vec2 uv1 = YamlExtended::readVec2("1", uvs);
+						glm::vec2 uv2 = YamlExtended::readVec2("2", uvs);
+						glm::vec2 uv3 = YamlExtended::readVec2("3", uvs);
+						const uint16 texCoordId = texture.second["ID"].as<uint16>();
+						TextureFormat format = {
+							{ uv0, uv1, uv2, uv3 },
+							texCoordId,
+							nullptr
+						};
+						blockItemTextureMap[texture.first.as<std::string>() + "_as_item"] = format;
+
+						int blockId = nameToIdMap[texture.first.as<std::string>()];
+						if (blockId >= 0 && blockId < blockFormats.size())
+						{
+							BlockFormat& block = blockFormats.at(blockId);
+							block.itemPictureName = texture.first.as<std::string>() + "_as_item";
+						}
+					}
+				}
+			}
+
 		}
 
 		void uploadTextureCoordinateMapToGpu()
@@ -207,9 +255,85 @@ namespace Minecraft
 			}
 		}
 
+		void patchBlockItemTextureMaps(const Texture* blockItemTexture)
+		{
+			for (auto& it : blockItemTextureMap)
+			{
+				it.second.texture = blockItemTexture;
+			}
+		}
+
 		uint32 getTextureCoordinatesTextureId()
 		{
 			return texCoordsTextureId;
+		}
+
+		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath)
+		{
+			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
+
+			glm::vec3 cameraPos = glm::vec3(-1.0f, 1.0f, 1.0f);
+			glm::vec3 cameraOrientation = glm::vec3(-35.0f, -45.0f, 0.0f);
+			glm::vec3 direction;
+			direction.x = cos(glm::radians(cameraOrientation.y)) * cos(glm::radians(cameraOrientation.x));
+			direction.y = sin(glm::radians(cameraOrientation.x));
+			direction.z = sin(glm::radians(cameraOrientation.y)) * cos(glm::radians(cameraOrientation.x));
+			glm::vec3 cameraForward = glm::normalize(direction);
+			glm::vec3 cameraRight = glm::cross(cameraForward, glm::vec3(0, 1, 0));
+			glm::vec3 cameraUp = glm::cross(cameraRight, cameraForward);
+			glm::mat4 viewMatrix = glm::lookAt(
+				cameraPos,
+				cameraPos + cameraForward,
+				cameraUp
+			);
+			glm::mat4 projectionMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 2000.0f);
+
+			Texture texture = TextureBuilder()
+				.setWidth(32)
+				.setHeight(32)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
+				.setTextureType(TextureType::_2D)
+				.setFormat(ByteFormat::RGBA8_UI)
+				.generateTextureObject()
+				.generate();
+			Framebuffer framebuffer = FramebufferBuilder(64, 64)
+				.addColorAttachment(texture)
+				.generate();
+			framebuffer.bind();
+			glViewport(0, 0, framebuffer.width, framebuffer.height);
+
+			for (auto block : blockFormat)
+			{
+				std::string fileOutputPath = outputPath + block.first.as<std::string>() + ".png";
+				std::string side = block.second["side"].as<std::string>();
+				std::string top = block.second["top"].as<std::string>();
+				std::string bottom = block.second["bottom"].as<std::string>();
+				std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "";
+				if (itemPictureName == "" && side != "none")
+				{
+					framebuffer.bind();
+					const TextureFormat& sideSprite = getTextureFormat(side);
+					const TextureFormat& topSprite = getTextureFormat(top);
+					const TextureFormat& bottomSprite = getTextureFormat(bottom);
+					Renderer::clearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+					Renderer::drawTexturedCube(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), sideSprite, topSprite, bottomSprite);
+					
+					Renderer::flushBatches3D(projectionMatrix, viewMatrix);
+
+					uint8* pixels = framebuffer.readAllPixelsRgb8(0);
+					if (!stbi_write_png(fileOutputPath.c_str(), framebuffer.width, framebuffer.height, 4, pixels, sizeof(uint8) * 4 * framebuffer.width))
+					{
+						g_logger_info("Image write failed because %s", stbi_failure_reason());
+					}
+					framebuffer.freePixelsRgb8(pixels);
+				}
+			}
+
+			framebuffer.unbind();
+			framebuffer.destroy(true);
+
+			glViewport(0, 0, Application::getWindow().width, Application::getWindow().height);
 		}
 	}
 

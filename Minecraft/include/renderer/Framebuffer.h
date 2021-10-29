@@ -28,6 +28,8 @@ namespace Minecraft
 		void clearColorAttachmentRgb(int colorAttachment, glm::vec3 clearColor) const;
 
 		uint32 readPixelUint32(int colorAttachment, int x, int y) const;
+		uint8* readAllPixelsRgb8(int colorAttachment) const;
+		void freePixelsRgb8(uint8* pixels) const;
 		const Texture& getColorAttachment(int index) const;
 
 		void regenerate();

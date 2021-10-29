@@ -11,7 +11,7 @@ namespace Minecraft
 
 	namespace TexturePacker
 	{
-		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName)
+		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName, int texWidth, int texHeight)
 		{
 			// Return early if the texture packer has already packed the textures.
 			if (std::filesystem::exists(configFilepath) && std::filesystem::exists(outputFilepath))
@@ -30,7 +30,7 @@ namespace Minecraft
 				}
 			}
 
-			int pngOutputWidth = (int)sqrt(numFiles * 32 * 32);
+			int pngOutputWidth = (int)sqrt(numFiles * texWidth * texHeight);
 			g_logger_info("Max Width: %d", pngOutputWidth);
 			int currentX = 0;
 			int currentY = 0;

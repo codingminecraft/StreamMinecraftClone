@@ -17,6 +17,7 @@ namespace Minecraft
 		glm::vec3 position;
 		uint32 textureSlot;
 		glm::vec2 textureCoords;
+		glm::vec3 normal;
 	};
 
 	struct RenderVertexLine

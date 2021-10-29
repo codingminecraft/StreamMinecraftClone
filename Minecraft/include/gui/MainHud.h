@@ -12,6 +12,7 @@ namespace Minecraft
 		void free();
 
 		extern int currentInventorySlot;
+		extern int hotbarBlockIds[9];
 	}
 }
 

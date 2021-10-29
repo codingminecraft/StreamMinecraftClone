@@ -43,6 +43,7 @@ namespace Minecraft
 		static Shader cubemapShader;
 		static Texture worldTexture;
 		static Texture itemTexture;
+		static Texture blockItemTexture;
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
@@ -104,15 +105,32 @@ namespace Minecraft
 				.generateTextureObject()
 				.bindTextureObject()
 				.generate(true);
+
 			itemTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
+				.setMagFilter(FilterMode::Linear)
+				.setMinFilter(FilterMode::Linear)
 				.setFilepath(packedItemTexturesFilepath)
 				.generateTextureObject()
 				.bindTextureObject()
 				.generate(true);
 			BlockMap::patchTextureMaps(&worldTexture, &itemTexture);
+
+			// Generate all the cube item pictures and pack them into a texture
+			const char* blockItemOutput = "assets/generated/blockItems/";
+			File::createDirIfNotExists(blockItemOutput);
+			BlockMap::generateBlockItemPictures("assets/custom/blockFormats.yaml", blockItemOutput);
+			TexturePacker::packTextures(blockItemOutput, "assets/generated/blockItemTextureFormat.yaml", "assets/generated/packedBlockItemsTextures.png", "BlockItems", 64, 64);
+			BlockMap::loadBlockItemTextures("assets/generated/blockItemTextureFormat.yaml");
+			blockItemTexture = TextureBuilder()
+				.setFormat(ByteFormat::RGBA8_UI)
+				.setMagFilter(FilterMode::Linear)
+				.setMinFilter(FilterMode::Linear)
+				.setFilepath("assets/generated/packedBlockItemsTextures.png")
+				.generateTextureObject()
+				.bindTextureObject()
+				.generate(true);
+			BlockMap::patchBlockItemTextureMaps(&blockItemTexture);
 
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 			skybox = Cubemap::generateCubemap(

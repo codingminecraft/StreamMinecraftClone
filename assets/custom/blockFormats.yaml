@@ -15,7 +15,6 @@ grass_block:
   isSolid: true
   isTransparent: false
   colorTopByBiome: true
-  itemPicture: grass
 sand:
   id: 3
   side: sand

@@ -3,6 +3,7 @@
 #include "renderer/Sprites.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
+#include "world/BlockMap.h"
 
 namespace Minecraft
 {
@@ -10,6 +11,7 @@ namespace Minecraft
 	{
 		// External variables
 		extern int currentInventorySlot = 0;
+		extern int hotbarBlockIds[9] = { 2, 3, 4, 6, 8, 9, 10, 11, 2 };
 
 		// Internal variables
 		static const Sprite* blockCursorSprite = nullptr;
@@ -48,9 +50,28 @@ namespace Minecraft
 					}
 					else
 					{
-						glm::vec2 bigSize = inventorySlotSize * 1.1f;
+						const glm::vec2 bigSize = inventorySlotSize * 1.1f;
 						glm::vec2 adjustedPosition = currentSlotPosition - glm::vec2(((bigSize.x - inventorySlotSize.x) / 2.0f), 0);
 						Renderer::drawTexture2D(*selectedInventorySlot, adjustedPosition, bigSize, Styles::defaultStyle);
+					}
+					
+					static Block inventoryBlock{
+						0, 0, 0, 0
+					};
+					inventoryBlock.id = hotbarBlockIds[i];
+
+					if (inventoryBlock != BlockMap::NULL_BLOCK && inventoryBlock != BlockMap::AIR_BLOCK)
+					{
+						const BlockFormat& blockFormat = BlockMap::getBlock(inventoryBlock.id);
+						const TextureFormat& format = BlockMap::getTextureFormat(blockFormat.itemPictureName);
+						static Sprite sprite;
+						sprite.texture = *format.texture;
+						sprite.uvStart = format.uvs[3];
+						sprite.uvSize = format.uvs[1] - sprite.uvStart;
+
+						const glm::vec2 smallSize = inventorySlotSize * 0.8f;
+						glm::vec2 adjustedPosition = currentSlotPosition + ((inventorySlotSize - smallSize) * 0.5f);
+						Renderer::drawTexture2D(sprite, adjustedPosition, smallSize, Styles::defaultStyle, 1);
 					}
 					currentSlotPosition.x += inventorySlotSize.x;
 				}

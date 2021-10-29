@@ -31,6 +31,7 @@ namespace Minecraft
 
 		void flushBatches2D();
 		void flushBatches3D();
+		void flushBatches3D(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix);
 
 		void clearColor(const glm::vec4& color);
 		void setShader2D(const Shader& shader);

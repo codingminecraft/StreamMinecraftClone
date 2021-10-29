@@ -38,7 +38,7 @@ namespace Minecraft
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont);
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
-		static void drawTexturedTriangle3D(const glm::vec4& p0, const glm::vec4& p1, const glm::vec4& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture);
+		static void drawTexturedTriangle3D(const glm::vec4& p0, const glm::vec4& p1, const glm::vec4& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const glm::vec3& normal, const Texture* texture);
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
@@ -86,7 +86,8 @@ namespace Minecraft
 				{
 					{0, 3, AttributeType::Float, offsetof(RenderVertex3D, position)},
 					{1, 1, AttributeType::Uint, offsetof(RenderVertex3D, textureSlot)},
-					{2, 2, AttributeType::Float, offsetof(RenderVertex3D, textureCoords)}
+					{2, 2, AttributeType::Float, offsetof(RenderVertex3D, textureCoords)},
+					{3, 3, AttributeType::Float, offsetof(RenderVertex3D, normal)}
 				}
 			);
 			g_logger_info("Initializing the 3D debug batch3DLines succeeded.");
@@ -175,6 +176,23 @@ namespace Minecraft
 			batch3DRegular.flush();
 
 			DebugStats::numDrawCalls += 2;
+		}
+
+		void flushBatches3D(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix)
+		{
+			regular3DShader.bind();
+			regular3DShader.uploadMat4("uProjection", projectionMatrix);
+			regular3DShader.uploadMat4("uView", viewMatrix);
+			for (int i = 0; i < batch3DRegular.textureGraphicsIds.size(); i++)
+			{
+				if (batch3DRegular.textureGraphicsIds[i] != UINT32_MAX)
+				{
+					glBindTextureUnit(i, batch3DRegular.textureGraphicsIds[i]);
+				}
+			}
+			regular3DShader.uploadIntArray("uTextures[0]", 16, _Batch::textureIndices().data());
+
+			batch3DRegular.flush();
 		}
 
 		void setShader2D(const Shader& newShader)
@@ -461,7 +479,7 @@ namespace Minecraft
 		{
 			glm::vec3 halfSize = size * 0.5f;
 			// TODO: Do this in a better way... Maybe do sphere check before expensive box check
-			if (!cameraFrustum->isBoxVisible(center - halfSize, center + halfSize))
+			if (cameraFrustum && !cameraFrustum->isBoxVisible(center - halfSize, center + halfSize))
 			{
 				return;
 			}
@@ -519,9 +537,11 @@ namespace Minecraft
 				glm::vec2 uv2 = sprite->uvs[2];
 				glm::vec2 uv3 = sprite->uvs[3];
 
+				glm::vec3 normal = glm::vec3(offset.x, offset.y, offset.z);
+
 				// Two triangles each face
-				drawTexturedTriangle3D(p0, p1, p2, uv0, uv1, uv2, sprite->texture);
-				drawTexturedTriangle3D(p0, p2, p3, uv0, uv2, uv3, sprite->texture);
+				drawTexturedTriangle3D(p0, p1, p2, uv0, uv1, uv2, normal, sprite->texture);
+				drawTexturedTriangle3D(p0, p2, p3, uv0, uv2, uv3, normal, sprite->texture);
 			}
 		}
 
@@ -599,6 +619,7 @@ namespace Minecraft
 			const glm::vec2& uv0,
 			const glm::vec2& uv1,
 			const glm::vec2& uv2,
+			const glm::vec3& normal,
 			const Texture* texture)
 		{
 			if (batch3DRegular.numVertices + 3 > _Batch::maxBatchSize)
@@ -614,16 +635,19 @@ namespace Minecraft
 			v.position = { p0.x, p0.y, p0.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv0;
+			v.normal = normal;
 			batch3DRegular.addVertex(v);
 
 			v.position = { p1.x, p1.y, p1.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv1;
+			v.normal = normal;
 			batch3DRegular.addVertex(v);
 
 			v.position = { p2.x, p2.y, p2.z };
 			v.textureSlot = texSlot;
 			v.textureCoords = uv2;
+			v.normal = normal;
 			batch3DRegular.addVertex(v);
 		}
 

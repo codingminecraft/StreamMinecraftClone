@@ -35,8 +35,6 @@ namespace Minecraft
 		static float blockPlaceDebounceTime = 0.2f;
 		static float blockPlaceDebounce = 0.0f;
 
-		static int hotbarBlockIds[9] = { 2, 3, 4, 6, 8, 9, 10, 11, 2 };
-
 		static const TextureFormat* sideSprite;
 		static const TextureFormat* topSprite;
 		static const TextureFormat* bottomSprite;
@@ -123,9 +121,13 @@ namespace Minecraft
 					static Block newBlock{
 						0, 0, 0, 0
 					};
-					newBlock.id = hotbarBlockIds[MainHud::currentInventorySlot];
-					ChunkManager::setBlock(worldPos, newBlock);
-					blockPlaceDebounce = blockPlaceDebounceTime;
+					newBlock.id = MainHud::hotbarBlockIds[MainHud::currentInventorySlot];
+
+					if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
+					{
+						ChunkManager::setBlock(worldPos, newBlock);
+						blockPlaceDebounce = blockPlaceDebounceTime;
+					}
 				}
 				else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
 				{

@@ -71,6 +71,48 @@ namespace Minecraft
 		return pixel;
 	}
 
+	uint8* Framebuffer::readAllPixelsRgb8(int colorAttachment) const
+	{
+		g_logger_assert(colorAttachment >= 0 && colorAttachment < colorAttachments.size(), "Index out of bounds. Color attachment does not exist '%d'.", colorAttachment);
+		const Texture& texture = colorAttachments[colorAttachment];
+		//g_logger_assert(TextureUtil::byteFormatIsRgb(texture.internalFormat) && TextureUtil::byteFormatIsRgb(texture.externalFormat), "Cannot read non-rgb texture as if it were a rgb texture.");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + colorAttachment);
+
+		// 128 bits should be big enough for 1 pixel of any format
+		// TODO: Come up with generic way to get any type of pixel data
+		uint8* pixelBuffer = (uint8*)g_memory_allocate(sizeof(uint8) * texture.width * texture.height * 4);
+		uint32 externalFormat = TextureUtil::toGlExternalFormat(texture.format);
+		uint32 formatType = TextureUtil::toGlDataType(texture.format);
+		glReadPixels(0, 0, texture.width, texture.height, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, pixelBuffer);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		uint8* output = (uint8*)g_memory_allocate(sizeof(uint8) * texture.width * texture.height * 4);
+		for (int y = texture.height - 1; y >= 0; y--)
+		{
+			for (int x = 0; x < texture.width; x++)
+			{
+				int pixIndex = (x + (y * texture.width)) * 4;
+				int outIndex = (x + ((texture.height - y - 1) * texture.width)) * 4;
+				output[outIndex + 0] = pixelBuffer[pixIndex + 3];
+				output[outIndex + 1] = pixelBuffer[pixIndex + 2];
+				output[outIndex + 2] = pixelBuffer[pixIndex + 1];
+				output[outIndex + 3] = pixelBuffer[pixIndex];
+			}
+		}
+
+		g_memory_free(pixelBuffer);
+
+		return output;
+	}
+
+	void Framebuffer::freePixelsRgb8(uint8* pixels) const
+	{
+		g_memory_free(pixels);
+	}
+
 	const Texture& Framebuffer::getColorAttachment(int index) const
 	{
 		return colorAttachments.at(index);
