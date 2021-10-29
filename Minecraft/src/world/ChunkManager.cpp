@@ -205,7 +205,7 @@ namespace Minecraft
 						break;
 						case CommandType::RecalculateLighting:
 						{
-							//Chunk::calculateLightingUpdate(command.blockData, command.chunkCoordinates, command.blockThatUpdated);
+							Chunk::calculateLightingUpdate(command.blockData, command.chunkCoordinates, command.blockThatUpdated);
 						}
 						break;
 						case CommandType::TesselateVertices:
