@@ -19,9 +19,11 @@ namespace Minecraft
 			}
 
 			static bool showCommandLine = false;
-			if (showCommandLine)
+			static bool enterWasPressed = false;
+			if (showCommandLine || enterWasPressed)
 			{
-				CommandLine::update(dt);
+				CommandLine::update(dt, enterWasPressed);
+				enterWasPressed = false;
 			}
 
 			if (KeyBindings::keyBeginPress(KeyBind::LockCursor))
@@ -40,11 +42,19 @@ namespace Minecraft
 			}
 			if (KeyBindings::keyBeginPress(KeyBind::ShowChat) || KeyBindings::keyBeginPress(KeyBind::ShowCommandLine))
 			{
+				CommandLine::isActive = true;
 				showCommandLine = true;
 			}
 			if (KeyBindings::keyBeginPress(KeyBind::Escape))
 			{
+				CommandLine::isActive = false;
 				showCommandLine = false;
+			}
+			if (KeyBindings::keyBeginPress(KeyBind::Enter))
+			{
+				CommandLine::isActive = false;
+				showCommandLine = false;
+				enterWasPressed = true;
 			}
 		}
 	}

@@ -58,6 +58,7 @@ namespace Minecraft
 
 		const TextureFormat& getTextureFormat(const std::string& textureName);
 		const BlockFormat& getBlock(const std::string& name);
+		const int getBlockId(const std::string& name);
 		const BlockFormat& getBlock(int blockId);
 		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig);
 		void loadBlockItemTextures(const char* blockFormatConfig);

@@ -12,6 +12,7 @@ namespace Minecraft
 		ShowChat,
 		ShowCommandLine,
 		Escape,
+		Enter,
 		Length
 	};
 

@@ -244,6 +244,7 @@ namespace Minecraft
 				DebugStats::lastFrameTime = dt;
 				ticks = 0;
 			}
+			
 
 			Transform& t2 = registry->getComponent<Transform>(randomEntity);
 			Physics::raycastStatic(t2.position, glm::normalize(glm::vec3(0.5f, -0.3f, -0.5f)), 10.0f, true);

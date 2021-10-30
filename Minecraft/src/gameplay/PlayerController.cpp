@@ -11,6 +11,7 @@
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
 #include "gameplay/CharacterController.h"
+#include "gameplay/CommandLine.h"
 #include "world/ChunkManager.h"
 #include "world/BlockMap.h"
 #include "gui/MainHud.h"
@@ -59,6 +60,15 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
+			if (CommandLine::isActive)
+			{
+				if (gameMode == GameMode::Survival)
+				{
+					MainHud::update(dt);
+				}
+				return;
+			}
+
 			if (playerId == Ecs::nullEntity || registry.getComponent<Tag>(playerId).type != TagType::Player)
 			{
 				playerId = registry.find(TagType::Player);

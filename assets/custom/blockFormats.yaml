@@ -83,3 +83,31 @@ glowstone:
   isTransparent: false 
   isLightSource: true 
   lightLevel: 31
+cobblestone:
+  id: 12
+  side: cobblestone
+  top: cobblestone
+  bottom: cobblestone
+  isSolid: true
+  isTransparent: false
+spruce_log:
+  id: 13
+  side: spruce_log
+  top: spruce_log_top
+  bottom: spruce_log_top
+  isSolid: true
+  isTransparent: false
+spruce_planks:
+  id: 14
+  side: spruce_planks
+  top: spruce_planks
+  bottom: spruce_planks
+  isSolid: true
+  isTransparent: false
+glass:
+  id: 15
+  side: glass
+  top: glass
+  bottom: glass
+  isSolid: true
+  isTransparent: true

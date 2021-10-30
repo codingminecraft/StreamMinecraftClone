@@ -114,7 +114,7 @@ namespace Minecraft
 			advanceCursorPastElement(windowState, strSize);
 		}
 
-		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength)
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool isFocused)
 		{
 			WindowState& windowState = getCurrentWindow();
 			sameLine();
@@ -126,7 +126,7 @@ namespace Minecraft
 			glm::vec2 inputBoxSize = glm::vec2(windowWidthLeft, height);
 			glm::vec2 inputBoxPos = getElementPosition(windowState, inputBoxSize);
 			WidgetState state = mouseInAABB(inputBoxPos, inputBoxSize);
-			static bool focused = false;
+			static bool focused = false || isFocused;
 			if (state == WidgetState::Hover)
 			{
 				focused = true;

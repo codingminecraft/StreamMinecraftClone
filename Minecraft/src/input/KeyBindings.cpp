@@ -18,6 +18,7 @@ namespace Minecraft
 			bindings[KeyBind::ShowCommandLine] = GLFW_KEY_SLASH;
 			bindings[KeyBind::ShowChat] = GLFW_KEY_T;
 			bindings[KeyBind::Escape] = GLFW_KEY_ESCAPE;
+			bindings[KeyBind::Enter] = GLFW_KEY_ENTER;
 		}
 
 		void setKeyBinding(KeyBind key, uint32 value)

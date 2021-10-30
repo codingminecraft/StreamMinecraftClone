@@ -61,8 +61,18 @@ namespace Minecraft
 
 		const BlockFormat& getBlock(const std::string& name)
 		{
-			int blockId = nameToIdMap[name];
+			int blockId = getBlockId(name);
 			return blockFormats[blockId];
+		}
+
+		const int getBlockId(const std::string& name)
+		{
+			const auto& iter = nameToIdMap.find(name);
+			if (iter == nameToIdMap.end())
+			{
+				return 0;
+			}
+			return iter->second;
 		}
 
 		const BlockFormat& getBlock(int blockId)

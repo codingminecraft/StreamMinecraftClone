@@ -6,7 +6,9 @@ namespace Minecraft
 {
 	namespace CommandLine
 	{
-		void update(float dt);
+		extern bool isActive;
+
+		void update(float dt, bool parseText);
 	}
 }
 

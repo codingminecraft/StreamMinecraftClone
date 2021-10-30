@@ -51,7 +51,7 @@ namespace Minecraft
 		void image(const Sprite& sprite, const glm::vec2& size);
 		void label(const char* text, float scale, float maxHeight = -1.0f);
 
-		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength);
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool isFocused = false);
 		bool button(const Button& button);
 		bool textureButton(const TexturedButton& button);
 		
