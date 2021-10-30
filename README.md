@@ -66,7 +66,7 @@ This is a list of tasks that still need to be done.
     * Add multi-color lighting
 - [ ] Add proper transparency support
 - [ ] Add inventory management
-    * Add icons for blocks in the inventory
+    * ~~Add icons for blocks in the inventory~~
     * Add indicators for number of blocks in a slot
 - [ ] Add crafting support
 - [x] ~~Cubemaps~~
@@ -78,6 +78,7 @@ This is a list of tasks that still need to be done.
 - [ ] Water/Lava
 - [x] ~~Fullscreen support~~
 - [ ] Add sounds
+- [ ] Add Command Line Parsing
 
 ### Less Important
 ---

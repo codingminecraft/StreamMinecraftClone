@@ -8,6 +8,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "input/Input.h"
+#include "utils/CMath.h"
 
 namespace Minecraft
 {
@@ -47,6 +48,7 @@ namespace Minecraft
 		static float penetrationAmount(const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2, const glm::vec3& axis);
 		static Interval getInterval(const BoxCollider& box, const Transform& transform, const glm::vec3& axis);
 		static void getQuadrantResult(const Transform& t1, const Transform& t2, const BoxCollider& b2Expanded, CollisionManifold* res, CollisionFace xFace, CollisionFace yFace, CollisionFace zFace);
+		static glm::vec3 closestPointOnRay(const glm::vec3& rayOrigin, const glm::vec3& rayDirection, float rayMaxDistance, const glm::vec3& point);
 
 		void init()
 		{
@@ -102,10 +104,16 @@ namespace Minecraft
 			}
 		}
 
+		static bool doRaycast(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw, const glm::vec3& blockCenter, const glm::vec3& step, RaycastStaticResult* out);
 		RaycastStaticResult raycastStatic(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw)
 		{
 			RaycastStaticResult result;
 			result.hit = false;
+
+			if (CMath::compare(normalDirection, glm::vec3(0, 0, 0)))
+			{
+				return result;
+			}
 
 			Style red = Styles::defaultStyle;
 			red.color = "#E90101"_hex;
@@ -114,70 +122,148 @@ namespace Minecraft
 				Renderer::drawLine(origin, origin + normalDirection * maxDistance, red);
 			}
 
-			glm::vec3 currentOrigin = origin;
-			glm::vec3 pointOnRay = origin;
-			for (float i = 0.0f; i < maxDistance; i += 0.1f)
+			glm::vec3 rayEnd = origin + normalDirection * maxDistance;
+			// Do some fancy math to figure out which voxel is the next voxel
+			glm::vec3 blockCenter = glm::ceil(origin);
+			glm::vec3 step = glm::sign(normalDirection);
+			// Max amount we can step in any direction of the ray, and remain in the voxel
+			glm::vec3 blockCenterToOriginSign = glm::sign(blockCenter - origin);
+			glm::vec3 goodNormalDirection = glm::vec3(
+				normalDirection.x == 0.0f ? 1e-10 * blockCenterToOriginSign.x : normalDirection.x,
+				normalDirection.y == 0.0f ? 1e-10 * blockCenterToOriginSign.y : normalDirection.y,
+				normalDirection.z == 0.0f ? 1e-10 * blockCenterToOriginSign.z : normalDirection.z);
+			glm::vec3 tDelta = ((blockCenter + step) - origin) / goodNormalDirection;
+			// If any number is 0, then we max the delta so we don't get a false positive
+			if (tDelta.x == 0.0f) tDelta.x = 1e10;
+			if (tDelta.y == 0.0f) tDelta.y = 1e10;
+			if (tDelta.z == 0.0f) tDelta.z = 1e10;
+			glm::vec3 tMax = tDelta;
+			float minTValue;
+			do
 			{
-				if (glm::ceil(pointOnRay) != currentOrigin)
+				// TODO: This shouldn't have to be calculated every step
+				tDelta = (blockCenter - origin) / goodNormalDirection;
+				tMax = tDelta;
+				minTValue = FLT_MAX;
+				if (tMax.x < tMax.y)
 				{
-					currentOrigin = glm::ceil(pointOnRay);
-					BoxCollider currentBox;
-					currentBox.offset = glm::vec3();
-					currentBox.size = glm::vec3(1.0f, 1.0f, 1.0f);
-					Transform currentTransform;
-					currentTransform.position = currentOrigin - glm::vec3(0.5f, 0.5f, 0.5f);
-
-					Block block = ChunkManager::getBlock(currentTransform.position);
-					BlockFormat blockFormat = BlockMap::getBlock(block.id);
-
-					if (blockFormat.isSolid)
+					if (tMax.x < tMax.z)
 					{
-						glm::vec3 min = currentTransform.position - (currentBox.size * 0.5f) + currentBox.offset;
-						glm::vec3 max = currentTransform.position + (currentBox.size * 0.5f) + currentBox.offset;
-						float t1 = (min.x - origin.x) / normalDirection.x;
-						float t2 = (max.x - origin.x) / normalDirection.x;
-						float t3 = (min.y - origin.y) / normalDirection.y;
-						float t4 = (max.y - origin.y) / normalDirection.y;
-						float t5 = (min.z - origin.z) / normalDirection.z;
-						float t6 = (max.z - origin.z) / normalDirection.z;
-
-						float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
-						float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
-						if (tmax < 0 || tmin > tmax)
+						blockCenter.x += step.x;
+						// Check if we actually hit the block
+						if (doRaycast(origin, normalDirection, maxDistance, draw, blockCenter, step, &result))
 						{
-							// No intersection
 							return result;
 						}
-
-						float depth = 0.0f;
-						if (tmin < 0.0f)
+						//tMax.x += tDelta.x;
+						minTValue = tMax.x;
+					}
+					else
+					{
+						blockCenter.z += step.z;
+						if (doRaycast(origin, normalDirection, maxDistance, draw, blockCenter, step, &result))
 						{
-							// The ray's origin is inside the AABB
-							depth = tmax;
+							return result;
 						}
-						else
-						{
-							depth = tmin;
-						}
-
-						result.point = origin + normalDirection * depth;
-						result.hit = true;
-						result.blockCenter = currentTransform.position + currentBox.offset;
-						result.blockSize = currentBox.size;
-						result.hitNormal = result.point - result.blockCenter;
-						float maxComponent = glm::max(glm::abs(result.hitNormal.x), glm::max(glm::abs(result.hitNormal.y), glm::abs(result.hitNormal.z)));
-						result.hitNormal = glm::abs(result.hitNormal.x) == maxComponent
-							? glm::vec3(1, 0, 0) * glm::sign(result.hitNormal.x)
-							: glm::abs(result.hitNormal.y) == maxComponent
-							? glm::vec3(0, 1, 0) * glm::sign(result.hitNormal.y)
-							: glm::vec3(0, 0, 1) * glm::sign(result.hitNormal.z);
-						return result;
+						//tMax.z += tDelta.z;
+						minTValue = tMax.z;
 					}
 				}
-				pointOnRay += normalDirection * 0.1f;
-			}
+				else
+				{
+					if (tMax.y < tMax.z)
+					{
+						blockCenter.y += step.y;
+						if (doRaycast(origin, normalDirection, maxDistance, draw, blockCenter, step, &result))
+						{
+							return result;
+						}
+						//tMax.y += tDelta.y;
+						minTValue = tMax.y;
+					}
+					else
+					{
+						blockCenter.z += step.z;
+						if (doRaycast(origin, normalDirection, maxDistance, draw, blockCenter, step, &result))
+						{
+							return result;
+						}
+						//tMax.z += tDelta.z;
+						minTValue = tMax.z;
+					}
+				}
+			} while (minTValue < maxDistance);
 
 			return result;
+		}
+
+		static bool doRaycast(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw, const glm::vec3& blockCorner, const glm::vec3& step, RaycastStaticResult* out)
+		{
+			glm::vec3 blockCenter = blockCorner - (glm::vec3(0.5f) * step);
+			if (draw)
+			{
+				Renderer::drawBox(blockCenter, glm::vec3(1.0f, 1.0f, 1.0f), Styles::defaultStyle);
+			}
+
+			int blockId = ChunkManager::getBlock(blockCenter).id;
+			BlockFormat block = BlockMap::getBlock(blockId);
+			if (blockId != BlockMap::NULL_BLOCK.id && blockId != BlockMap::AIR_BLOCK.id)
+			{
+				BoxCollider currentBox;
+				currentBox.offset = glm::vec3();
+				currentBox.size = glm::vec3(1.0f, 1.0f, 1.0f);
+				Transform currentTransform;
+				currentTransform.position = blockCenter;
+
+				Block block = ChunkManager::getBlock(currentTransform.position);
+				BlockFormat blockFormat = BlockMap::getBlock(block.id);
+
+				if (blockFormat.isSolid)
+				{
+					glm::vec3 min = currentTransform.position - (currentBox.size * 0.5f) + currentBox.offset;
+					glm::vec3 max = currentTransform.position + (currentBox.size * 0.5f) + currentBox.offset;
+					float t1 = (min.x - origin.x) / (CMath::compare(normalDirection.x, 0.0f) ? 0.00001f : normalDirection.x);
+					float t2 = (max.x - origin.x) / (CMath::compare(normalDirection.x, 0.0f) ? 0.00001f : normalDirection.x);
+					float t3 = (min.y - origin.y) / (CMath::compare(normalDirection.y, 0.0f) ? 0.00001f : normalDirection.y);
+					float t4 = (max.y - origin.y) / (CMath::compare(normalDirection.y, 0.0f) ? 0.00001f : normalDirection.y);
+					float t5 = (min.z - origin.z) / (CMath::compare(normalDirection.z, 0.0f) ? 0.00001f : normalDirection.z);
+					float t6 = (max.z - origin.z) / (CMath::compare(normalDirection.z, 0.0f) ? 0.00001f : normalDirection.z);
+
+					float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
+					float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
+					if (tmax < 0 || tmin > tmax)
+					{
+						// No intersection
+						return false;
+					}
+
+					float depth = 0.0f;
+					if (tmin < 0.0f)
+					{
+						// The ray's origin is inside the AABB
+						depth = tmax;
+					}
+					else
+					{
+						depth = tmin;
+					}
+
+					out->point = origin + normalDirection * depth;
+					out->hit = true;
+					out->blockCenter = currentTransform.position + currentBox.offset;
+					out->blockSize = currentBox.size;
+					out->hitNormal = out->point - out->blockCenter;
+					float maxComponent = glm::max(glm::abs(out->hitNormal.x), glm::max(glm::abs(out->hitNormal.y), glm::abs(out->hitNormal.z)));
+					out->hitNormal = glm::abs(out->hitNormal.x) == maxComponent
+						? glm::vec3(1, 0, 0) * glm::sign(out->hitNormal.x)
+						: glm::abs(out->hitNormal.y) == maxComponent
+						? glm::vec3(0, 1, 0) * glm::sign(out->hitNormal.y)
+						: glm::vec3(0, 0, 1) * glm::sign(out->hitNormal.z);
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider)
@@ -459,6 +545,27 @@ namespace Minecraft
 			}
 
 			return result;
+		}
+
+		static glm::vec3 closestPointOnRay(const glm::vec3& rayOrigin, const glm::vec3& rayDirection, float rayMaxDistance, const glm::vec3& point)
+		{
+			glm::vec3 originToPoint = point - rayOrigin;
+			glm::vec3 raySegment = rayDirection * rayMaxDistance;
+
+			float rayMagnitudeSquared = rayMaxDistance * rayMaxDistance;
+			float dotProduct = glm::dot(originToPoint, raySegment);
+			float distance = dotProduct / rayMagnitudeSquared; //The normalized "distance" from a to your closest point  
+
+			if (distance < 0)     //Check if P projection is over vectorAB     
+			{
+				return rayOrigin;
+			}
+			else if (distance > 1)
+			{
+				return rayOrigin + (rayDirection * rayMaxDistance);
+			}
+
+			return rayOrigin + rayDirection * distance * rayMaxDistance;
 		}
 	}
 }

@@ -102,7 +102,7 @@ namespace Minecraft
 				static float speedDir = 0.05f;
 				static int changeDirTick = 0;
 				verticalOffset.y += speedDir * dt;
-				Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
+				//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
 				rotation = rotation + 30.0f * dt;
 				changeDirTick++;
 				if (changeDirTick > 30)
@@ -218,7 +218,7 @@ namespace Minecraft
 
 			if (Input::mouseScrollY != 0)
 			{
-				MainHud::currentInventorySlot += (int)Input::mouseScrollY;
+				MainHud::currentInventorySlot -= (int)Input::mouseScrollY;
 				if (MainHud::currentInventorySlot < 0)
 				{
 					MainHud::currentInventorySlot = CMath::negativeMod(MainHud::currentInventorySlot, 0, 8);
