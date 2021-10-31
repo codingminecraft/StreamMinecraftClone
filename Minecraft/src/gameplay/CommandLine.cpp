@@ -6,6 +6,7 @@
 #include "gui/MainHud.h"
 #include "input/Input.h"
 #include "world/BlockMap.h"
+#include "core/Application.h"
 
 namespace Minecraft
 {
@@ -19,6 +20,7 @@ namespace Minecraft
 	{
 		None,
 		SetInventorySlot,
+		Screenshot,
 		GetBlock,
 		SetBlock,
 		Length
@@ -136,6 +138,9 @@ namespace Minecraft
 			{
 			case CommandLineType::SetInventorySlot:
 				executeSetInventorySlot(args, argsLength);
+				break;
+			case CommandLineType::Screenshot:
+				Application::takeScreenshot();
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

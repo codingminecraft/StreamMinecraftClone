@@ -298,15 +298,15 @@ namespace Minecraft
 			);
 			glm::mat4 projectionMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 2000.0f);
 
-			Texture texture = TextureBuilder()
-				.setWidth(32)
-				.setHeight(32)
-				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
-				.setTextureType(TextureType::_2D)
-				.setFormat(ByteFormat::RGBA8_UI)
-				.generateTextureObject()
-				.generate();
+			Texture texture;
+			texture.width = 32;
+			texture.height = 32;
+			texture.magFilter = FilterMode::Nearest;
+			texture.minFilter = FilterMode::Nearest;
+			texture.type = TextureType::_2D;
+			texture.format = ByteFormat::RGBA8_UI;
+			texture.wrapS = WrapMode::None;
+			texture.wrapT = WrapMode::None;
 			Framebuffer framebuffer = FramebufferBuilder(64, 64)
 				.addColorAttachment(texture)
 				.generate();

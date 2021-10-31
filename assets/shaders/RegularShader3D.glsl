@@ -47,5 +47,5 @@ void main()
 	vec3 diffuse = diff * lightColor;
 
 	vec4 objectColor = texture(uTextures[int(fTexId)], fTexCoord);
-	FragColor = vec4((diffuse + ambient) * objectColor.rgb, 1.0);
+	FragColor = vec4((diffuse + ambient), 1.0) * objectColor;
 }

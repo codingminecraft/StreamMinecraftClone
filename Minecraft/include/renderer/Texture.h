@@ -28,7 +28,9 @@ namespace Minecraft
 		R32_F,
 		R8_UI,
 
-		ALPHA_F
+		ALPHA_F,
+
+		DepthStencil
 	};
 
 	enum class ColorChannel
@@ -87,6 +89,7 @@ namespace Minecraft
 	{
 	public:
 		TextureBuilder();
+		TextureBuilder(const Texture& texture);
 
 		TextureBuilder& setMagFilter(FilterMode mode);
 		TextureBuilder& setMinFilter(FilterMode mode);

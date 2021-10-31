@@ -6,6 +6,8 @@
 #include "core/AppData.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
+#include "renderer/Framebuffer.h"
+#include "renderer/Shader.h"
 #include "physics/Physics.h"
 #include "input/Input.h"
 #include "input/KeyBindings.h"
@@ -20,6 +22,23 @@ namespace Minecraft
 		static Ecs::Registry& getRegistry();
 		static void freeWindow();
 		static void freeRegistry();
+
+		// Internal variables
+		static Framebuffer mainFramebuffer;
+		static Texture screenshotTexture;
+		static bool dumpScreenshot = false;
+
+		static Shader mainFramebufferShader;
+		static uint32 mainRectVao;
+		static float mainRectVerts[24] = {
+			1.0f, 1.0f, 1.0f, 1.0f,     // Top-right pos and uvs
+			-1.0f, 1.0f, 0.0f, 1.0f,   // Top-left pos and uvs
+			1.0f, -1.0f, 1.0f, 0.0f,   // Bottom-right pos and uvs
+
+			1.0f, -1.0f, 1.0f, 0.0f,   // Bottom-right pos and uvs
+			-1.0f, 1.0f, 0.0f, 1.0f,   // Top-left pos and uvs
+			-1.0f, -1.0f, 0.0f, 0.0f  // Bottom-left pos and uvs
+		};
 
 		void init()
 		{
@@ -42,6 +61,52 @@ namespace Minecraft
 			KeyBindings::init();
 			Gui::init();
 			GuiElements::init();
+
+			// Initialize the framebuffers
+			Texture textureSpec;
+			textureSpec.width = window.width;
+			textureSpec.height = window.height;
+			textureSpec.magFilter = FilterMode::Linear;
+			textureSpec.minFilter = FilterMode::Linear;
+			textureSpec.type = TextureType::_2D;
+			textureSpec.format = ByteFormat::RGBA8_UI;
+			textureSpec.wrapS = WrapMode::None;
+			textureSpec.wrapT = WrapMode::None;
+
+			mainFramebuffer = FramebufferBuilder(window.width, window.height)
+				.addColorAttachment(textureSpec)
+				.includeDepthStencilBuffer()
+				.generate();
+			mainFramebuffer.bind();
+			glViewport(0, 0, window.width, window.height);
+			mainFramebuffer.unbind();
+
+			screenshotTexture = TextureBuilder()
+				.setWidth(window.width)
+				.setHeight(window.height)
+				.setMagFilter(FilterMode::Linear)
+				.setMinFilter(FilterMode::Linear)
+				.setTextureType(TextureType::_2D)
+				.setFormat(ByteFormat::RGBA8_UI)
+				.generate();
+
+			// Initialize rendering state for blitting the main framebuffer to the screen
+			mainFramebufferShader.compile("assets/shaders/mainFramebuffer.glsl");
+
+			glGenVertexArrays(1, &mainRectVao);
+			glBindVertexArray(mainRectVao);
+
+			uint32 vbo;
+			glGenBuffers(1, &vbo);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+			glBufferData(GL_ARRAY_BUFFER, sizeof(mainRectVerts), mainRectVerts, GL_STATIC_DRAW);
+
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
+			glEnableVertexAttribArray(0);
+
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
+			glEnableVertexAttribArray(1);
 		}
 
 		void run()
@@ -71,10 +136,57 @@ namespace Minecraft
 					deltaTime = nextTarget;
 				}
 
+				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
+				{
+					mainFramebuffer.width = getWindow().width;
+					mainFramebuffer.height = getWindow().height;
+					mainFramebuffer.regenerate();
+					mainFramebuffer.bind();
+					glViewport(0, 0, getWindow().width, getWindow().height);
+
+					screenshotTexture.destroy();
+					screenshotTexture.width = getWindow().width;
+					screenshotTexture.height = getWindow().height;
+					screenshotTexture = TextureBuilder(screenshotTexture)
+						.generate();
+				}
+
+				mainFramebuffer.bind();
 				Scene::update(deltaTime);
+				
+				// Unbind all framebuffers
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+				glClear(GL_DEPTH_BUFFER_BIT);
+				mainFramebufferShader.bind();
+				glBindTextureUnit(0, mainFramebuffer.getColorAttachment(0).graphicsId);
+				mainFramebufferShader.uploadInt("uMainTexture", 0);
+
+				glBindVertexArray(mainRectVao);
+				glDrawArrays(GL_TRIANGLES, 0, 6);
 
 				window.swapBuffers();
 				window.pollInput();
+
+				if (dumpScreenshot)
+				{
+					time_t rawtime;
+					struct tm* timeinfo;
+					char buffer[80];
+
+					time(&rawtime);
+					timeinfo = localtime(&rawtime);
+
+					strftime(buffer, sizeof(buffer), "%d-%m-%Y %H.%M.%S", timeinfo);
+					std::string dateTimeAsStr(buffer);
+
+					uint8* pixels = (uint8*)g_memory_allocate(sizeof(uint8) * mainFramebuffer.width * mainFramebuffer.height * 4);
+					glReadPixels(0, 0, mainFramebuffer.width, mainFramebuffer.height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
+					stbi_flip_vertically_on_write(true);
+					std::string filepath = AppData::screenshotsPath + "/" + dateTimeAsStr + ".png";
+					stbi_write_png(filepath.c_str(), mainFramebuffer.width, mainFramebuffer.height, 4, (void*)pixels, sizeof(uint8) * mainFramebuffer.width * 4);
+					g_memory_free(pixels);
+					dumpScreenshot = false;
+				}
 			}
 		}
 
@@ -98,6 +210,11 @@ namespace Minecraft
 		{
 			static Window* window = Window::create(Settings::Window::title);
 			return *window;
+		}
+
+		void takeScreenshot() 
+		{
+			dumpScreenshot = true;
 		}
 
 		static Ecs::Registry& getRegistry()

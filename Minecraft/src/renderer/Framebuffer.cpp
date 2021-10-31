@@ -174,6 +174,13 @@ namespace Minecraft
 		return framebuffer;
 	}
 
+	FramebufferBuilder& FramebufferBuilder::includeDepthStencilBuffer()
+	{
+		framebuffer.depthStencilFormat = ByteFormat::DepthStencil;
+		framebuffer.includeDepthStencil = true;
+		return *this;
+	}
+
 	FramebufferBuilder& FramebufferBuilder::addColorAttachment(const Texture& textureSpecification)
 	{
 		framebuffer.colorAttachments.push_back(textureSpecification);
@@ -215,7 +222,7 @@ namespace Minecraft
 			// Create renderbuffer to store depth_stencil info
 			glGenRenderbuffers(1, &framebuffer.rbo);
 			glBindRenderbuffer(GL_RENDERBUFFER, framebuffer.rbo);
-			uint32 glDepthFormat = TextureUtil::toGlExternalFormat(framebuffer.depthStencilFormat);
+			uint32 glDepthFormat = TextureUtil::toGlSizedInternalFormat(framebuffer.depthStencilFormat);
 			glRenderbufferStorage(GL_RENDERBUFFER, glDepthFormat, framebuffer.width, framebuffer.height);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, framebuffer.rbo);
 		}

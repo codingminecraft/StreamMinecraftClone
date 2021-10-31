@@ -12,6 +12,8 @@ namespace Minecraft
 		void run();
 		void free();
 
+		void takeScreenshot();
+
 		Window& getWindow();
 	}
 }

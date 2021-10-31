@@ -55,7 +55,7 @@ namespace Minecraft
 		}
 		g_logger_info("GLFW window created");
 
-		glfwSetWindowUserPointer((GLFWwindow*)res->windowPtr, (void*)(&res));
+		glfwSetWindowUserPointer((GLFWwindow*)res->windowPtr, (void*)(res));
 		res->makeContextCurrent();
 
 		glfwSetCursorPosCallback((GLFWwindow*)res->windowPtr, Input::mouseCallback);

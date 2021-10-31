@@ -8,6 +8,7 @@ namespace Minecraft
 	{
 		extern std::string appDataFilepath;
 		extern std::string worldsRootPath;
+		extern std::string screenshotsPath;
 
 		void init();
 	}

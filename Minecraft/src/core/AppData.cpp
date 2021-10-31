@@ -7,6 +7,7 @@ namespace Minecraft
 	{
 		extern std::string appDataFilepath = "";
 		extern std::string worldsRootPath = "";
+		extern std::string screenshotsPath = "";
 
 		void init()
 		{
@@ -15,6 +16,8 @@ namespace Minecraft
 			File::createDirIfNotExists(appDataFilepath.c_str());
 			worldsRootPath = (std::filesystem::path(appDataFilepath) / std::filesystem::path("worlds")).string();
 			File::createDirIfNotExists(worldsRootPath.c_str());
+			screenshotsPath = (std::filesystem::path(appDataFilepath) / std::filesystem::path("screenshots")).string();
+			File::createDirIfNotExists(screenshotsPath.c_str());
 		}
 	}
 }

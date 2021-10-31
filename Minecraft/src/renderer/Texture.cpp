@@ -28,6 +28,11 @@ namespace Minecraft
 		texture.swizzleFormat[3] = ColorChannel::Alpha;
 	}
 
+	TextureBuilder::TextureBuilder(const Texture& texture)
+	{
+		this->texture = texture;
+	}
+
 	TextureBuilder& TextureBuilder::setMagFilter(FilterMode mode)
 	{
 		texture.magFilter = mode;
@@ -228,6 +233,8 @@ namespace Minecraft
 				return GL_NONE;
 			case ByteFormat::ALPHA_F:
 				return GL_ALPHA;
+			case ByteFormat::DepthStencil:
+				return GL_DEPTH24_STENCIL8;
 			default:
 				g_logger_warning("Unknown glByteFormat '%d'", format);
 			}
@@ -253,6 +260,8 @@ namespace Minecraft
 				return GL_ALPHA;
 			case ByteFormat::None:
 				return GL_NONE;
+			case ByteFormat::DepthStencil:
+				return GL_UNSIGNED_INT_24_8;
 			default:
 				g_logger_warning("Unknown glByteFormat '%d'", format);
 			}
