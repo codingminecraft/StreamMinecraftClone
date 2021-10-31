@@ -20,7 +20,7 @@ namespace Minecraft
 
 		static const glm::vec2 blockCursorSize = glm::vec2(0.1f, 0.1f);
 		static const glm::vec2 inventorySlotSize = glm::vec2(0.2f, 0.2f);
-		static int numHotBarInventorySlots = 9;
+		static const int numHotBarInventorySlots = 9;
 
 		void init()
 		{

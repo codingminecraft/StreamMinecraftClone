@@ -122,6 +122,7 @@ namespace Minecraft
 				Renderer::drawLine(origin, origin + normalDirection * maxDistance, red);
 			}
 
+			// NOTE: Thank God for this paper http://www.cse.yorku.ca/~amana/research/grid.pdf which outlines what I'm doing here
 			glm::vec3 rayEnd = origin + normalDirection * maxDistance;
 			// Do some fancy math to figure out which voxel is the next voxel
 			glm::vec3 blockCenter = glm::ceil(origin);

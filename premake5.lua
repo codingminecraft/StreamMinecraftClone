@@ -58,7 +58,8 @@ project "Minecraft"
         "Minecraft/vendor/yamlCpp/include",
         "Minecraft/vendor/simplex/src",
         "Minecraft/vendor/cppUtils/single_include",
-        "Minecraft/vendor/freetype/include"
+        "Minecraft/vendor/freetype/include",
+        "Minecraft/vendor/magicEnum/include"
     }
 
     libdirs {

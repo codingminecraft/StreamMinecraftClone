@@ -172,8 +172,6 @@ namespace Minecraft
 				}
 			}
 
-			//Physics::raycastStatic(transform.position, transform.forward, 5.0f);
-
 			if (Input::keyBeginPress(GLFW_KEY_F4))
 			{
 				gameMode = GameMode::Spectator;

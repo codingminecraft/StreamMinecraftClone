@@ -13,3 +13,6 @@
 [submodule "Minecraft/vendor/GLFW"]
 	path = Minecraft/vendor/GLFW
 	url = https://github.com/glfw/glfw
+[submodule "Minecraft/vendor/magicEnum"]
+	path = Minecraft/vendor/magicEnum
+	url = https://github.com/Neargye/magic_enum

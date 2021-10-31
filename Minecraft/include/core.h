@@ -55,6 +55,9 @@
 // Freetype
 #include <freetype/freetype.h>
 
+// Enum reflection
+#include <magic_enum.hpp>
+
 // User defined literals
 glm::vec4 operator""_hex(const char* hexColor, size_t length);
 
