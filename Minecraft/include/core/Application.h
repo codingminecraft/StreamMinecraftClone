@@ -12,7 +12,7 @@ namespace Minecraft
 		void run();
 		void free();
 
-		void takeScreenshot(const char* filename = "");
+		void takeScreenshot(const char* filename = "", bool mustBeSquare = false);
 
 		Window& getWindow();
 	}

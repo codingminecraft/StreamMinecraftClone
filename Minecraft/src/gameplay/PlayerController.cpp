@@ -16,6 +16,8 @@
 #include "world/BlockMap.h"
 #include "gui/MainHud.h"
 #include "core/Application.h"
+#include "core/Scene.h"
+#include "core/Window.h"
 
 namespace Minecraft
 {
@@ -104,6 +106,8 @@ namespace Minecraft
 					controller.applyJumpForce = false;
 					controller.viewAxis.x = 0;
 					controller.viewAxis.y = 0;
+					Scene::getCamera().fov = 90.0f;
+					Application::getWindow().setSize(1280.0f, 1280.0f);
 
 					switch (sideGenerating)
 					{
@@ -133,12 +137,13 @@ namespace Minecraft
 						break;
 					}
 
-					Application::takeScreenshot(magic_enum::enum_name(sideGenerating).data());
+					Application::takeScreenshot(magic_enum::enum_name(sideGenerating).data(), true);
 					sideGenerating = (CubemapSide)((int)sideGenerating + 1);
 					if (sideGenerating == CubemapSide::Length)
 					{
 						sideGenerating = (CubemapSide)0;
 						generateCubemap = false;
+						Scene::getCamera().fov = 45.0f;
 					}
 					// Don't update the HUD or anything
 					return;

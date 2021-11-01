@@ -28,6 +28,7 @@ namespace Minecraft
 		void setCursorMode(CursorMode cursorMode);
 		void setVSync(bool on);
 		void setTitle(const char* title);
+		void setSize(int width, int height);
 		float getAspectRatio() const;
 
 		static Window* create(const char* title);

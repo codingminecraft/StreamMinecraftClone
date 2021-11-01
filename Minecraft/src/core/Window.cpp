@@ -85,6 +85,11 @@ namespace Minecraft
 		glfwSetWindowTitle((GLFWwindow*)windowPtr, title);
 	}
 
+	void Window::setSize(int width, int height)
+	{
+		glfwSetWindowSize((GLFWwindow*)windowPtr, width, height);
+	}
+
 	void Window::setCursorMode(CursorMode cursorMode)
 	{
 		int glfwCursorMode =

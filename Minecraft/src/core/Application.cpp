@@ -27,6 +27,7 @@ namespace Minecraft
 		static Framebuffer mainFramebuffer;
 		static Texture screenshotTexture;
 		static bool dumpScreenshot = false;
+		static bool screenshotMustBeSquare = false;
 		static std::string screenshotName = "";
 
 		static Shader mainFramebufferShader;
@@ -184,10 +185,28 @@ namespace Minecraft
 					}
 
 					uint8* pixels = (uint8*)g_memory_allocate(sizeof(uint8) * mainFramebuffer.width * mainFramebuffer.height * 4);
-					glReadPixels(0, 0, mainFramebuffer.width, mainFramebuffer.height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
+					int outputWidth = mainFramebuffer.width;
+					int outputHeight = mainFramebuffer.height;
+					int startX = 0;
+					int startY = 0;
+					if (screenshotMustBeSquare)
+					{
+						if (outputWidth > outputHeight)
+						{
+							outputWidth = outputHeight;
+							startX = (outputWidth - outputHeight) / 2;
+						}
+						else
+						{
+							outputHeight = outputWidth;
+							startY = (outputHeight - outputWidth) / 2;
+						}
+					}
+
+					glReadPixels(startX, startY, outputWidth, outputHeight, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
 					stbi_flip_vertically_on_write(true);
 					std::string filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
-					stbi_write_png(filepath.c_str(), mainFramebuffer.width, mainFramebuffer.height, 4, (void*)pixels, sizeof(uint8) * mainFramebuffer.width * 4);
+					stbi_write_png(filepath.c_str(), outputWidth, outputHeight, 4, (void*)pixels, sizeof(uint8) * outputWidth * 4);
 					g_memory_free(pixels);
 					dumpScreenshot = false;
 				}
@@ -216,10 +235,11 @@ namespace Minecraft
 			return *window;
 		}
 
-		void takeScreenshot(const char* filename)
+		void takeScreenshot(const char* filename, bool mustBeSquare)
 		{
 			dumpScreenshot = true;
 			screenshotName = filename;
+			screenshotMustBeSquare = mustBeSquare;
 		}
 
 		static Ecs::Registry& getRegistry()
