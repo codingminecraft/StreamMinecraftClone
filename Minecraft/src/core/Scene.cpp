@@ -5,6 +5,7 @@
 #include "gui/Gui.h"
 #include "renderer/Renderer.h"
 #include "renderer/Camera.h"
+#include "renderer/Frustum.h"
 #include "utils/Settings.h"
 #include "input/Input.h"
 
@@ -20,6 +21,7 @@ namespace Minecraft
 
 		// TODO: Where does this go??
 		static Camera camera;
+		static Frustum cameraFrustum;
 
 		// Internal functions
 		static void changeSceneInternal();
@@ -40,6 +42,7 @@ namespace Minecraft
 			Tag& cameraTag = registry->getComponent<Tag>(cameraEntity);
 			cameraTag.type = TagType::Camera;
 
+			Renderer::setCameraFrustum(cameraFrustum);
 			Renderer::setCamera(camera);
 			Input::setProjectionMatrix(camera.calculateHUDProjectionMatrix());
 
@@ -54,7 +57,7 @@ namespace Minecraft
 			switch (currentScene)
 			{
 			case SceneType::Game:
-				World::update(dt);
+				World::update(dt, cameraFrustum);
 				break;
 			case SceneType::MainMenu:
 				MainMenu::update(dt);

@@ -15,6 +15,7 @@
 #include "world/ChunkManager.h"
 #include "world/BlockMap.h"
 #include "gui/MainHud.h"
+#include "core/Application.h"
 
 namespace Minecraft
 {
@@ -27,8 +28,22 @@ namespace Minecraft
 		Spectator
 	};
 
+	enum class CubemapSide : uint8
+	{
+		Left = 0,
+		Right = 1,
+		Front = 2,
+		Back = 3,
+		Top = 4,
+		Bottom = 5,
+		Length
+	};
+
 	namespace PlayerController
 	{
+		extern bool generateCubemap = false;
+		static CubemapSide sideGenerating = CubemapSide::Left;
+
 		// Internal members
 		static Ecs::EntityId playerId;
 		static Style blockHighlight;
@@ -80,6 +95,54 @@ namespace Minecraft
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
+
+				if (generateCubemap)
+				{
+					controller.movementAxis.x = 0;
+					controller.movementAxis.y = 0;
+					controller.movementAxis.z = 0;
+					controller.applyJumpForce = false;
+					controller.viewAxis.x = 0;
+					controller.viewAxis.y = 0;
+
+					switch (sideGenerating)
+					{
+					case CubemapSide::Back:
+						transform.orientation.x = 0.0f;
+						transform.orientation.y = 180.0f;
+						break;
+					case CubemapSide::Left:
+						transform.orientation.x = 0.0f;
+						transform.orientation.y = 90.0f;
+						break;
+					case CubemapSide::Front:
+						transform.orientation.x = 0.0f;
+						transform.orientation.y = 0.0f;
+						break;
+					case CubemapSide::Right:
+						transform.orientation.x = 0.0f;
+						transform.orientation.y = 270.0f;
+						break;
+					case CubemapSide::Top:
+						transform.orientation.x = 89.9f;
+						transform.orientation.y = 0.0f;
+						break;
+					case CubemapSide::Bottom:
+						transform.orientation.x = -89.9f;
+						transform.orientation.y = 0.0f;
+						break;
+					}
+
+					Application::takeScreenshot(magic_enum::enum_name(sideGenerating).data());
+					sideGenerating = (CubemapSide)((int)sideGenerating + 1);
+					if (sideGenerating == CubemapSide::Length)
+					{
+						sideGenerating = (CubemapSide)0;
+						generateCubemap = false;
+					}
+					// Don't update the HUD or anything
+					return;
+				}
 
 				switch (gameMode)
 				{

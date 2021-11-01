@@ -27,6 +27,7 @@ namespace Minecraft
 		static Framebuffer mainFramebuffer;
 		static Texture screenshotTexture;
 		static bool dumpScreenshot = false;
+		static std::string screenshotName = "";
 
 		static Shader mainFramebufferShader;
 		static uint32 mainRectVao;
@@ -153,7 +154,7 @@ namespace Minecraft
 
 				mainFramebuffer.bind();
 				Scene::update(deltaTime);
-				
+
 				// Unbind all framebuffers
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glClear(GL_DEPTH_BUFFER_BIT);
@@ -169,20 +170,23 @@ namespace Minecraft
 
 				if (dumpScreenshot)
 				{
-					time_t rawtime;
-					struct tm* timeinfo;
-					char buffer[80];
+					if (screenshotName == "")
+					{
+						time_t rawtime;
+						struct tm* timeinfo;
+						char buffer[80];
 
-					time(&rawtime);
-					timeinfo = localtime(&rawtime);
+						time(&rawtime);
+						timeinfo = localtime(&rawtime);
 
-					strftime(buffer, sizeof(buffer), "%d-%m-%Y %H.%M.%S", timeinfo);
-					std::string dateTimeAsStr(buffer);
+						strftime(buffer, sizeof(buffer), "%d-%m-%Y %H.%M.%S", timeinfo);
+						screenshotName = std::string(buffer);
+					}
 
 					uint8* pixels = (uint8*)g_memory_allocate(sizeof(uint8) * mainFramebuffer.width * mainFramebuffer.height * 4);
 					glReadPixels(0, 0, mainFramebuffer.width, mainFramebuffer.height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
 					stbi_flip_vertically_on_write(true);
-					std::string filepath = AppData::screenshotsPath + "/" + dateTimeAsStr + ".png";
+					std::string filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
 					stbi_write_png(filepath.c_str(), mainFramebuffer.width, mainFramebuffer.height, 4, (void*)pixels, sizeof(uint8) * mainFramebuffer.width * 4);
 					g_memory_free(pixels);
 					dumpScreenshot = false;
@@ -212,9 +216,10 @@ namespace Minecraft
 			return *window;
 		}
 
-		void takeScreenshot() 
+		void takeScreenshot(const char* filename)
 		{
 			dumpScreenshot = true;
+			screenshotName = filename;
 		}
 
 		static Ecs::Registry& getRegistry()

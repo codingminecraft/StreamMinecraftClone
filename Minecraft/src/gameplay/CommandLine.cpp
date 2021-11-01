@@ -7,6 +7,7 @@
 #include "input/Input.h"
 #include "world/BlockMap.h"
 #include "core/Application.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -21,6 +22,7 @@ namespace Minecraft
 		None,
 		SetInventorySlot,
 		Screenshot,
+		GenerateCubemap,
 		GetBlock,
 		SetBlock,
 		Length
@@ -141,6 +143,9 @@ namespace Minecraft
 				break;
 			case CommandLineType::Screenshot:
 				Application::takeScreenshot();
+				break;
+			case CommandLineType::GenerateCubemap:
+				PlayerController::generateCubemap = true;
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

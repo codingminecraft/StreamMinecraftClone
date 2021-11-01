@@ -49,7 +49,6 @@ namespace Minecraft
 		static Ecs::EntityId randomEntity;
 		static std::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
-		static Frustum cameraFrustum;
 		static glm::vec2 lastPlayerLoadPosition;
 
 		void init(Ecs::Registry& sceneRegistry)
@@ -217,24 +216,23 @@ namespace Minecraft
 			MainHud::free();
 		}
 
-		void update(float dt)
+		void update(float dt, Frustum& cameraFrustum)
 		{
+			// Update all systems
+			KeyHandler::update(dt);
+			Physics::update(*registry, dt);
+			PlayerController::update(*registry, dt);
+			CharacterSystem::update(*registry, dt);
+			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
+			TransformSystem::update(*registry, dt);
+
 			Camera& camera = Scene::getCamera();
 			glm::mat4 projectionMatrix = camera.calculateProjectionMatrix(*registry);
 			glm::mat4 viewMatrix = camera.calculateViewMatrix(*registry);
 			cameraFrustum.update(projectionMatrix * viewMatrix);
-			Renderer::setCameraFrustum(cameraFrustum);
 
 			// Render cubemap
 			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
-
-			// Update all systems
-			KeyHandler::update(dt);
-			Physics::update(*registry, dt);
-			CharacterSystem::update(*registry, dt);
-			PlayerController::update(*registry, dt);
-			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(*registry, dt);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
