@@ -27,7 +27,7 @@ namespace Minecraft
 	struct FillChunkCommand
 	{
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
-		Block* blockData;
+		Chunk* chunk;
 		Pool<SubChunk, World::ChunkCapacity * 16>* subChunks;
 		glm::ivec2 chunkCoordinates;
 		glm::ivec2 playerPosChunkCoords;
@@ -150,12 +150,12 @@ namespace Minecraft
 						{
 							if (ChunkPrivate::exists(World::chunkSavePath, command.chunkCoordinates))
 							{
-								ChunkPrivate::deserialize(command.blockData, World::chunkSavePath, command.chunkCoordinates);
+								ChunkPrivate::deserialize(command.chunk->data, World::chunkSavePath, command.chunkCoordinates);
 								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, false);
 							}
 							else
 							{
-								ChunkPrivate::generateTerrain(command.blockData, command.chunkCoordinates, World::seedAsFloat);
+								ChunkPrivate::generateTerrain(command.chunk->data, command.chunkCoordinates, World::seedAsFloat);
 								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, true);
 							}
 						}
@@ -169,7 +169,7 @@ namespace Minecraft
 						break;
 						case CommandType::CalculateLighting:
 						{
-							ChunkPrivate::calculateLighting(command.blockData, command.chunkCoordinates, true);
+							ChunkPrivate::calculateLighting(command.chunk->data, command.chunkCoordinates, true);
 
 							command.type = CommandType::CalculateChunkBorderLighting;
 							queueCommand(command);
@@ -178,17 +178,17 @@ namespace Minecraft
 						break;
 						case CommandType::CalculateChunkBorderLighting:
 						{
-							ChunkPrivate::calculateLighting(command.blockData, command.chunkCoordinates, false);
+							ChunkPrivate::calculateLighting(command.chunk->data, command.chunkCoordinates, false);
 						}
 						break;
 						case CommandType::RecalculateLighting:
 						{
-							ChunkPrivate::calculateLightingUpdate(command.blockData, command.chunkCoordinates, command.blockThatUpdated);
+							ChunkPrivate::calculateLightingUpdate(command.chunk->data, command.chunkCoordinates, command.blockThatUpdated);
 						}
 						break;
 						case CommandType::TesselateVertices:
 						{
-							ChunkPrivate::generateRenderData(command.subChunks, command.blockData, command.chunkCoordinates);
+							ChunkPrivate::generateRenderData(command.subChunks, command.chunk->data, command.chunkCoordinates);
 						}
 						break;
 						case CommandType::SaveBlockData:
@@ -206,7 +206,7 @@ namespace Minecraft
 							}
 
 							// Serialize block data
-							ChunkPrivate::serialize(World::chunkSavePath, command.blockData, command.chunkCoordinates);
+							ChunkPrivate::serialize(World::chunkSavePath, command.chunk->data, command.chunkCoordinates);
 
 							// Tell the chunk manager we are done
 							ChunkManager::unloadChunk(command.chunkCoordinates);
@@ -500,7 +500,7 @@ namespace Minecraft
 				if (chunk.state != ChunkState::Saving && blockData)
 				{
 					cmd.chunkCoordinates = chunk.chunkCoords;
-					cmd.blockData = blockData;
+					cmd.chunk = &chunk;
 					chunkWorker().queueCommand(cmd);
 				}
 			}
@@ -509,16 +509,32 @@ namespace Minecraft
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates)
 		{
 			// Only upload if we need to
-			const Chunk* chunk = getChunk(chunkCoordinates);
+			Chunk* chunk = getChunk(chunkCoordinates);
 			if (!chunk)
 			{
 				if (chunkFreeList.size() > 0)
 				{
+					Chunk newChunk;
+					newChunk.data = chunkFreeList.front();
+					chunkFreeList.pop_front();
+
+					newChunk.chunkCoords = chunkCoordinates;
+					newChunk.topNeighbor = getChunk(chunkCoordinates + INormals2::Up);
+					newChunk.bottomNeighbor = getChunk(chunkCoordinates + INormals2::Down);
+					newChunk.leftNeighbor = getChunk(chunkCoordinates + INormals2::Left);
+					newChunk.rightNeighbor = getChunk(chunkCoordinates + INormals2::Right);
+					newChunk.state = ChunkState::Loaded;
+					
+					{
+						// TODO: Ensure this is only ever accessed from the main thread
+						//std::lock_guard lock(chunkMtx);
+						chunks[newChunk.chunkCoords] = newChunk;
+					}
+
 					FillChunkCommand cmd;
 					cmd.chunkCoordinates = chunkCoordinates;
 					cmd.type = CommandType::GenerateTerrain;
-					cmd.blockData = chunkFreeList.front();
-					chunkFreeList.pop_front();
+					cmd.chunk = &chunks[newChunk.chunkCoords];
 					cmd.subChunks = &(subChunks());
 
 					// Queue the fill command
@@ -530,21 +546,7 @@ namespace Minecraft
 					cmd.type = CommandType::TesselateVertices;
 					chunkWorker().queueCommand(cmd);
 
-					Chunk newChunk;
-					newChunk.chunkCoords = chunkCoordinates;
-					newChunk.data = cmd.blockData;
-					newChunk.topNeighbor = getChunk(chunkCoordinates + INormals2::Up);
-					newChunk.bottomNeighbor = getChunk(chunkCoordinates + INormals2::Down);
-					newChunk.leftNeighbor = getChunk(chunkCoordinates + INormals2::Left);
-					newChunk.rightNeighbor = getChunk(chunkCoordinates + INormals2::Right);
-					newChunk.state = ChunkState::Loaded;
 					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + blockPool().poolSize() * sizeof(Block);
-
-					{
-						// TODO: Ensure this is only ever accessed from the main thread
-						//std::lock_guard lock(chunkMtx);
-						chunks[newChunk.chunkCoords] = newChunk;
-					}
 				}
 				else
 				{
@@ -564,7 +566,7 @@ namespace Minecraft
 				cmd.chunkCoordinates = chunkCoordinates;
 				cmd.type = CommandType::RecalculateLighting;
 				cmd.subChunks = &subChunks();
-				cmd.blockData = chunk->data;
+				cmd.chunk = chunk;
 				cmd.blockThatUpdated = blockPositionThatUpdated;
 
 				chunkWorker().queueCommand(cmd);
@@ -585,7 +587,7 @@ namespace Minecraft
 				cmd.chunkCoordinates = chunkCoordinates;
 				cmd.type = CommandType::TesselateVertices;
 				cmd.subChunks = &subChunks();
-				cmd.blockData = chunk->data;
+				cmd.chunk = chunk;
 
 				// Update the sub-chunks that are about to be deleted
 				for (int i = 0; i < (int)subChunks().size(); i++)
@@ -607,7 +609,7 @@ namespace Minecraft
 			// because it's very possible that the pointer could become invalid 
 
 			// Only save if we need to
-			const Chunk* chunk = getChunk(chunkCoordinates);
+			Chunk* chunk = getChunk(chunkCoordinates);
 			if (chunk)
 			{
 				if (chunk->state != ChunkState::Saving && chunk->data)
@@ -615,7 +617,7 @@ namespace Minecraft
 					FillChunkCommand cmd;
 					cmd.chunkCoordinates = chunkCoordinates;
 					cmd.type = CommandType::SaveBlockData;
-					cmd.blockData = chunk->data;
+					cmd.chunk = chunk;
 					cmd.subChunks = &(subChunks());
 					chunkWorker().queueCommand(cmd);
 				}
@@ -690,22 +692,6 @@ namespace Minecraft
 				chunkWorker().beginWork();
 			}
 		}
-
-		//void setNeedsGenerateDecorations(const glm::ivec2& chunkCoords, bool value)
-		//{
-		//	Chunk* chunk = nullptr;
-		//	{
-		//		std::lock_guard<std::mutex> lock(chunkMtx);
-		//		auto& iter = chunkStates.find(chunkCoords);
-		//		if (iter != chunkStates.end())
-		//		{
-		//			ChunkStateData data = (*iter);
-		//			data.needsToGenerateDecorations = value;
-		//			chunkStates.erase(iter);
-		//			chunkStates.insert(data);
-		//		}
-		//	}
-		//}
 
 		Chunk* getChunk(const glm::vec3& worldPosition)
 		{
@@ -917,7 +903,7 @@ namespace Minecraft
 			cmd.chunkCoordinates = chunkCoords;
 			cmd.type = CommandType::TesselateVertices;
 			cmd.subChunks = &subChunks();
-			cmd.blockData = chunk->data;
+			cmd.chunk = chunk;
 
 			// Get any neighboring chunks that need to be updated
 			int numChunksToUpdate = 1;
@@ -972,7 +958,7 @@ namespace Minecraft
 			chunkWorker().queueCommand(cmd);
 			for (int i = 1; i < numChunksToUpdate; i++)
 			{
-				cmd.blockData = chunksToUpdate[i]->data;
+				cmd.chunk = chunksToUpdate[i];
 				cmd.chunkCoordinates = chunksToUpdate[i]->chunkCoords;
 				chunkWorker().queueCommand(cmd);
 			}
