@@ -360,7 +360,7 @@ namespace Minecraft
 		};
 
 		// Internal functions
-		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData);
+		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Chunk* blockData);
 
 		// Internal variables
 		static std::mutex chunkMtx;
@@ -666,7 +666,7 @@ namespace Minecraft
 
 			if (ChunkPrivate::setBlock(worldPosition, chunkCoords, chunk->data, newBlock))
 			{
-				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk->data);
+				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk);
 				queueRecalculateLighting(chunkCoords, worldPosition);
 				chunkWorker().beginWork();
 			}
@@ -689,7 +689,7 @@ namespace Minecraft
 
 			if (ChunkPrivate::removeBlock(worldPosition, chunkCoords, chunk->data))
 			{
-				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk->data);
+				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk);
 				queueRecalculateLighting(chunkCoords, worldPosition);
 				chunkWorker().beginWork();
 			}
@@ -733,6 +733,18 @@ namespace Minecraft
 			}
 
 			return chunk;
+		}
+
+		void patchChunkPointers()
+		{
+			for (auto& pair : chunks)
+			{
+				Chunk& chunk = pair.second;
+				chunk.topNeighbor = getChunk(chunk.chunkCoords + INormals2::Up);
+				chunk.bottomNeighbor = getChunk(chunk.chunkCoords + INormals2::Down);
+				chunk.leftNeighbor = getChunk(chunk.chunkCoords + INormals2::Left);
+				chunk.rightNeighbor = getChunk(chunk.chunkCoords + INormals2::Right);
+			}
 		}
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum)
@@ -895,6 +907,7 @@ namespace Minecraft
 			ChunkManager::queueGenerateDecorations(playerPosChunkCoords);
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
 
+			ChunkManager::patchChunkPointers();
 			if (needsWork)
 			{
 				chunkWorker().beginWork();
@@ -902,34 +915,46 @@ namespace Minecraft
 		}
 
 		// TODO: Simplify me!
-		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Block* blockData)
+		static void retesselateChunkBlockUpdate(const glm::ivec2& chunkCoords, const glm::vec3& worldPosition, Chunk* chunk)
 		{
 			FillChunkCommand cmd;
 			cmd.chunkCoordinates = chunkCoords;
 			cmd.type = CommandType::TesselateVertices;
 			cmd.subChunks = &subChunks();
-			cmd.blockData = blockData;
+			cmd.blockData = chunk->data;
 
 			// Get any neighboring chunks that need to be updated
 			int numChunksToUpdate = 1;
-			glm::ivec2 chunksToUpdate[3];
-			chunksToUpdate[0] = chunkCoords;
+			Chunk* chunksToUpdate[3];
+			chunksToUpdate[0] = chunk;
 			glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkCoords.x * 16.0f, 0.0f, chunkCoords.y * 16.0f));
 			if (localPosition.x == 0)
 			{
-				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x - 1, chunkCoords.y);
+				if (chunk->leftNeighbor)
+				{
+					chunksToUpdate[numChunksToUpdate++] = chunk->leftNeighbor;
+				}
 			}
 			else if (localPosition.x == 15)
 			{
-				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x + 1, chunkCoords.y);
+				if (chunk->rightNeighbor)
+				{
+					chunksToUpdate[numChunksToUpdate++] = chunk->rightNeighbor;
+				}
 			}
 			if (localPosition.z == 0)
 			{
-				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x, chunkCoords.y - 1);
+				if (chunk->bottomNeighbor)
+				{
+					chunksToUpdate[numChunksToUpdate++] = chunk->bottomNeighbor;
+				}
 			}
 			else if (localPosition.z == 15)
 			{
-				chunksToUpdate[numChunksToUpdate++] = glm::ivec2(chunkCoords.x, chunkCoords.y + 1);
+				if (chunk->topNeighbor)
+				{
+					chunksToUpdate[numChunksToUpdate++] = chunk->topNeighbor;
+				}
 			}
 
 			// Update the sub-chunks that are about to be deleted
@@ -939,7 +964,7 @@ namespace Minecraft
 				{
 					for (int j = 0; j < numChunksToUpdate; j++)
 					{
-						if (subChunks()[i]->chunkCoordinates == chunksToUpdate[j])
+						if (subChunks()[i]->chunkCoordinates == chunksToUpdate[j]->chunkCoords)
 						{
 							subChunks()[i]->state = SubChunkState::RetesselateVertices;
 						}
@@ -951,15 +976,9 @@ namespace Minecraft
 			chunkWorker().queueCommand(cmd);
 			for (int i = 1; i < numChunksToUpdate; i++)
 			{
-				Block* blockData = nullptr;
-
-				auto iter = chunks.find(chunksToUpdate[i]);
-				if (iter != chunks.end())
-				{
-					cmd.blockData = iter->second.data;
-					cmd.chunkCoordinates = chunksToUpdate[i];
-					chunkWorker().queueCommand(cmd);
-				}
+				cmd.blockData = chunksToUpdate[i]->data;
+				cmd.chunkCoordinates = chunksToUpdate[i]->chunkCoords;
+				chunkWorker().queueCommand(cmd);
 			}
 			chunkWorker().beginWork();
 		}

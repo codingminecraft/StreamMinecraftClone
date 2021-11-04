@@ -53,7 +53,8 @@ namespace Minecraft
 
 		Chunk* getChunk(const glm::vec3& worldPosition);
 		Chunk* getChunk(const glm::ivec2& chunkCoords);
-		//void setNeedsGenerateDecorations(const glm::ivec2& chunkCoords, bool value);
+
+		void patchChunkPointers();
 
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
