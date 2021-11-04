@@ -26,18 +26,18 @@ namespace Minecraft
 
 	namespace INormals2
 	{
-		const glm::ivec2 Up = glm::ivec2(0, 1);
-		const glm::ivec2 Down = glm::ivec2(0, -1);
-		const glm::ivec2 Left = glm::ivec2(-1, 0);
-		const glm::ivec2 Right = glm::ivec2(1, 0);
+		const glm::ivec2 Up = glm::ivec2(1, 0);
+		const glm::ivec2 Down = glm::ivec2(-1, 0);
+		const glm::ivec2 Left = glm::ivec2(0, -1);
+		const glm::ivec2 Right = glm::ivec2(0, 1);
 	}
 
 	namespace FNormals2
 	{
-		const glm::vec2 Up = glm::vec2(0.0f, 1.0f);
-		const glm::vec2 Down = glm::vec2(0.0f, -1.0f);
-		const glm::vec2 Left = glm::vec2(-1.0f, 0.0f);
-		const glm::vec2 Right = glm::vec2(1.0f, 0.0f);
+		const glm::vec2 Up = glm::vec2(1.0f, 0.0f);
+		const glm::vec2 Down = glm::vec2(-1.0f, 0.0f);
+		const glm::vec2 Left = glm::vec2(0.0f, -1.0f);
+		const glm::vec2 Right = glm::vec2(0.0f, 1.0f);
 	}
 }
 
