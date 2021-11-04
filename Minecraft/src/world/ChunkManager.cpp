@@ -568,28 +568,24 @@ namespace Minecraft
 				cmd.blockThatUpdated = blockPositionThatUpdated;
 
 				chunkWorker().queueCommand(cmd);
-				queueRetesselateChunk(chunkCoordinates, chunk->data);
+				queueRetesselateChunk(chunkCoordinates, chunk);
 			}
 		}
 
-		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Block* blockData)
+		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk)
 		{
-			if (!blockData)
+			if (!chunk)
 			{
-				Chunk* chunk = getChunk(chunkCoordinates);
-				if (chunk)
-				{
-					blockData = chunk->data;
-				}
+				chunk = getChunk(chunkCoordinates);
 			}
 
-			if (blockData)
+			if (chunk)
 			{
 				FillChunkCommand cmd;
 				cmd.chunkCoordinates = chunkCoordinates;
 				cmd.type = CommandType::TesselateVertices;
 				cmd.subChunks = &subChunks();
-				cmd.blockData = blockData;
+				cmd.blockData = chunk->data;
 
 				// Update the sub-chunks that are about to be deleted
 				for (int i = 0; i < (int)subChunks().size(); i++)
@@ -1807,7 +1803,7 @@ namespace Minecraft
 						{
 							std::this_thread::sleep_for(std::chrono::milliseconds(16));
 						}
-						ChunkManager::queueRetesselateChunk(chunkCoordinates, blockData);
+						//ChunkManager::queueRetesselateChunk(chunkCoordinates, blockData);
 						stepOnce = false;
 					}
 				}
@@ -1820,12 +1816,9 @@ namespace Minecraft
 				if (chunk)
 				{
 					Block* chunkBlockData = chunk->data;
-					if (chunkBlockData)
-					{
-						glm::ivec3 localPosition = glm::floor(chunkIter.second - glm::vec3(chunkIter.first.x * 16.0f, 0.0f, chunkIter.first.y * 16.0f));
-						updateBlockLightLevel(chunkBlockData, localPosition.x, localPosition.y, localPosition.z, chunkIter.first, false, zeroOut, chunksAlreadyChecked);
-						ChunkManager::queueRetesselateChunk(chunkIter.first, chunkBlockData);
-					}
+					glm::ivec3 localPosition = glm::floor(chunkIter.second - glm::vec3(chunkIter.first.x * 16.0f, 0.0f, chunkIter.first.y * 16.0f));
+					updateBlockLightLevel(chunkBlockData, localPosition.x, localPosition.y, localPosition.z, chunkIter.first, false, zeroOut, chunksAlreadyChecked);
+					ChunkManager::queueRetesselateChunk(chunkIter.first, chunk);
 				}
 			}
 

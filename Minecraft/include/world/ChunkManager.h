@@ -60,7 +60,7 @@ namespace Minecraft
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated);
-		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Block* blockData = nullptr);
+		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition);
 
