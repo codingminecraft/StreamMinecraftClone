@@ -26,7 +26,7 @@ namespace Minecraft
 	};
 
 	// Internal Variables
-	static auto mAllShaderVariableLocations = std::unordered_map<ShaderVariable, GLint, hashShaderVar>();
+	static auto mAllShaderVariableLocations = robin_hood::unordered_map<ShaderVariable, GLint, hashShaderVar>();
 
 	// Forward Declarations
 	static GLint GetVariableLocation(const Shader& shader, const char* varName);
@@ -39,7 +39,7 @@ namespace Minecraft
 		g_logger_info("Compiling shader: %s", filepath.string().c_str());
 		std::string fileSource = ReadFile(filepath.string().c_str());
 
-		std::unordered_map<GLenum, std::string> shaderSources;
+		robin_hood::unordered_map<GLenum, std::string> shaderSources;
 
 		const char* typeToken = "#type";
 		size_t typeTokenLength = strlen(typeToken);

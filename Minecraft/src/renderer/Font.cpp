@@ -89,7 +89,7 @@ namespace Minecraft
 		static const int hzPadding = 0;
 		static const int vtPadding = 0;
 		static FT_Library library;
-		static std::unordered_map<std::string, Font> loadedFonts;
+		static robin_hood::unordered_map<std::string, Font> loadedFonts;
 
 		static std::string getFormattedFilepath(const char* filepath, FontSize fontSize);
 		static void generateDefaultCharset(Font& font, CharRange defaultCharset);
@@ -295,7 +295,7 @@ namespace Minecraft
 			}
 
 			// Flip texture coords for all chars
-			for (std::pair<const char, RenderableChar>& tuple : font.characterMap)
+			for (robin_hood::pair<char, RenderableChar>& tuple : font.characterMap)
 			{
 				tuple.second.texCoordStart.y = 1.0f - tuple.second.texCoordStart.y - tuple.second.texCoordSize.y;
 			}

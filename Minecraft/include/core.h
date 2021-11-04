@@ -29,7 +29,6 @@
 #include <vector>
 #include <string>
 #include <string_view>
-#include <unordered_set>
 #include <thread>
 #include <mutex>
 #include <random>
@@ -38,7 +37,11 @@
 #include <algorithm>
 #include <bitset>
 #include <optional>
-#include <unordered_map>
+//#include <unordered_set>
+//#include <unordered_map>
+
+// Use this for hash map and hash sets instead of the crappy std lib
+#include <robin_hood.h>
 
 // GLFW/glad
 #include <glad/glad.h>
@@ -59,6 +62,11 @@
 
 // Enum reflection
 #include <magic_enum.hpp>
+
+// Optick
+//#define OPTICK_ENABLE_GPU_D3D12 0
+//#define OPTICK_ENABLE_GPU_VULKAN 0
+//#include <optick.h>
 
 // User defined literals
 glm::vec4 operator""_hex(const char* hexColor, size_t length);

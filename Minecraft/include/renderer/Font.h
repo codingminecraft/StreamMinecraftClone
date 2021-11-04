@@ -32,7 +32,7 @@ namespace Minecraft
 		float lineHeight;
 		float ascender;
 		float descender;
-		std::unordered_map<char, RenderableChar> characterMap;
+		robin_hood::unordered_map<char, RenderableChar> characterMap;
 
 		const RenderableChar& getCharInfo(char c) const;
 		float getKerning(char leftChar, char rightChar) const;

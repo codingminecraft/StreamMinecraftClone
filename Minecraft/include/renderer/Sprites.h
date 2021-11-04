@@ -16,7 +16,7 @@ namespace Minecraft
 
 	namespace Sprites
 	{
-		const std::unordered_map<std::string, Sprite>& getSpritesheet(const char* filepath);
+		const robin_hood::unordered_map<std::string, Sprite>& getSpritesheet(const char* filepath);
 	}
 }
 

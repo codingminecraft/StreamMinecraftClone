@@ -13,7 +13,7 @@ namespace Minecraft
 
 		void init()
 		{
-			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
+			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 			defaultButton = new TexturedButton();
 			defaultButton->sprite = menuSprites.at(std::string("buttonRegular"));
 			defaultButton->hoverSprite = menuSprites.at(std::string("buttonHover"));

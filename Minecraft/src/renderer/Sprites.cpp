@@ -7,18 +7,18 @@ namespace Minecraft
 	struct Spritesheet
 	{
 		Texture texture;
-		std::unordered_map<std::string, Sprite> sprites;
+		robin_hood::unordered_map<std::string, Sprite> sprites;
 	};
 
 	namespace Sprites
 	{
 		// Internal variables
-		static std::unordered_map<std::string, Spritesheet> spritesheets;
+		static robin_hood::unordered_map<std::string, Spritesheet> spritesheets;
 
 		// Internal functions
 		static void load(const char* filepath);
 
-		const std::unordered_map<std::string, Sprite>& getSpritesheet(const char* filepath)
+		const robin_hood::unordered_map<std::string, Sprite>& getSpritesheet(const char* filepath)
 		{
 			auto iter = spritesheets.find(std::string(filepath));
 			if (iter == spritesheets.end())

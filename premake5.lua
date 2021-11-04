@@ -46,7 +46,15 @@ project "Minecraft"
 		"Minecraft/vendor/yamlCpp/src/**.cpp",
 		"Minecraft/vendor/yamlCpp/include/**.h",
         "Minecraft/vendor/simplex/src/**.h",
-        "Minecraft/vendor/simplex/src/**.cpp"
+        "Minecraft/vendor/simplex/src/**.cpp",
+        "Minecraft/vendor/optick/src/**.cpp",
+        "Minecraft/vendor/optick/src/**.h",
+    }
+
+    removefiles {
+        "Minecraft/vendor/optick/src/optick_gpu.cpp",
+        "Minecraft/vendor/optick/src/optick_gpu.d3d12.cpp",
+        "Minecraft/vendor/optick/src/optick_gpu.vulkan.cpp"
     }
 
     includedirs {
@@ -59,7 +67,9 @@ project "Minecraft"
         "Minecraft/vendor/simplex/src",
         "Minecraft/vendor/cppUtils/single_include",
         "Minecraft/vendor/freetype/include",
-        "Minecraft/vendor/magicEnum/include"
+        "Minecraft/vendor/magicEnum/include",
+        "Minecraft/vendor/optick/src",
+        "Minecraft/vendor/robinHoodHashing/src/include"
     }
 
     libdirs {
@@ -89,7 +99,10 @@ project "Minecraft"
         defines  {
             "_GLFW_WIN32",
             "_CRT_SECURE_NO_WARNINGS",
-            "_ITERATOR_DEBUG_LEVEL=0"
+            "_ITERATOR_DEBUG_LEVEL=0",
+            "_SECURE_SCL=0",
+            "_HAS_ITERATOR_DEBUGGING=0",
+            "_NO_DEBUG_HEAP=1"
         }
 
         postbuildcommands {

@@ -7,6 +7,7 @@
 #include "input/Input.h"
 #include "world/BlockMap.h"
 #include "core/Application.h"
+#include "core/Window.h"
 #include "gameplay/PlayerController.h"
 
 namespace Minecraft
@@ -145,6 +146,7 @@ namespace Minecraft
 				Application::takeScreenshot();
 				break;
 			case CommandLineType::GenerateCubemap:
+				Application::getWindow().setSize(1280.0f, 1280.0f);
 				PlayerController::generateCubemap = true;
 				break;
 			default:

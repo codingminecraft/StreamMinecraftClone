@@ -125,6 +125,22 @@ namespace Minecraft
 				float deltaTime = (float)glfwGetTime() - previousTime;
 				previousTime = (float)glfwGetTime();
 
+				//if (Input::keyBeginPress(GLFW_KEY_F8))
+				//{
+				//	static bool capturing = false;
+				//	if (!capturing)
+				//	{
+				//		capturing = true;
+				//		OPTICK_START_CAPTURE();
+				//	}
+				//	else
+				//	{
+				//		capturing = false;
+				//		OPTICK_STOP_CAPTURE();
+				//		OPTICK_SAVE_CAPTURE("c:/tmp/optickCapture.opt");
+				//	}
+				//}
+
 				// TODO: Do I want to keep this?
 				float actualFps = deltaTime;
 				if (targetFps - actualFps > 0)

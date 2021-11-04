@@ -26,11 +26,13 @@ namespace Minecraft
 			0
 		};
 
-		static std::unordered_map<std::string, int> nameToIdMap;
+		static robin_hood::unordered_map<std::string, int> nameToIdMap;
 		static std::vector<BlockFormat> blockFormats;
-		static std::unordered_map<std::string, TextureFormat> textureFormatMap;
-		static std::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
-		static std::unordered_map<std::string, TextureFormat> blockItemTextureMap;
+		// TODO: Ensure that these maps never change throughout a gameplay cycle
+		// unless a resource pack is loaded
+		static robin_hood::unordered_map<std::string, TextureFormat> textureFormatMap;
+		static robin_hood::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
+		static robin_hood::unordered_map<std::string, TextureFormat> blockItemTextureMap;
 
 		static uint32 texCoordsTextureId;
 		static uint32 texCoordsBufferId;
@@ -81,7 +83,7 @@ namespace Minecraft
 			{
 				return blockFormats[0];
 			}
-			return blockFormats.at(blockId);
+			return blockFormats[blockId];
 		}
 
 		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig)
@@ -91,9 +93,9 @@ namespace Minecraft
 			YAML::Node itemFormat = YamlExtended::readFile(itemFormatConfig);
 
 			blockFormats.push_back({
-				"",
-				"",
-				"",
+				nullptr,
+				nullptr,
+				nullptr,
 				"",
 				true,
 				false,
@@ -171,8 +173,28 @@ namespace Minecraft
 				g_logger_info("Bottom: %s", bottom.c_str());
 
 				nameToIdMap[block.first.as<std::string>()] = id;
+
+				const auto& sideTextureIter = textureFormatMap.find(side);
+				TextureFormat* sideTexture = nullptr;
+				if (sideTextureIter != textureFormatMap.end())
+				{
+					sideTexture = &sideTextureIter->second;
+				}
+				const auto& topTextureIter = textureFormatMap.find(top);
+				TextureFormat* topTexture = nullptr;
+				if (topTextureIter != textureFormatMap.end())
+				{
+					topTexture = &topTextureIter->second;
+				}
+				const auto& bottomTextureIter = textureFormatMap.find(bottom);
+				TextureFormat* bottomTexture = nullptr;
+				if (bottomTextureIter != textureFormatMap.end())
+				{
+					bottomTexture = &bottomTextureIter->second;
+				}
+
 				blockFormats.emplace_back(BlockFormat{
-					side, top, bottom, itemPictureName, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
+					sideTexture, topTexture, bottomTexture, itemPictureName, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
 					isLightSource, lightLevel
 					});
 			}

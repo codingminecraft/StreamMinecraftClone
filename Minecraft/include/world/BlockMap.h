@@ -27,11 +27,12 @@ namespace Minecraft
 	bool operator==(const Block& a, const Block& b);
 	bool operator!=(const Block& a, const Block& b);
 
+	struct TextureFormat;
 	struct BlockFormat
 	{
-		std::string sideTexture;
-		std::string topTexture;
-		std::string bottomTexture;
+		TextureFormat* sideTexture;
+		TextureFormat* topTexture;
+		TextureFormat* bottomTexture;
 		std::string itemPictureName;
 		bool isTransparent;
 		bool isSolid;

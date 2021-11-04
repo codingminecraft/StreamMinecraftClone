@@ -16,3 +16,9 @@
 [submodule "Minecraft/vendor/magicEnum"]
 	path = Minecraft/vendor/magicEnum
 	url = https://github.com/Neargye/magic_enum
+[submodule "Minecraft/vendor/optick"]
+	path = Minecraft/vendor/optick
+	url = https://github.com/bombomby/optick
+[submodule "Minecraft/vendor/robinHoodHashing"]
+	path = Minecraft/vendor/robinHoodHashing
+	url = https://github.com/martinus/robin-hood-hashing

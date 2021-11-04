@@ -166,8 +166,4 @@ void main()
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
 
 	FragColor = mix(lightColor * vec4(fColor, 1.0) * objectColor, fogColor, d);
-	if (objectColor.a == 0) 
-	{
-		discard;
-	}
 }

@@ -107,7 +107,6 @@ namespace Minecraft
 					controller.viewAxis.x = 0;
 					controller.viewAxis.y = 0;
 					Scene::getCamera().fov = 90.0f;
-					Application::getWindow().setSize(1280.0f, 1280.0f);
 
 					switch (sideGenerating)
 					{

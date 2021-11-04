@@ -47,7 +47,7 @@ namespace Minecraft
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
-		static std::unordered_set<glm::ivec2> loadedChunkPositions;
+		static robin_hood::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
 		static glm::vec2 lastPlayerLoadPosition;
 

@@ -31,7 +31,7 @@ namespace Minecraft
 		{
 			isCreatingWorld = false;
 
-			const std::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
+			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 
 			titleSize = glm::vec2(2.0f, 0.5f);
 			title = menuSprites.at(std::string("title"));
@@ -44,7 +44,7 @@ namespace Minecraft
 				"assets/images/menuSkybox/Front.png",
 				"assets/images/menuSkybox/Back.png");
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
-			viewAxis = glm::normalize(glm::vec3(0.3f, 0.8f, 0.3f));
+			viewAxis = glm::normalize(glm::vec3(0.1f, 1.0f, -0.1f));
 			viewRotation = 0.0f;
 
 			g_logger_info("Initialized main menu scene.");
@@ -63,11 +63,10 @@ namespace Minecraft
 				
 				viewMatrix = glm::rotate(glm::radians(viewRotation), viewAxis);
 				skybox.render(cubemapShader, projectionMatrix, viewMatrix);
-				viewRotation = viewRotation + (15.0f * dt);
-				if (viewRotation > 360.0f)
+				viewRotation = viewRotation - (3.0f * dt);
+				if (viewRotation < 0)
 				{
-					float tmp = viewRotation;
-					viewRotation = tmp - (glm::floor((tmp / 360.0f)) * 360.0f);
+					viewRotation = 360.0f + viewRotation;
 				}
 
 				Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));

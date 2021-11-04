@@ -5,11 +5,11 @@ namespace Minecraft
 {
 	namespace KeyBindings
 	{
-		static std::unordered_map<KeyBind, uint32> bindings;
+		static robin_hood::unordered_map<KeyBind, uint32> bindings;
 
 		void init()
 		{
-			bindings = std::unordered_map<KeyBind, uint32>();
+			bindings = robin_hood::unordered_map<KeyBind, uint32>();
 
 			// TODO: Load this from a key-binding config file
 			bindings[KeyBind::LockCursor] = GLFW_KEY_F2;
