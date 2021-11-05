@@ -5,7 +5,7 @@ air_block:
   bottom: none 
   isSolid: false
   isTransparent: true
-  isLightSource: true
+  isLightSource: false
   lightLevel: 0
 grass_block:
   id: 2

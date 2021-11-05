@@ -1221,17 +1221,17 @@ namespace Minecraft
 						{
 							// If the 32 bit is set in the block above, this is a sky block
 							const Block& topNeighbor = chunk->data[to1DArray(x, y + 1, z)];
-							int topNeighborLight = topNeighbor.isLightSource() ? topNeighbor.lightLevel & 31 : 0;
+							int topNeighborLight = topNeighbor.calculatedLightLevel();
 							Block bottomNeighbor = getBlockInternal(chunk, x, y - 1, z);
-							int bottomNeighborLight = bottomNeighbor.isLightSource() ? bottomNeighbor.lightLevel & 31 : 0;
+							int bottomNeighborLight = bottomNeighbor.calculatedLightLevel();
 							Block leftNeighbor = getBlockInternal(chunk, x, y, z - 1);
-							int leftNeighborLight = leftNeighbor.isLightSource() ? leftNeighbor.lightLevel & 31 : 0;
+							int leftNeighborLight = leftNeighbor.calculatedLightLevel();
 							Block rightNeighbor = getBlockInternal(chunk, x, y, z + 1);
-							int rightNeighborLight = rightNeighbor.isLightSource() ? rightNeighbor.lightLevel & 31 : 0;
+							int rightNeighborLight = rightNeighbor.calculatedLightLevel();
 							Block frontNeighbor = getBlockInternal(chunk, x + 1, y, z);
-							int frontNeighborLight = frontNeighbor.isLightSource() ? frontNeighbor.lightLevel & 31 : 0;
+							int frontNeighborLight = frontNeighbor.calculatedLightLevel();
 							Block backNeighbor = getBlockInternal(chunk, x - 1, y, z);
-							int backNeighborLight = backNeighbor.isLightSource() ? backNeighbor.lightLevel & 31 : 0;
+							int backNeighborLight = backNeighbor.calculatedLightLevel();
 
 							// Check what the light level should be, if it's not set properly, then
 							// we'll do a flood-fill from here to fill in this light properly
