@@ -12,6 +12,15 @@ namespace Minecraft
 		const glm::ivec3 Right = glm::ivec3(0, 0, 1);
 		const glm::ivec3 Front = glm::ivec3(1, 0, 0);
 		const glm::ivec3 Back = glm::ivec3(-1, 0, 0);
+
+		const std::array<glm::ivec3, 6> CardinalDirections = {
+			Up,
+			Down,
+			Left,
+			Right,
+			Front,
+			Back
+		};
 	}
 
 	namespace FNormals3
@@ -22,6 +31,15 @@ namespace Minecraft
 		const glm::vec3 Right = glm::vec3(0.0f, 0.0f, 1.0f);
 		const glm::vec3 Front = glm::vec3(1.0f, 0.0f, 0.0f);
 		const glm::vec3 Back = glm::vec3(-1.0f, 0.0f, 0.0f);
+
+		const std::array<glm::vec3, 6> CardinalDirections = {
+			Up,
+			Down,
+			Left,
+			Right,
+			Front,
+			Back
+		};
 	}
 
 	namespace INormals2
@@ -30,6 +48,13 @@ namespace Minecraft
 		const glm::ivec2 Down = glm::ivec2(-1, 0);
 		const glm::ivec2 Left = glm::ivec2(0, -1);
 		const glm::ivec2 Right = glm::ivec2(0, 1);
+
+		const std::array<glm::ivec2, 4> CardinalDirections = {
+			Up,
+			Down,
+			Left,
+			Right
+		};
 	}
 
 	namespace FNormals2
@@ -38,6 +63,13 @@ namespace Minecraft
 		const glm::vec2 Down = glm::vec2(-1.0f, 0.0f);
 		const glm::vec2 Left = glm::vec2(0.0f, -1.0f);
 		const glm::vec2 Right = glm::vec2(0.0f, 1.0f);
+
+		const std::array<glm::vec2, 4> CardinalDirections = {
+			Up,
+			Down,
+			Left,
+			Right
+		};
 	}
 }
 

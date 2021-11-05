@@ -22,6 +22,12 @@ namespace Minecraft
 		int16 padding;
 
 		bool isLightSource() const;
+		bool isTransparent() const;
+
+		inline int calculatedLightLevel() const
+		{
+			return lightLevel & 31;
+		}
 	};
 
 	bool operator==(const Block& a, const Block& b);

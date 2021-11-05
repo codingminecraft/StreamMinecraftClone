@@ -9,6 +9,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "gameplay/PlayerController.h"
+#include "world/ChunkManager.h"
 
 namespace Minecraft
 {
@@ -24,8 +25,8 @@ namespace Minecraft
 		SetInventorySlot,
 		Screenshot,
 		GenerateCubemap,
-		GetBlock,
-		SetBlock,
+		DebugLight,
+		DebugStepLight,
 		Length
 	};
 
@@ -36,10 +37,13 @@ namespace Minecraft
 		static void parseCommand(const char* command, int length);
 		static void executeCommand(CommandLineType type, CommandStringView* args, int argsLength);
 		static void executeSetInventorySlot(CommandStringView* args, int argsLength);
+		static void executeDebugLight(CommandStringView* args, int argsLength);
 
 		static inline bool isNumber(char c) { return c >= '0' && c <= '9'; }
 		static inline bool isIntegerDigit(char c) { return isNumber(c) || c == '+' || c == '-'; }
 		static inline bool isFloatingPointDigit(char c) { return isIntegerDigit(c) || c == '.' || c == 'e' || c == 'E'; }
+		static inline bool isCharIgnoreCase(char letter, char isThisChar) { return (tolower(letter) == tolower(isThisChar)); }
+		static bool parseBoolean(const char* str, int strLength, bool* result);
 		static bool isInteger(const char* str, int strLength);
 
 		void update(float dt, bool parseText)
@@ -149,6 +153,12 @@ namespace Minecraft
 				Application::getWindow().setSize(1280.0f, 1280.0f);
 				PlayerController::generateCubemap = true;
 				break;
+			case CommandLineType::DebugLight:
+				executeDebugLight(args, argsLength);
+				break;
+			case CommandLineType::DebugStepLight:
+				ChunkManager::stepOnce = true;
+				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
 				break;
@@ -185,6 +195,70 @@ namespace Minecraft
 			{
 				g_logger_warning("Invalid block name '%s' in command SetInventorySlot", blockName.c_str());
 			}
+		}
+
+		static void executeDebugLight(CommandStringView* args, int argsLength)
+		{
+			if (argsLength != 1)
+			{
+				g_logger_warning("DebugLight expects 1 argument.");
+				return;
+			}
+
+			bool val;
+			if (!parseBoolean(args[0].string, args[0].length, &val))
+			{
+				g_logger_warning("DebugLight expects 'true' or 'false'.");
+				return;
+			}
+
+			ChunkManager::doStepLogic = val;
+			if (val)
+			{
+				g_logger_info("Debug Lighting turned on. Run command DebugStepLight to step the lighting calculations by one. Run DebugLight false to turn debugging off.");
+			}
+		}
+
+		static bool parseBoolean(const char* str, int strLength, bool* result)
+		{
+			// The words True or False are at least 4 characters long
+			if (strLength < 4)
+			{
+				return false;
+			}
+
+			// It could be the word 'false'
+			if (isCharIgnoreCase(str[0], 'f'))
+			{
+				if (strLength != 5)
+				{
+					return false;
+				}
+
+				
+				if (isCharIgnoreCase(str[1], 'a') && isCharIgnoreCase(str[2], 'l') && isCharIgnoreCase(str[3], 's') &&
+					isCharIgnoreCase(str[4], 'e'))
+				{
+					*result = false;
+					return true;
+				}
+			}
+			// It could be the word 'true'
+			else if (isCharIgnoreCase(str[0], 't'))
+			{
+				if (strLength != 4)
+				{
+					return false;
+				}
+
+				if (isCharIgnoreCase(str[1], 'r') && isCharIgnoreCase(str[2], 'u') && isCharIgnoreCase(str[3], 'e'))
+				{
+					*result = true;
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		static bool isInteger(const char* str, int strLength)

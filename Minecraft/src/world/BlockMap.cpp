@@ -383,4 +383,9 @@ namespace Minecraft
 	{
 		return BlockMap::getBlock(id).isLightSource;
 	}
+
+	bool Block::isTransparent() const
+	{
+		return BlockMap::getBlock(id).isTransparent;
+	}
 }
