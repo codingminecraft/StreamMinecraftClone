@@ -1317,7 +1317,7 @@ namespace Minecraft
 			int localY = localPosition.y;
 			int localZ = localPosition.z;
 			Block blockThatsUpdating = chunk->data[to1DArray(localX, localY, localZ)];
-			if (!blockThatsUpdating.isLightSource())
+			if (!blockThatsUpdating.isTransparent() && !blockThatsUpdating.isLightSource())
 			{
 				// Update all blocks surrounding the block that was just placed
 				for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
@@ -1667,7 +1667,7 @@ namespace Minecraft
 
 			int index = to1DArray(x, y, z);
 			chunk->data[index] = newBlock;
-			chunk->data[index].lightLevel = 0;// BlockMap::getBlock(newBlock.id).lightLevel;
+			chunk->data[index].lightLevel = 0;
 
 			return true;
 		}
@@ -1779,7 +1779,8 @@ namespace Minecraft
 				return;
 			}
 
-			if (!originalChunk->data[to1DArray(localX, localY, localZ)].isTransparent())
+			if (!originalChunk->data[to1DArray(localX, localY, localZ)].isTransparent() && 
+				!originalChunk->data[to1DArray(localX, localY, localZ)].isLightSource())
 			{
 				return;
 			}
@@ -1811,7 +1812,8 @@ namespace Minecraft
 				}
 
 				int arrayExpansion = to1DArray(x, y, z);
-				if (!currentChunk->data[arrayExpansion].isTransparent())
+				if (!currentChunk->data[arrayExpansion].isTransparent() &&
+					!currentChunk->data[arrayExpansion].isLightSource())
 				{
 					continue;
 				}
@@ -1838,7 +1840,7 @@ namespace Minecraft
 					newLightLevel = 31 | 32;
 				}
 				// Else If this block is a light source and it's not air, use the block format's base light source level for it
-				else if (currentChunk->data[arrayExpansion] != BlockMap::AIR_BLOCK && currentChunk->data[arrayExpansion].isLightSource())
+				else if (currentChunk->data[arrayExpansion].isLightSource())
 				{
 					newLightLevel = BlockMap::getBlock(currentChunk->data[arrayExpansion].id).lightLevel;
 				}
