@@ -1788,15 +1788,16 @@ namespace Minecraft
 			}
 
 			Chunk* currentChunk = originalChunk;
-			glm::ivec3 backPropagateBlock = glm::ivec3(INT32_MIN, INT32_MIN, INT32_MIN);
+			//auto backPropagationBlocks = robin_hood::unordered_flat_set<glm::ivec3>();
+			auto backPropagationBlock = glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX);
 			auto blocksAlreadyChecked = robin_hood::unordered_flat_set<glm::ivec3>();
 			auto blocksToUpdate = std::queue<glm::ivec3>();
 			blocksToUpdate.push(glm::ivec3(localX, localY, localZ));
+			blocksAlreadyChecked.insert(glm::ivec3(localX, localY, localZ));
 			while (!blocksToUpdate.empty())
 			{
 				glm::ivec3 blockToUpdate = blocksToUpdate.front();
 				blocksToUpdate.pop();
-				blocksAlreadyChecked.insert(blockToUpdate);
 				int x = blockToUpdate.x;
 				int y = blockToUpdate.y;
 				int z = blockToUpdate.z;
@@ -1872,7 +1873,8 @@ namespace Minecraft
 					}
 					else if (currentChunk->data[arrayExpansion].isLightSource() || (newLightLevel & 32) == 32)
 					{
-						backPropagateBlock = blockToUpdate;
+						//backPropagationBlocks.insert(blockToUpdate);
+						backPropagationBlock = blockToUpdate;
 					}
 				}
 				else
@@ -1906,41 +1908,48 @@ namespace Minecraft
 							topNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x, y + 1, z));
+							blocksAlreadyChecked.insert(glm::ivec3(x, y + 1, z));
 						}
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y - 1, z)) &&
 							bottomNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x, y - 1, z));
+							blocksAlreadyChecked.insert(glm::ivec3(x, y - 1, z));
 						}
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y, z - 1)) &&
 							leftNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x, y, z - 1));
+							blocksAlreadyChecked.insert(glm::ivec3(x, y, z - 1));
 						}
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y, z + 1)) &&
 							rightNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x, y, z + 1));
+							blocksAlreadyChecked.insert(glm::ivec3(x, y, z + 1));
 						}
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x + 1, y, z)) &&
 							frontNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x + 1, y, z));
+							blocksAlreadyChecked.insert(glm::ivec3(x + 1, y, z));
 						}
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x - 1, y, z)) &&
 							backNeighbor.isLightPassable())
 						{
 							blocksToUpdate.push(glm::ivec3(x - 1, y, z));
+							blocksAlreadyChecked.insert(glm::ivec3(x - 1, y, z));
 						}
 					}
 				}
 			}
 
-			if (backPropagateBlock != glm::ivec3(INT32_MIN, INT32_MIN, INT32_MIN))
+			//for (auto backPropagationBlock : backPropagationBlocks)
+			if (backPropagationBlock != glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX))
 			{
 				glm::ivec2 chunkCoords = originalChunk->chunkCoords;
-				glm::vec3 worldPosition = glm::vec3(chunkCoords.x * 16.0f + backPropagateBlock.x, backPropagateBlock.y,
-					chunkCoords.y * 16.0f + backPropagateBlock.z);
+				glm::vec3 worldPosition = glm::vec3(chunkCoords.x * 16.0f + backPropagationBlock.x, backPropagationBlock.y,
+					chunkCoords.y * 16.0f + backPropagationBlock.z);
 				glm::ivec2 chunkToUpdateCoords = World::toChunkCoords(worldPosition);
 				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkToUpdateCoords.x * 16.0f, 0.0f, chunkToUpdateCoords.y * 16.0f));
 				Chunk* chunk = ChunkManager::getChunk(chunkToUpdateCoords);
