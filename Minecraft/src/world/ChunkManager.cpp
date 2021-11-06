@@ -1509,7 +1509,7 @@ namespace Minecraft
 								((blocks[i].lightColor & 0x38) >> 3), // G
 								((blocks[i].lightColor & 0x1C0) >> 6) // B;
 							);
-							lightLevels[i] = blocks[i] == BlockMap::AIR_BLOCK ? blocks[i].lightLevel & 31 : 0;
+							lightLevels[i] = blocks[i].isTransparent() ? blocks[i].lightLevel & 31 : 0;
 						}
 						const BlockFormat* blockFormats[6] = {
 							&BlockMap::getBlock(blocks[0].id),

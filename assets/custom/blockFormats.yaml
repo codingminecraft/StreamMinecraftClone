@@ -127,4 +127,10 @@ birch_log:
   bottom: birch_log_top
   isSolid: true
   isTransparent: false
-  isLightSource: false
+blue_stained_glass:
+  id: 18
+  side: blue_stained_glass
+  bottom: blue_stained_glass
+  top: blue_stained_glass
+  isSolid: true
+  isTransparent: true

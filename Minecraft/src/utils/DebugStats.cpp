@@ -16,6 +16,7 @@ namespace Minecraft
 		extern glm::vec3 playerOrientation = glm::vec3();
 		extern std::atomic<float> totalChunkRamUsed = 0.0f;
 		extern float totalChunkRamAvailable = 0.0f;
+		extern Block blockLookingAt = BlockMap::NULL_BLOCK;
 
 		void render()
 		{
@@ -99,6 +100,24 @@ namespace Minecraft
 					playerPosStr,
 					*font,
 					playerPosPos,
+					textScale,
+					Styles::defaultStyle);
+
+				glm::vec2 blockDataPos = glm::vec2(-1.45f, 1.11f);
+				playerPosStr = std::string("Block ID: " + std::to_string(DebugStats::blockLookingAt.id));
+				Renderer::drawString(
+					playerPosStr,
+					*font,
+					blockDataPos,
+					textScale,
+					Styles::defaultStyle);
+
+				blockDataPos = glm::vec2(-0.65f, 1.11f);
+				playerPosStr = std::string("Light Level: " + std::to_string(DebugStats::blockLookingAt.lightLevel));
+				Renderer::drawString(
+					playerPosStr,
+					*font,
+					blockDataPos,
 					textScale,
 					Styles::defaultStyle);
 

@@ -172,6 +172,10 @@ namespace Minecraft
 			RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
 			if (res.hit)
 			{
+				glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
+				DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
+
+				// TODO: Clean this garbage up
 				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
 				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
 				static float rotation = 0.0f;
@@ -194,7 +198,6 @@ namespace Minecraft
 
 				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
 				{
-					glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 					static Block newBlock{
 						0, 0, 0, 0
 					};
@@ -202,6 +205,7 @@ namespace Minecraft
 
 					if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
 					{
+						glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 						ChunkManager::setBlock(worldPos, newBlock);
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
@@ -212,6 +216,10 @@ namespace Minecraft
 					ChunkManager::removeBlock(worldPos);
 					blockPlaceDebounce = blockPlaceDebounceTime;
 				}
+			}
+			else
+			{
+				DebugStats::blockLookingAt = BlockMap::NULL_BLOCK;
 			}
 
 			controller.viewAxis.x = Input::deltaMouseX;

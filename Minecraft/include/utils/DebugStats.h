@@ -1,6 +1,7 @@
 #ifndef MINECRAFT_DEBUG_STATS_H
 #define MINECRAFT_DEBUG_STATS_H
 #include "core.h"
+#include "world/BlockMap.h"
 
 namespace Minecraft
 {
@@ -12,6 +13,7 @@ namespace Minecraft
 		extern glm::vec3 playerOrientation;
 		extern std::atomic<float> totalChunkRamUsed;
 		extern float totalChunkRamAvailable;
+		extern Block blockLookingAt;
 
 		void render();
 	}
