@@ -36,7 +36,7 @@ namespace Minecraft
 
 	namespace ChunkPrivate
 	{
-		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed);
+		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator);
 		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
@@ -88,6 +88,12 @@ namespace Minecraft
 			ChunkWorker(int numThreads)
 				: cv(), mtx(), queueMtx(), doWork(true)
 			{
+				noiseGenerators[0] = SimplexNoise(World::seedAsFloat.load());
+				noiseGenerators[1] = SimplexNoise(World::seedAsFloat.load());
+				noiseGenerators[2] = SimplexNoise(World::seedAsFloat.load());
+				noiseGenerators[3] = SimplexNoise(World::seedAsFloat.load());
+				noiseGenerators[4] = SimplexNoise(World::seedAsFloat.load());
+
 				for (int i = 0; i < numThreads; i++)
 				{
 					workerThreads.push_back(std::thread(&ChunkWorker::threadWorker, this));
@@ -153,7 +159,7 @@ namespace Minecraft
 							}
 							else
 							{
-								ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat);
+								ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat, noiseGenerators[0]);
 								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, true);
 							}
 						}
@@ -241,6 +247,8 @@ namespace Minecraft
 			std::mutex queueMtx;
 			bool doWork;
 			std::atomic<bool> waitingOnCommand = false;
+
+			std::array<SimplexNoise, 5> noiseGenerators;
 		};
 
 		struct DrawCommand
@@ -1072,13 +1080,12 @@ namespace Minecraft
 			g_logger_info("Max %d size of vertex data", sizeof(Vertex) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth * 24);
 		}
 
-		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed)
+		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
 			g_memory_zeroMem(chunk->data, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
-			const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
 			const float scale = 0.001f;
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{

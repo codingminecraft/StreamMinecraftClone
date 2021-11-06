@@ -27,15 +27,6 @@ namespace Minecraft
 		Window* res = new Window();
 
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-
-		// TODO: remove me
-		int count;
-		GLFWmonitor** monitors = glfwGetMonitors(&count);
-		if (count > 2)
-		{
-			monitor = monitors[2];
-		}
-
 		if (!monitor)
 		{
 			g_logger_error("Failed to get primary monitor.");
