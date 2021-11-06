@@ -60,7 +60,7 @@ namespace Minecraft
 				static std::array<char, 512> buffer;
 				if (!parseText)
 				{
-					Gui::input("", 0.0015f, buffer.data(), buffer.size(), true);
+					Gui::input("", 0.0015f, buffer.data(), buffer.size(), false, true, 3);
 				}
 				else
 				{

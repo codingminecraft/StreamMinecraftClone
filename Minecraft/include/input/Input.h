@@ -17,6 +17,7 @@ namespace Minecraft
 		extern bool keyPressed[GLFW_KEY_LAST];
 		extern bool keyBeginPressData[GLFW_KEY_LAST];
 		extern bool mousePressed[GLFW_MOUSE_BUTTON_LAST];
+		extern bool mouseBeginPressData[GLFW_MOUSE_BUTTON_LAST];
 
 		void setProjectionMatrix(const glm::mat4& projectionMatrix);
 		void setWindowSize(const glm::vec2& windowSize);
@@ -30,6 +31,7 @@ namespace Minecraft
 		bool isKeyPressed(int key);
 		bool keyBeginPress(int key);
 		bool isMousePressed(int mouseButton);
+		bool mouseBeginPress(int mouseButton);
 		uint32 lastCharPressed();
 	}
 }

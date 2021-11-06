@@ -118,7 +118,7 @@ namespace Minecraft
 			advanceCursorPastElement(windowState, strSize);
 		}
 
-		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool isFocused)
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool drawOutline, bool isFocused, int zIndex)
 		{
 			WindowState& windowState = getCurrentWindow();
 			sameLine();
@@ -140,9 +140,15 @@ namespace Minecraft
 			{
 				guiStyle.color = "#00000066"_hex;
 			}
-			Renderer::drawFilledSquare2D(inputBoxPos, inputBoxSize, guiStyle, -1);
+			Renderer::drawFilledSquare2D(inputBoxPos, inputBoxSize, guiStyle, zIndex - 1);
 
 			guiStyle.color = "#ffffff"_hex;
+			if (drawOutline)
+			{
+				guiStyle.strokeWidth = 0.01f;
+				Renderer::drawSquare2D(inputBoxPos, inputBoxSize, guiStyle, zIndex - 2);
+			}
+
 			std::string inputText = std::string(inputBuffer);
 			glm::vec2 inputTextStrSize = defaultFont->getSize(inputText, scale);
 			float inputCursorPosX = textBoxPadding;
@@ -152,7 +158,7 @@ namespace Minecraft
 				RenderableChar charInfo = defaultFont->getCharInfo('|');
 				float heightOfPipe = charInfo.charSize.y * scale;
 				float centeredHeight = (height - heightOfPipe) / 2.0f;
-				Renderer::drawString(inputText, *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + ((charInfo.charSize.y - charInfo.bearingY) * scale) / 2.0f), scale, guiStyle);
+				Renderer::drawString(inputText, *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + ((charInfo.charSize.y - charInfo.bearingY) * scale) / 2.0f), scale, guiStyle, zIndex);
 				Style style = Styles::defaultStyle;
 				style.strokeWidth = 0.01f;
 				inputCursorPosX += inputTextStrSize.x + 0.01f;
@@ -170,7 +176,7 @@ namespace Minecraft
 					RenderableChar charInfo = defaultFont->getCharInfo('|');
 					float heightOfPipe = charInfo.charSize.y * scale;
 					float centeredHeight = (height - heightOfPipe) / 2.0f;
-					Renderer::drawString("|", *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + (charInfo.charSize.y - charInfo.bearingY) * scale), scale, guiStyle);
+					Renderer::drawString("|", *defaultFont, inputBoxPos + glm::vec2(inputCursorPosX, centeredHeight + (charInfo.charSize.y - charInfo.bearingY) * scale), scale, guiStyle, zIndex);
 				}
 
 				uint32 c = Input::lastCharPressed();
@@ -395,7 +401,7 @@ namespace Minecraft
 				Input::mouseScreenY >= position.y && Input::mouseScreenY <= position.y + size.y)
 			{
 				// We are hovering over the button
-				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT))
+				if (Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT))
 				{
 					// We are clicking the button 
 					return WidgetState::Click;

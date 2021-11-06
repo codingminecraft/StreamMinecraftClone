@@ -30,10 +30,31 @@ namespace Minecraft
 			dirtTextureSprite.texture = *dirtTextureFormat.texture;
 			dirtTextureSprite.uvSize = dirtTextureFormat.uvs[1] - dirtTextureFormat.uvs[3];
 			dirtTextureSprite.uvStart = dirtTextureFormat.uvs[3];
+
+			dirtTextureSprite.texture = TextureBuilder()
+				.setFilepath("assets/images/block/dirt.png")
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
+				.setTextureType(TextureType::_2D)
+				.setWrapS(WrapMode::Repeat)
+				.setWrapT(WrapMode::Repeat)
+				.generateTextureObject()
+				.bindTextureObject()
+				.generate(true);
+			dirtTextureSprite.uvStart = glm::vec2(0.0f, 0.0f);
+			dirtTextureSprite.uvSize = glm::vec2(5.0f, 3.0f);
 		}
 
 		void update(float dt)
 		{
+			static Style dirtStyle = Styles::defaultStyle;
+			dirtStyle.color = "#232323ff"_hex;
+			dirtTextureSprite.uvSize = glm::vec2(12.0f, 4.0f);
+			Renderer::drawTexture2D(dirtTextureSprite, glm::vec2(-3.0f, -1.0f), glm::vec2(6.0f, 2.0f), dirtStyle, -3);
+			dirtStyle.color = "#777777ff"_hex;
+			dirtTextureSprite.uvSize = glm::vec2(12.0f, 6.0f);
+			Renderer::drawTexture2D(dirtTextureSprite, glm::vec2(-3.0f, -1.5f), glm::vec2(6.0f, 3.0f), dirtStyle, -4);
+
 			if (isCreatingNewWorld)
 			{
 				showCreateNewWorldMenu();
@@ -51,13 +72,8 @@ namespace Minecraft
 
 		static void showSavedWorlds()
 		{
-			static Style dirtStyle = Styles::defaultStyle;
-			dirtStyle.color = "#999999ff"_hex;
-			Renderer::drawTexture2D(dirtTextureSprite, glm::vec2(-1.5f, -1.5f), glm::vec2(3.0f, 3.0f), dirtStyle, -3);
-			Renderer::drawTexture2D(dirtTextureSprite, glm::vec2(-3.0f, -1.5f), glm::vec2(6.0f, 3.0f), Styles::defaultStyle, -4);
-
 			// Window 1 holds all of the save files
-			Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 2.5f));
+			Gui::beginWindow(glm::vec2(-3.0f, 1.0f), glm::vec2(6.0f, 2.0f));
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 
 			TexturedButton button = *GuiElements::defaultButton;
@@ -86,10 +102,11 @@ namespace Minecraft
 			Gui::endWindow();
 
 			// Window 2, this holds the load world and new world buttons
-			Gui::beginWindow(glm::vec2(-1.5f, -1.0f), glm::vec2(3.0f, 0.5f));
+			Gui::beginWindow(glm::vec2(-3.0f, -1.0f), glm::vec2(6.0f, 0.5f));
 			button.text = "Load World";
 			button.size.x = 1.45f;
 			// TODO: Make it so I can place this after the element I just drew
+			Gui::advanceCursor(glm::vec2((6.0f - (button.size.x * 2.0f)) / 2.0f, (0.5f - button.size.y) / 2.0f));
 			Gui::sameLine();
 			if (Gui::textureButton(button))
 			{
@@ -108,19 +125,22 @@ namespace Minecraft
 
 		static void showCreateNewWorldMenu()
 		{
-			Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));
-			Gui::advanceCursor(glm::vec2(0.0f, 0.5f));
-			//Gui::fillNextElement();
+			// Window 1, holds all the world settings
+			Gui::beginWindow(glm::vec2(-1.5f, 1.0f), glm::vec2(3.0f, 2.0f));
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+
 			static char worldSaveTitle[128];
 			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128))
 			{
 				World::savePath = std::string(worldSaveTitle);
 			}
+			Gui::endWindow();
 
+			// Window 2, this holds the create world button
+			Gui::beginWindow(glm::vec2(-3.0f, -1.0f), glm::vec2(6.0f, 0.5f));
 			Gui::centerNextElement();
-			Gui::advanceCursor(glm::vec2(0.0f, 0.05f));
-
 			static TexturedButton button = *GuiElements::defaultButton;
+			Gui::advanceCursor(glm::vec2(0.0f, (0.5f - button.size.y) / 2.0f));
 			button.text = "Create World";
 			if (Gui::textureButton(button))
 			{

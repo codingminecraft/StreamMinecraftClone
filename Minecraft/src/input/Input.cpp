@@ -15,6 +15,7 @@ namespace Minecraft
 		extern bool keyPressed[GLFW_KEY_LAST] = {};
 		extern bool keyBeginPressData[GLFW_KEY_LAST] = {};
 		extern bool mousePressed[GLFW_MOUSE_BUTTON_LAST] = {};
+		extern bool mouseBeginPressData[GLFW_MOUSE_BUTTON_LAST] = {};
 
 		uint32 lastCharPressedData = '\0';
 
@@ -40,10 +41,12 @@ namespace Minecraft
 			if (action == GLFW_PRESS)
 			{
 				mousePressed[button] = true;
+				mouseBeginPressData[button] = true;
 			}
 			else if (action == GLFW_RELEASE)
 			{
 				mousePressed[button] = false;
+				mouseBeginPressData[button] = false;
 			}
 		}
 
@@ -107,6 +110,7 @@ namespace Minecraft
 			mouseScrollX = 0;
 			mouseScrollY = 0;
 			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
+			g_memory_zeroMem(mouseBeginPressData, sizeof(mouseBeginPressData));
 		}
 
 		bool isKeyPressed(int key)
@@ -125,6 +129,12 @@ namespace Minecraft
 		{
 			g_logger_assert(mouseButton >= 0 && mouseButton < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
 			return mousePressed[mouseButton];
+		}
+
+		bool mouseBeginPress(int mouseButton)
+		{
+			g_logger_assert(mouseButton >= 0 && mouseButton < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
+			return mouseBeginPressData[mouseButton];
 		}
 
 		uint32 lastCharPressed()
