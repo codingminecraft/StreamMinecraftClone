@@ -111,3 +111,12 @@ glass:
   bottom: glass
   isSolid: true
   isTransparent: true
+sea_lantern:
+  id: 16
+  side: sea_lantern
+  top: sea_lantern
+  bottom: sea_lantern
+  isSolid: true
+  isTransparent: false
+  isLightSource: true
+  lightLevel: 18

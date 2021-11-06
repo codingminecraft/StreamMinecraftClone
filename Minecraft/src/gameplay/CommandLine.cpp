@@ -26,7 +26,6 @@ namespace Minecraft
 		Screenshot,
 		GenerateCubemap,
 		DebugLight,
-		DebugStepLight,
 		Length
 	};
 
@@ -155,9 +154,6 @@ namespace Minecraft
 				break;
 			case CommandLineType::DebugLight:
 				executeDebugLight(args, argsLength);
-				break;
-			case CommandLineType::DebugStepLight:
-				ChunkManager::stepOnce = true;
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

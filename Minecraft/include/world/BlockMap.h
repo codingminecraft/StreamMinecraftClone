@@ -24,6 +24,11 @@ namespace Minecraft
 		bool isLightSource() const;
 		bool isTransparent() const;
 
+		inline bool isLightPassable() const 
+		{
+			return isLightSource() || isTransparent();
+		}
+
 		inline int calculatedLightLevel() const
 		{
 			return lightLevel & 31;

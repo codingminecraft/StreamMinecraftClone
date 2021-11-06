@@ -285,11 +285,6 @@ namespace Minecraft
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
 			shader.uploadInt("uTexCoordTexture", 1);
 
-			// TODO: Remove me!
-			Style redStyle = Styles::defaultStyle;
-			redStyle.color = "#cd0201ff"_hex;
-			Renderer::drawBox(ChunkManager::backPropagationLocation.load(), glm::vec3(1.0f, 1.0f, 1.0f), redStyle);
-
 			// Render all the loaded chunks
 			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);

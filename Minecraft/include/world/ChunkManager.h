@@ -59,7 +59,7 @@ namespace Minecraft
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
-		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated);
+		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource);
 		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr, bool doImmediately = false);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition);
@@ -67,9 +67,7 @@ namespace Minecraft
 		// TODO: Make this private
 		void unloadChunk(const glm::ivec2& chunkCoordinates);
 
-		extern bool stepOnce;
 		extern bool doStepLogic;
-		extern std::atomic<glm::vec3> backPropagationLocation;
 	}
 }
 
