@@ -165,5 +165,6 @@ void main()
 	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
 
-	FragColor = mix(lightColor * vec4(fColor, 1.0) * objectColor, fogColor, d);
+	FragColor = lightColor * vec4(fColor, 1.0) * objectColor;
+	//FragColor = mix(lightColor * vec4(fColor, 1.0) * objectColor, fogColor, d);
 }

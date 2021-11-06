@@ -20,6 +20,7 @@ namespace Minecraft
 		Block* data;
 		glm::ivec2 chunkCoords;
 		ChunkState state;
+		bool needsToGenerateDecorations;
 
 		Chunk* topNeighbor;
 		Chunk* bottomNeighbor;

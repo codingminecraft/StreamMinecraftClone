@@ -2,6 +2,7 @@
 #include "world/World.h"
 #include "world/BlockMap.h"
 #include "world/Chunk.hpp"
+#include "world/TerrainGenerator.h"
 #include "core/Pool.hpp"
 #include "core/File.h"
 #include "utils/DebugStats.h"
@@ -37,7 +38,7 @@ namespace Minecraft
 	namespace ChunkPrivate
 	{
 		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator);
-		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed);
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
 		void calculateLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates);
@@ -88,7 +89,7 @@ namespace Minecraft
 			ChunkWorker(int numThreads)
 				: cv(), mtx(), queueMtx(), doWork(true)
 			{
-				noiseGenerators[0] = SimplexNoise(World::seedAsFloat.load());
+				noiseGenerators[0] = SimplexNoise();// World::seedAsFloat.load());
 				noiseGenerators[1] = SimplexNoise(World::seedAsFloat.load());
 				noiseGenerators[2] = SimplexNoise(World::seedAsFloat.load());
 				noiseGenerators[3] = SimplexNoise(World::seedAsFloat.load());
@@ -155,20 +156,18 @@ namespace Minecraft
 							if (ChunkPrivate::exists(World::chunkSavePath, command.chunk->chunkCoords))
 							{
 								ChunkPrivate::deserialize(command.chunk->data, World::chunkSavePath, command.chunk->chunkCoords);
-								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, false);
+								command.chunk->needsToGenerateDecorations = false;
 							}
 							else
 							{
 								ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat, noiseGenerators[0]);
-								//ChunkManager::setNeedsGenerateDecorations(command.chunkCoordinates, true);
+								command.chunk->needsToGenerateDecorations = true;
 							}
 						}
 						break;
 						case CommandType::GenerateDecorations:
 						{
-							//waitingOnCommand = true;
-							//ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat);
-							//waitingOnCommand = false;
+							ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat, noiseGenerators[0]);
 						}
 						break;
 						case CommandType::CalculateLighting:
@@ -1080,35 +1079,25 @@ namespace Minecraft
 			g_logger_info("Max %d size of vertex data", sizeof(Vertex) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth * 24);
 		}
 
+		const float maxBiomeHeight = 145.0f;
+		const float minBiomeHeight = 55.0f;
+		const int oceanLevel = 85;
 		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
 			g_memory_zeroMem(chunk->data, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
-			const float scale = 0.001f;
-			for (int y = 0; y < World::ChunkHeight; y++)
+			for (int x = 0; x < World::ChunkDepth; x++)
 			{
-				for (int x = 0; x < World::ChunkDepth; x++)
+				for (int z = 0; z < World::ChunkWidth; z++)
 				{
-					for (int z = 0; z < World::ChunkWidth; z++)
+					int16 maxHeight = TerrainGenerator::getHeight(generator, x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight);
+					int16 stoneHeight = (int16)(maxHeight - 3.0f);
+
+					for (int y = 0; y < World::ChunkHeight; y++)
 					{
 						const int arrayExpansion = to1DArray(x, y, z);
-						float maxHeightFloat =
-							CMath::mapRange(
-								generator.fractal(
-									7,
-									(float)(x + worldChunkX) * scale,
-									(float)(z + worldChunkZ) * scale
-								),
-								-1.0f,
-								1.0f,
-								0.0f,
-								1.0f
-							) * 255.0f;
-						int16 maxHeight = (int16)maxHeightFloat;
-						int16 stoneHeight = (int16)(maxHeight - 3.0f);
-
 						if (y == 0)
 						{
 							// Bedrock
@@ -1126,8 +1115,21 @@ namespace Minecraft
 						}
 						else if (y == maxHeight)
 						{
-							// Grass
-							chunk->data[arrayExpansion].id = 2;
+							if (maxHeight < oceanLevel + 2)
+							{
+								// Sand
+								chunk->data[arrayExpansion].id = 3;
+							}
+							else
+							{
+								// Grass
+								chunk->data[arrayExpansion].id = 2;
+							}
+						}
+						else if (y >= minBiomeHeight && y < oceanLevel)
+						{
+							// Water 
+							chunk->data[arrayExpansion].id = 19;
 						}
 						else if (!chunk->data[arrayExpansion].id)
 						{
@@ -1138,100 +1140,110 @@ namespace Minecraft
 			}
 		}
 
-		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed)
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator)
 		{
-			//auto& allStates = ChunkManager::getAllChunkStates();
+			for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
+			{
+				for (int chunkX = lastPlayerLoadPosChunkCoords.x - World::ChunkRadius; chunkX <= lastPlayerLoadPosChunkCoords.x + World::ChunkRadius; chunkX++)
+				{
+					const int worldChunkX = chunkX * 16;
+					const int worldChunkZ = chunkZ * 16;
 
-			//for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
-			//{
-			//	for (int chunkX = lastPlayerLoadPosChunkCoords.x - World::ChunkRadius; chunkX <= lastPlayerLoadPosChunkCoords.x + World::ChunkRadius; chunkX++)
-			//	{
-			//		const int worldChunkX = chunkX * 16;
-			//		const int worldChunkZ = chunkZ * 16;
+					if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+					{
+						// Skip over all chunks in range radius - 1
+						continue;
+					}
 
-			//		const SimplexNoise generator = SimplexNoise(World::seedAsFloat.load());
-			//		const float scale = 0.001f;
-			//		glm::ivec2 chunkCoords = glm::ivec2(chunkX, chunkZ);
-			//		auto iter = allStates.find(ChunkStateData(chunkCoords));
-			//		if (iter == allStates.end())
-			//		{
-			//			continue;
-			//		}
+					Chunk* chunk = ChunkManager::getChunk(glm::vec3(worldChunkX, 128.0f, worldChunkZ));
+					if (!chunk)
+					{
+						g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
+						continue;
+					}
 
-			//		ChunkStateData state = *iter;
-			//		Block* blockData = state.blockData;
-			//		if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
-			//		{
-			//			// Skip over all chunks in range radius - 1
-			//			continue;
-			//		}
+					if (!chunk->needsToGenerateDecorations)
+					{
+						continue;
+					}
+					chunk->needsToGenerateDecorations = false;
 
-			//		if (!state.needsToGenerateDecorations)
-			//		{
-			//			continue;
-			//		}
-			//		state.needsToGenerateDecorations = false;
-			//		allStates.erase(iter);
-			//		allStates.insert(state);
+					for (int x = 0; x < World::ChunkDepth; x++)
+					{
+						for (int z = 0; z < World::ChunkWidth; z++)
+						{
+							// Generate some trees if needed
+							int num = (rand() % 100);
+							bool generateTree = num > 98;
 
-			//		for (int y = 0; y < World::ChunkHeight; y++)
-			//		{
-			//			for (int x = 0; x < World::ChunkDepth; x++)
-			//			{
-			//				for (int z = 0; z < World::ChunkWidth; z++)
-			//				{
-			//					if (blockData[to1DArray(x, y, z)].id == 2)
-			//					{
-			//						// Generate some trees 
-			//						int num = (rand() % 100);
-			//						bool generateTree = num > 98;
-			//						int treeHeight = (rand() % 6) + 3;
-			//						int leavesBottomY = glm::clamp(treeHeight - 3, 3, (int)World::ChunkHeight - 1);
-			//						int leavesTopY = treeHeight + 1;
-			//						if (generateTree && (y + 1 + leavesTopY < World::ChunkHeight))
-			//						{
-			//							for (int treeY = y + 1; treeY <= treeHeight + y; treeY++)
-			//							{
-			//								blockData[to1DArray(x, treeY, z)].id = 8;
-			//							}
+							if (generateTree)
+							{
+								int16 y = TerrainGenerator::getHeight(generator, x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight) + 1;
 
-			//							int ringLevel = 0;
-			//							for (int leavesY = leavesBottomY + y; leavesY <= leavesTopY + y; leavesY++)
-			//							{
-			//								int leafRadius = leavesY == leavesTopY ? 2 : 1;
-			//								for (int leavesX = x - leafRadius; leavesX <= x + leafRadius; leavesX++)
-			//								{
-			//									for (int leavesZ = z - leafRadius; leavesZ <= z + leafRadius; leavesZ++)
-			//									{
-			//										if (leavesX < World::ChunkDepth && leavesX >= 0 && leavesZ < World::ChunkWidth && leavesZ >= 0)
-			//										{
-			//											blockData[to1DArray(leavesX, leavesY, leavesZ)].id = 9;
-			//										}
-			//										else
-			//										{
-			//											glm::vec3 blockPosition = glm::vec3(worldChunkX + leavesX, leavesY, worldChunkZ + leavesZ);
-			//											glm::ivec2 blockToCheckChunkPos = World::toChunkCoords(blockPosition);
-			//											glm::ivec3 localPosition = glm::floor(blockPosition - glm::vec3(blockToCheckChunkPos.x * 16.0f, 0.0f, blockToCheckChunkPos.y * 16.0f));
+								if (y > oceanLevel + 2)
+								{
+									// Generate a tree
+									int treeHeight = (rand() % 3) + 3;
+									int leavesBottomY = glm::clamp(treeHeight - 3, 3, (int)World::ChunkHeight - 1);
+									int leavesTopY = treeHeight + 1;
+									if (generateTree && (y + 1 + leavesTopY < World::ChunkHeight))
+									{
+										for (int treeY = 0; treeY <= treeHeight; treeY++)
+										{
+											chunk->data[to1DArray(x, treeY + y, z)].id = 8;
+										}
 
-			//											Block* otherChunk = nullptr;
-			//											auto iter = allStates.find(ChunkStateData(glm::ivec2(chunkX, chunkZ)));
-			//											if (iter != allStates.end())
-			//											{
-			//												otherChunk = iter->blockData;
-			//												otherChunk[to1DArray(localPosition.x, localPosition.y, localPosition.z)].id = 9;
-			//											}
-			//										}
-			//									}
-			//								}
-			//								ringLevel++;
-			//							}
-			//						}
-			//					}
-			//				}
-			//			}
-			//		}
-			//	}
-			//}
+										int ringLevel = 0;
+										for (int leavesY = leavesBottomY + y; leavesY <= leavesTopY + y; leavesY++)
+										{
+											int leafRadius = leavesY == leavesTopY ? 2 : 1;
+											for (int leavesX = x - leafRadius; leavesX <= x + leafRadius; leavesX++)
+											{
+												for (int leavesZ = z - leafRadius; leavesZ <= z + leafRadius; leavesZ++)
+												{
+													if (leavesX < World::ChunkDepth && leavesX >= 0 && leavesZ < World::ChunkWidth && leavesZ >= 0)
+													{
+														chunk->data[to1DArray(leavesX, leavesY, leavesZ)].id = 9;
+													}
+													else if (leavesX < 0)
+													{
+														if (chunk->bottomNeighbor)
+														{
+															chunk->bottomNeighbor->data[to1DArray(World::ChunkDepth + leavesX, leavesY, leavesZ)].id = 9;
+														}
+													}
+													else if (leavesX >= World::ChunkDepth)
+													{
+														if (chunk->topNeighbor)
+														{
+															chunk->topNeighbor->data[to1DArray(leavesX - World::ChunkDepth, leavesY, leavesZ)].id = 9;
+														}
+													}
+													else if (leavesZ < 0)
+													{
+														if (chunk->leftNeighbor)
+														{
+															chunk->leftNeighbor->data[to1DArray(leavesX, leavesY, World::ChunkWidth + leavesZ)].id = 9;
+														}
+													}
+													else if (leavesZ >= World::ChunkWidth)
+													{
+														if (chunk->rightNeighbor)
+														{
+															chunk->rightNeighbor->data[to1DArray(leavesX, leavesY, leavesZ - World::ChunkWidth)].id = 9;
+														}
+													}
+												}
+											}
+											ringLevel++;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 		void calculateLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates)
@@ -1271,7 +1283,7 @@ namespace Minecraft
 				}
 			}
 
-			// Then flood-fill to zero any blocks that need to be set
+			// Then set any blocks that are easy to calculate
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{
 				for (int x = 0; x < World::ChunkDepth; x++)
@@ -1313,12 +1325,61 @@ namespace Minecraft
 								) - 1, 0);
 							if (newLightLevel != chunk->data[arrayExpansion].calculatedLightLevel())
 							{
-								updateBlockLightLevel(chunk, x, y, z, chunkCoordinates, false);
+								chunk->data[arrayExpansion].lightLevel = newLightLevel;
 							}
 						}
 					}
 				}
 			}
+
+			// Then flood-fill to zero any blocks that need to be set
+			//for (int y = 0; y < World::ChunkHeight; y++)
+			//{
+			//	for (int x = 0; x < World::ChunkDepth; x++)
+			//	{
+			//		for (int z = 0; z < World::ChunkWidth; z++)
+			//		{
+			//			int arrayExpansion = to1DArray(x, y, z);
+			//			if (chunk->data[arrayExpansion] != BlockMap::AIR_BLOCK)
+			//			{
+			//				continue;
+			//			}
+
+			//			bool isSkyblock = chunk->data[arrayExpansion].lightLevel & 32;
+			//			if (!isSkyblock)
+			//			{
+			//				// If the 32 bit is set in the block above, this is a sky block
+			//				const Block& topNeighbor = chunk->data[to1DArray(x, y + 1, z)];
+			//				int topNeighborLight = topNeighbor.calculatedLightLevel();
+			//				Block bottomNeighbor = getBlockInternal(chunk, x, y - 1, z);
+			//				int bottomNeighborLight = bottomNeighbor.calculatedLightLevel();
+			//				Block leftNeighbor = getBlockInternal(chunk, x, y, z - 1);
+			//				int leftNeighborLight = leftNeighbor.calculatedLightLevel();
+			//				Block rightNeighbor = getBlockInternal(chunk, x, y, z + 1);
+			//				int rightNeighborLight = rightNeighbor.calculatedLightLevel();
+			//				Block frontNeighbor = getBlockInternal(chunk, x + 1, y, z);
+			//				int frontNeighborLight = frontNeighbor.calculatedLightLevel();
+			//				Block backNeighbor = getBlockInternal(chunk, x - 1, y, z);
+			//				int backNeighborLight = backNeighbor.calculatedLightLevel();
+
+			//				// Check what the light level should be, if it's not set properly, then
+			//				// we'll do a flood-fill from here to fill in this light properly
+			//				int newLightLevel =
+			//					glm::max(glm::max(leftNeighborLight,
+			//						glm::max(rightNeighborLight,
+			//							glm::max(topNeighborLight,
+			//								glm::max(frontNeighborLight, backNeighborLight)
+			//							)
+			//						)
+			//					) - 1, 0);
+			//				if (newLightLevel != chunk->data[arrayExpansion].calculatedLightLevel())
+			//				{
+			//					updateBlockLightLevel(chunk, x, y, z, chunkCoordinates, false);
+			//				}
+			//			}
+			//		}
+			//	}
+			//}
 		}
 
 		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource)
@@ -1536,7 +1597,7 @@ namespace Minecraft
 						// Only add the faces that are not culled by other blocks
 						for (int i = 0; i < 6; i++)
 						{
-							if (blocks[i].id && blockFormats[i]->isTransparent)
+							if (blocks[i].id && (blockFormats[i]->isTransparent && !currentBlockIsTransparent) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsTransparent))
 							{
 								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsTransparent);
 								SubChunk* currentSubChunk = *currentSubChunkPtr;

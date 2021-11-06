@@ -134,3 +134,10 @@ blue_stained_glass:
   top: blue_stained_glass
   isSolid: true
   isTransparent: true
+water:
+  id: 19
+  side: water
+  bottom: water
+  top: water
+  isSolid: false
+  isTransparent: true
