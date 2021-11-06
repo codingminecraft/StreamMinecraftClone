@@ -248,19 +248,28 @@ namespace Minecraft
 			DrawArraysIndirectCommand command;
 			int distanceToPlayer;
 			int level;
-
-			bool operator<(const DrawCommand& b) const
-			{
-				return distanceToPlayer < b.distanceToPlayer;
-			}
 		};
+
+		namespace DrawCommandUtil
+		{
+			bool operator<(const DrawCommand& a, const DrawCommand& b)
+			{
+				return a.distanceToPlayer < b.distanceToPlayer;
+			}
+
+			static bool operator>(const DrawCommand& a, const DrawCommand& b)
+			{
+				return a.distanceToPlayer > b.distanceToPlayer;
+			}
+		}
 
 		class CommandBufferContainer
 		{
 		public:
-			CommandBufferContainer(int maxNumCommands)
+			CommandBufferContainer(int maxNumCommands, bool isTransparent)
 			{
 				this->maxNumCommands = maxNumCommands;
+				this->isTransparent = isTransparent;
 				commandBuffer = nullptr;
 				chunkPosBuffer = nullptr;
 				biomeBuffer = nullptr;
@@ -311,8 +320,15 @@ namespace Minecraft
 
 			void sort(const glm::ivec2& playerPosChunkCoords)
 			{
-				// Sort chunks front to back
-				std::sort(commandBuffer, commandBuffer + numCommands);
+				if (!isTransparent)
+				{
+					// Sort chunks front to back
+					std::sort(commandBuffer, commandBuffer + numCommands, DrawCommandUtil::operator<);
+				}
+				else
+				{
+					std::sort(commandBuffer, commandBuffer + numCommands, DrawCommandUtil::operator>);
+				}
 			}
 
 			inline int getNumCommands() const
@@ -343,6 +359,7 @@ namespace Minecraft
 		private:
 			int maxNumCommands;
 			int numCommands;
+			bool isTransparent;
 			DrawCommand* commandBuffer;
 			int32* chunkPosBuffer;
 			int32* biomeBuffer;
@@ -360,7 +377,9 @@ namespace Minecraft
 		static uint32 chunkPosInstancedBuffer;
 		static uint32 biomeInstancedVbo;
 		static uint32 globalVao;
-		static uint32 drawCommandVbo;
+		// TODO: Make this better
+		static uint32 solidDrawCommandVbo;
+		static uint32 transparentDrawCommandVbo;
 
 		// Singletons
 		static ChunkWorker& chunkWorker()
@@ -381,9 +400,16 @@ namespace Minecraft
 			return instance;
 		}
 
-		static CommandBufferContainer& commandBuffer()
+		static CommandBufferContainer& solidCommandBuffer()
 		{
-			static CommandBufferContainer instance(subChunks().size());
+			static CommandBufferContainer instance(subChunks().size(), false);
+			return instance;
+		}
+
+		// TODO: Combine these two buffers into one, since we're wasting RAM
+		static CommandBufferContainer& transparentCommandBuffer()
+		{
+			static CommandBufferContainer instance(subChunks().size(), true);
 			return instance;
 		}
 
@@ -404,9 +430,14 @@ namespace Minecraft
 			}
 
 			// Set up draw commands to relate to our sub chunks
-			commandBuffer().init();
-			glCreateBuffers(1, &drawCommandVbo);
-			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
+			solidCommandBuffer().init();
+			glCreateBuffers(1, &solidDrawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+
+			transparentCommandBuffer().init();
+			glCreateBuffers(1, &transparentDrawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, transparentDrawCommandVbo);
 			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
@@ -473,7 +504,8 @@ namespace Minecraft
 		void free()
 		{
 			chunkWorker().free();
-			commandBuffer().free();
+			solidCommandBuffer().free();
+			transparentCommandBuffer().free();
 		}
 
 		void serialize()
@@ -766,7 +798,14 @@ namespace Minecraft
 								drawCommand.instanceCount = 1;
 								drawCommand.count = subChunks()[i]->numVertsUsed;
 								drawCommand.first = subChunks()[i]->first;
-								commandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+								if (subChunks()[i]->isTransparent)
+								{
+									transparentCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+								}
+								else
+								{
+									solidCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+								}
 							}
 
 							if (subChunks()[i]->state == SubChunkState::DoneRetesselating)
@@ -780,22 +819,42 @@ namespace Minecraft
 				}
 			}
 
-			if (commandBuffer().getNumCommands() > 0)
+			if (solidCommandBuffer().getNumCommands() > 0)
 			{
-				commandBuffer().sort(playerPositionInChunkCoords);
+				solidCommandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * commandBuffer().getNumCommands(), commandBuffer().getChunkPosBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getChunkPosBuffer());
 				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * commandBuffer().getNumCommands(), commandBuffer().getBiomeBuffer());
-				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, drawCommandVbo);
-				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * commandBuffer().getNumCommands(), commandBuffer().getCommandBuffer());
-				DebugStats::numDrawCalls += commandBuffer().getNumCommands();
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getBiomeBuffer());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getCommandBuffer());
+				DebugStats::numDrawCalls += solidCommandBuffer().getNumCommands();
 
 				glBindVertexArray(globalVao);
 				shader.uploadVec3("uPlayerPosition", playerPosition);
 				shader.uploadInt("uChunkRadius", World::ChunkRadius);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, commandBuffer().getNumCommands(), sizeof(DrawCommand));
-				commandBuffer().softReset();
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer().getNumCommands(), sizeof(DrawCommand));
+				solidCommandBuffer().softReset();
+			}
+
+			if (transparentCommandBuffer().getNumCommands() > 0)
+			{
+				glDisable(GL_CULL_FACE);
+				transparentCommandBuffer().sort(playerPositionInChunkCoords);
+				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getChunkPosBuffer());
+				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getBiomeBuffer());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, transparentDrawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getCommandBuffer());
+				DebugStats::numDrawCalls += transparentCommandBuffer().getNumCommands();
+
+				glBindVertexArray(globalVao);
+				shader.uploadVec3("uPlayerPosition", playerPosition);
+				shader.uploadInt("uChunkRadius", World::ChunkRadius);
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, transparentCommandBuffer().getNumCommands(), sizeof(DrawCommand));
+				transparentCommandBuffer().softReset();
+				glEnable(GL_CULL_FACE);
 			}
 		}
 
@@ -1342,7 +1401,7 @@ namespace Minecraft
 			return removeLocalBlock(localPosition, chunkCoordinates, chunk);
 		}
 
-		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates)
+		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates, bool isTransparentSubChunk)
 		{
 			bool needsNewChunk = currentSubChunk == nullptr
 				|| currentSubChunk->subChunkLevel != currentLevel
@@ -1364,6 +1423,7 @@ namespace Minecraft
 					ret->state = SubChunkState::TesselatingVertices;
 					ret->subChunkLevel = currentLevel;
 					ret->chunkCoordinates = chunkCoordinates;
+					ret->isTransparent = isTransparentSubChunk;
 				}
 				else
 				{
@@ -1379,7 +1439,8 @@ namespace Minecraft
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
-			SubChunk* currentSubChunk = nullptr;
+			SubChunk* solidSubChunk = nullptr;
+			SubChunk* transparentSubChunk = nullptr;
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{
 				int currentLevel = y / 16;
@@ -1398,6 +1459,7 @@ namespace Minecraft
 						}
 
 						const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
+						bool currentBlockIsTransparent = blockFormat.isTransparent;
 
 						// TODO: SIMDify this section
 						static glm::ivec3 verts[8];
@@ -1458,12 +1520,19 @@ namespace Minecraft
 							&BlockMap::getBlock(blocks[5].id)
 						};
 
+						SubChunk** currentSubChunkPtr = &solidSubChunk;
+						if (currentBlockIsTransparent)
+						{
+							currentSubChunkPtr = &transparentSubChunk;
+						}
+
 						// Only add the faces that are not culled by other blocks
 						for (int i = 0; i < 6; i++)
 						{
 							if (blocks[i].id && blockFormats[i]->isTransparent)
 							{
-								currentSubChunk = getSubChunk(subChunks, currentSubChunk, currentLevel, chunkCoordinates);
+								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsTransparent);
+								SubChunk* currentSubChunk = *currentSubChunkPtr;
 								if (!currentSubChunk)
 								{
 									// TODO: Handle running out of memory better than this
@@ -1491,9 +1560,14 @@ namespace Minecraft
 				}
 			}
 
-			if (currentSubChunk && currentSubChunk->numVertsUsed > 0)
+			if (solidSubChunk && solidSubChunk->numVertsUsed > 0)
 			{
-				currentSubChunk->state = SubChunkState::UploadVerticesToGpu;
+				solidSubChunk->state = SubChunkState::UploadVerticesToGpu;
+			}
+
+			if (transparentSubChunk && transparentSubChunk->numVertsUsed > 0)
+			{
+				transparentSubChunk->state = SubChunkState::UploadVerticesToGpu;
 			}
 
 			for (int i = 0; i < (int)(*subChunks).size(); i++)
@@ -1827,7 +1901,7 @@ namespace Minecraft
 						currentChunk->data[arrayExpansion].lightLevel = 0;
 						thisLightLevelChanged = true;
 					}
-					else if (currentChunk->data[arrayExpansion].isLightSource() || 
+					else if (currentChunk->data[arrayExpansion].isLightSource() ||
 						((newLightLevel & 32) == 32 && currentChunk->data[arrayExpansion] == BlockMap::AIR_BLOCK))
 					{
 						//backPropagationBlocks.insert(blockToUpdate);
