@@ -1184,7 +1184,7 @@ namespace Minecraft
 						}
 
 						// If the 32 bit is set in the block above, this is a sky block
-						const Block& topNeighbor = y + 1 >= 256 ? BlockMap::NULL_BLOCK : chunk->data[to1DArray(x, y + 1, z)];
+						const Block& topNeighbor = y + 1 >= World::ChunkHeight ? BlockMap::NULL_BLOCK : chunk->data[to1DArray(x, y + 1, z)];
 						int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
 
 						bool isSkyblock = (topNeighbor.lightLevel & 32) || (y == World::ChunkHeight - 1);
@@ -1245,7 +1245,7 @@ namespace Minecraft
 										)
 									)
 								) - 1, 0);
-							if (newLightLevel != (chunk->data[arrayExpansion].lightLevel & 31))
+							if (newLightLevel != chunk->data[arrayExpansion].calculatedLightLevel())
 							{
 								updateBlockLightLevel(chunk, x, y, z, chunkCoordinates, false);
 							}
@@ -1253,63 +1253,6 @@ namespace Minecraft
 					}
 				}
 			}
-
-			// Do a third pass, this will update all light sources and flood-fill
-			//for (int y = 0; y < World::ChunkHeight; y++)
-			//{
-			//	for (int x = 0; x < World::ChunkDepth; x++)
-			//	{
-			//		for (int z = 0; z < World::ChunkWidth; z++)
-			//		{
-			//			int arrayExpansion = to1DArray(x, y, z);
-			//			if (blockData[arrayExpansion] != BlockMap::AIR_BLOCK)
-			//			{
-			//				continue;
-			//			}
-
-			//			// If the 32 bit is set in the block above, this is a sky block
-			//			const Block& topNeighbor = y + 1 >= 256 ? BlockMap::NULL_BLOCK : blockData[to1DArray(x, y + 1, z)];
-			//			int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
-
-			//			bool isSkyblock = topNeighbor == BlockMap::AIR_BLOCK && ((topNeighbor.lightLevel & 32) || (y == World::ChunkHeight - 1));
-			//			if (!isSkyblock)
-			//			{
-			//				// If the 32 bit is set in the block above, this is a sky block
-			//				Block bottomNeighbor = y - 1 < 0 ? BlockMap::NULL_BLOCK :
-			//					getBlockInternal(blockData, x, y - 1, z, chunkCoordinates);
-			//				int bottomNeighborLight = bottomNeighbor == BlockMap::AIR_BLOCK ? bottomNeighbor.lightLevel & 31 : 0;
-			//				Block leftNeighbor = internalOnly && z - 1 < 0 ? BlockMap::NULL_BLOCK :
-			//					getBlockInternal(blockData, x, y, z - 1, chunkCoordinates);
-			//				int leftNeighborLight = leftNeighbor == BlockMap::AIR_BLOCK ? leftNeighbor.lightLevel & 31 : 0;
-			//				Block rightNeighbor = internalOnly && z + 1 >= World::ChunkWidth ? BlockMap::NULL_BLOCK :
-			//					getBlockInternal(blockData, x, y, z + 1, chunkCoordinates);
-			//				int rightNeighborLight = rightNeighbor == BlockMap::AIR_BLOCK ? rightNeighbor.lightLevel & 31 : 0;
-			//				Block frontNeighbor = internalOnly && x + 1 >= World::ChunkDepth ? BlockMap::NULL_BLOCK :
-			//					getBlockInternal(blockData, x + 1, y, z, chunkCoordinates);
-			//				int frontNeighborLight = frontNeighbor == BlockMap::AIR_BLOCK ? frontNeighbor.lightLevel & 31 : 0;
-			//				Block backNeighbor = internalOnly && x - 1 < 0 ? BlockMap::NULL_BLOCK :
-			//					getBlockInternal(blockData, x - 1, y, z, chunkCoordinates);
-			//				int backNeighborLight = backNeighbor == BlockMap::AIR_BLOCK ? backNeighbor.lightLevel & 31 : 0;
-
-			//				// Check what the light level should be, if it's not set properly, then
-			//				// we'll do a flood-fill from here to fill in this light properly
-			//				int newLightLevel =
-			//					glm::max(glm::max(leftNeighborLight,
-			//						glm::max(rightNeighborLight,
-			//							glm::max(topNeighborLight,
-			//								glm::max(frontNeighborLight, backNeighborLight)
-			//							)
-			//						)
-			//					) - 1, 0);
-			//				if (newLightLevel != (blockData[arrayExpansion].lightLevel & 31))
-			//				{
-			//					glm::vec3 worldPos = glm::vec3(chunkCoordinates.x * 16.0f + x, y, chunkCoordinates.y * 16.0f + z);
-			//					//updateBlockLightLevel(blockData, x, y, z, chunkCoordinates, internalOnly, false);
-			//				}
-			//			}
-			//		}
-			//	}
-			//}
 		}
 
 		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource)
@@ -1767,6 +1710,12 @@ namespace Minecraft
 				return;
 			}
 
+			if (!originalChunk)
+			{
+				g_logger_warning("Encountered weird null chunk while updating block lighting.");
+				return;
+			}
+
 			if (localX >= World::ChunkDepth || localX < 0 || localZ >= World::ChunkWidth || localZ < 0)
 			{
 				if (!checkPositionInBounds(&originalChunk, &localX, &localZ))
@@ -1789,11 +1738,12 @@ namespace Minecraft
 
 			Chunk* currentChunk = originalChunk;
 			//auto backPropagationBlocks = robin_hood::unordered_flat_set<glm::ivec3>();
-			auto backPropagationBlock = glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX);
+			glm::ivec3 backPropagationBlock = glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX);
 			auto blocksAlreadyChecked = robin_hood::unordered_flat_set<glm::ivec3>();
 			auto blocksToUpdate = std::queue<glm::ivec3>();
 			blocksToUpdate.push(glm::ivec3(localX, localY, localZ));
 			blocksAlreadyChecked.insert(glm::ivec3(localX, localY, localZ));
+			bool firstIteration = true;
 			while (!blocksToUpdate.empty())
 			{
 				glm::ivec3 blockToUpdate = blocksToUpdate.front();
@@ -1834,7 +1784,6 @@ namespace Minecraft
 				Block backNeighbor = getBlockInternal(currentChunk, x - 1, y, z);
 				int backNeighborLight = backNeighbor.calculatedLightLevel();
 
-				bool thisLightLevelChanged = false;
 				int newLightLevel;
 				// If the 32 bit is set in the block above, this is a sky block
 				// If the top neighbor is a skyblock and this block is air, set this to a skyblock too
@@ -1864,14 +1813,22 @@ namespace Minecraft
 
 				// Check if the light level has changed, if it hasn't add the block to our back-propagation blocks
 				// if we're currently zeroing out
+				bool thisLightLevelChanged = false;
 				if (zeroOut)
 				{
-					if ((newLightLevel & 32) != 32 && !currentChunk->data[arrayExpansion].isLightSource())
+					// If we are in the first iteration of this loop, and the light level is fine, don't do anything
+					// because this block's light level doesn't *actually* need to be updated
+					if (firstIteration && newLightLevel == currentChunk->data[arrayExpansion].lightLevel)
+					{
+						break;
+					}
+					else if ((newLightLevel & 32) != 32 && !currentChunk->data[arrayExpansion].isLightSource())
 					{
 						currentChunk->data[arrayExpansion].lightLevel = 0;
 						thisLightLevelChanged = true;
 					}
-					else if (currentChunk->data[arrayExpansion].isLightSource() || (newLightLevel & 32) == 32)
+					else if (currentChunk->data[arrayExpansion].isLightSource() || 
+						((newLightLevel & 32) == 32 && currentChunk->data[arrayExpansion] == BlockMap::AIR_BLOCK))
 					{
 						//backPropagationBlocks.insert(blockToUpdate);
 						backPropagationBlock = blockToUpdate;
@@ -1881,8 +1838,7 @@ namespace Minecraft
 				{
 					if (currentChunk->data[arrayExpansion].lightLevel != newLightLevel)
 					{
-						// If we're zeroing out and this block is not a sky block, zero the light level
-						// otherwise set the light level to the new light level
+						// Set the light level to the new light level
 						currentChunk->data[arrayExpansion].lightLevel = newLightLevel;
 						thisLightLevelChanged = true;
 					}
@@ -1897,13 +1853,11 @@ namespace Minecraft
 						((7 << 6) & 0x1C0); // B
 					if (newLightLevel != 0)
 					{
-						// We skip a block if it's a skylight or if we've already checked it because it won't change in
-						// either case
-
 						// We have to add the coordinates local to the original chunk and not the coordinates local to the current chunk
 						x = blockToUpdate.x;
 						y = blockToUpdate.y;
 						z = blockToUpdate.z;
+						// We skip a block if we've already checked it
 						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y + 1, z)) &&
 							topNeighbor.isLightPassable())
 						{
@@ -1942,6 +1896,8 @@ namespace Minecraft
 						}
 					}
 				}
+
+				firstIteration = false;
 			}
 
 			//for (auto backPropagationBlock : backPropagationBlocks)

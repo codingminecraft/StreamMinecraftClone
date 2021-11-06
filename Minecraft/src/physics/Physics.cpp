@@ -396,6 +396,7 @@ namespace Minecraft
 			else
 			{
 				g_logger_error("Could not evaluate physics calculation.");
+				res.didCollide = false;
 			}
 
 			return res;
