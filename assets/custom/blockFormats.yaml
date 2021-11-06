@@ -120,3 +120,11 @@ sea_lantern:
   isTransparent: false
   isLightSource: true
   lightLevel: 18
+birch_log:
+  id: 17
+  side: birch_log
+  top: birch_log_top
+  bottom: birch_log_top
+  isSolid: true
+  isTransparent: false
+  isLightSource: false

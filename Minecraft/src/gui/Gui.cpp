@@ -19,6 +19,8 @@ namespace Minecraft
 		glm::vec2 cursorPos;
 		glm::vec2 position;
 		glm::vec2 size;
+		glm::vec2 lastElementPosition;
+		glm::vec2 lastElementSize;
 		int numColumns;
 		bool nextElementSameLine;
 		bool centerNextElement;
@@ -34,6 +36,7 @@ namespace Minecraft
 		static Style guiStyle;
 		static glm::vec2 elementPadding;
 		static Font* defaultFont;
+		static float defaultTextScale;
 
 		// Internal functions
 		static WidgetState mouseInAABB(const glm::vec2& position, const glm::vec2& size);
@@ -49,6 +52,7 @@ namespace Minecraft
 			currentWindow = -1;
 			elementPadding = glm::vec2(0.01f, 0.01f);
 			defaultFont = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
+			defaultTextScale = 0.0025f;
 		}
 
 		void beginFrame()
@@ -273,6 +277,47 @@ namespace Minecraft
 			return res;
 		}
 
+		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, bool isSelected)
+		{
+			WindowState& windowState = getCurrentWindow();
+
+			// TODO: Get the world data image thing and store it in here
+			const Sprite* sprite = nullptr;
+			guiStyle.color = "#ffffff"_hex;
+
+			bool res = false;
+			glm::vec2 buttonPosition = getElementPosition(windowState, size);
+			WidgetState state = mouseInAABB(buttonPosition, size);
+			if (state == WidgetState::Click)
+			{
+				res = true;
+			}
+
+			// TODO: Draw world image path
+			//Renderer::drawTexture2D(*sprite, buttonPosition, button.size, guiStyle, -1);
+
+			glm::vec2 imageSize = glm::vec2(size.y - elementPadding.y * 2.0f, size.y - elementPadding.y * 2.0f);
+			glm::vec2 imagePos = buttonPosition + elementPadding;
+			Renderer::drawFilledSquare2D(imagePos, imageSize, Styles::defaultStyle);
+
+			g_logger_assert(worldDataPath != nullptr, "Invalid world data path. Cannot be null.");
+			g_logger_assert(defaultFont != nullptr, "Invalid default font. Cannot be null.");
+			glm::vec2 strSize = defaultFont->getSize(worldDataPath, defaultTextScale);
+			glm::vec2 textPos = imagePos + imageSize + glm::vec2(elementPadding.x, -(size.y - (strSize.y * 0.5f)));
+			Renderer::drawString(worldDataPath, *defaultFont, textPos, defaultTextScale, guiStyle);
+
+
+			if (isSelected)
+			{
+				static Style lineStyle = Styles::defaultStyle;
+				lineStyle.strokeWidth = 0.01f;
+				Renderer::drawSquare2D(buttonPosition, size, lineStyle);
+			}
+
+			advanceCursorPastElement(windowState, size);
+			return res;
+		}
+
 		bool slider(const Slider& slider, float* value)
 		{
 			WindowState& windowState = getCurrentWindow();
@@ -329,6 +374,18 @@ namespace Minecraft
 			return false;
 		}
 
+		glm::vec2 getLastElementSize()
+		{
+			return windows[currentWindow].lastElementSize;
+		}
+
+		glm::vec2 getLastElementPosition()
+		{
+			return windows[currentWindow].position +
+				glm::vec2(windows[currentWindow].lastElementPosition.x,
+					windows[currentWindow].lastElementPosition.y - windows[currentWindow].lastElementSize.y);
+		}
+
 		// ===================================
 		// Internal Functions
 		// ===================================
@@ -376,6 +433,8 @@ namespace Minecraft
 
 		static void advanceCursorPastElement(WindowState& window, const glm::vec2& elementSize)
 		{
+			window.lastElementPosition = window.cursorPos - elementPadding;
+			window.lastElementSize = elementSize + elementPadding;
 			if (window.nextElementSameLine)
 			{
 				window.cursorPos += glm::vec2(elementSize.x, 0) + glm::vec2(elementPadding.x, 0);

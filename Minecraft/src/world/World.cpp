@@ -42,9 +42,6 @@ namespace Minecraft
 		// Members
 		static Shader shader;
 		static Shader cubemapShader;
-		static Texture worldTexture;
-		static Texture itemTexture;
-		static Texture blockItemTexture;
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
 		static Ecs::EntityId randomEntity;
@@ -86,52 +83,7 @@ namespace Minecraft
 			g_logger_info("World seed: %u", seed);
 			g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
-			// Initialize blocks
-			File::createDirIfNotExists("assets/generated");
-
-			const char* packedTexturesFilepath = "assets/generated/packedTextures.png";
-			const char* packedItemTexturesFilepath = "assets/generated/packedItemTextures.png";
-			TexturePacker::packTextures("assets/images/block", "assets/generated/textureFormat.yaml", packedTexturesFilepath, "Blocks");
-			TexturePacker::packTextures("assets/images/item", "assets/generated/itemTextureFormat.yaml", packedItemTexturesFilepath, "Items");
-			BlockMap::loadBlocks("assets/generated/textureFormat.yaml", "assets/generated/itemTextureFormat.yaml", "assets/custom/blockFormats.yaml");
-			BlockMap::uploadTextureCoordinateMapToGpu();
-
 			shader.compile("assets/shaders/default.glsl");
-			worldTexture = TextureBuilder()
-				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
-				.setFilepath(packedTexturesFilepath)
-				.generateTextureObject()
-				.bindTextureObject()
-				.generate(true);
-
-			itemTexture = TextureBuilder()
-				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Linear)
-				.setMinFilter(FilterMode::Linear)
-				.setFilepath(packedItemTexturesFilepath)
-				.generateTextureObject()
-				.bindTextureObject()
-				.generate(true);
-			BlockMap::patchTextureMaps(&worldTexture, &itemTexture);
-
-			// Generate all the cube item pictures and pack them into a texture
-			const char* blockItemOutput = "assets/generated/blockItems/";
-			File::createDirIfNotExists(blockItemOutput);
-			BlockMap::generateBlockItemPictures("assets/custom/blockFormats.yaml", blockItemOutput);
-			TexturePacker::packTextures(blockItemOutput, "assets/generated/blockItemTextureFormat.yaml", "assets/generated/packedBlockItemsTextures.png", "BlockItems", 64, 64);
-			BlockMap::loadBlockItemTextures("assets/generated/blockItemTextureFormat.yaml");
-			blockItemTexture = TextureBuilder()
-				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Linear)
-				.setMinFilter(FilterMode::Linear)
-				.setFilepath("assets/generated/packedBlockItemsTextures.png")
-				.generateTextureObject()
-				.bindTextureObject()
-				.generate(true);
-			BlockMap::patchBlockItemTextureMaps(&blockItemTexture);
-
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 			skybox = Cubemap::generateCubemap(
 				"assets/images/sky/dayTop.png",
@@ -217,7 +169,7 @@ namespace Minecraft
 			MainHud::free();
 		}
 
-		void update(float dt, Frustum& cameraFrustum)
+		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
 		{
 			// Update all systems
 			KeyHandler::update(dt);

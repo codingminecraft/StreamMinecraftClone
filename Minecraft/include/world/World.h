@@ -6,13 +6,14 @@
 namespace Minecraft
 {
 	struct Camera;
+	struct Texture;
 	class Frustum;
 
 	namespace World
 	{
 		void init(Ecs::Registry& registry);
 		void free();
-		void update(float dt, Frustum& cameraFrustum);
+		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture);
 		void serialize();
 		bool deserialize();
 

@@ -54,8 +54,12 @@ namespace Minecraft
 		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool isFocused = false);
 		bool button(const Button& button);
 		bool textureButton(const TexturedButton& button);
+		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, bool isSelected);
 		
 		bool slider(const Slider& slider, float* value);
+
+		glm::vec2 getLastElementSize();
+		glm::vec2 getLastElementPosition();
 	}
 }
 

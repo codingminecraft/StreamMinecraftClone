@@ -47,6 +47,7 @@ namespace Minecraft
 			viewAxis = glm::normalize(glm::vec3(0.1f, 1.0f, -0.1f));
 			viewRotation = 0.0f;
 
+			CreateWorldMenu::init();
 			g_logger_info("Initialized main menu scene.");
 		}
 
