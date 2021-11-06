@@ -26,11 +26,6 @@ namespace Minecraft
 
 			g_logger_info("Initialized settings menu.");
 
-			const TextureFormat& dirtTextureFormat = BlockMap::getTextureFormat("dirt");
-			dirtTextureSprite.texture = *dirtTextureFormat.texture;
-			dirtTextureSprite.uvSize = dirtTextureFormat.uvs[1] - dirtTextureFormat.uvs[3];
-			dirtTextureSprite.uvStart = dirtTextureFormat.uvs[3];
-
 			dirtTextureSprite.texture = TextureBuilder()
 				.setFilepath("assets/images/block/dirt.png")
 				.setMagFilter(FilterMode::Nearest)
@@ -67,7 +62,7 @@ namespace Minecraft
 
 		void free()
 		{
-
+			dirtTextureSprite.texture.destroy();
 		}
 
 		static void showSavedWorlds()
@@ -130,7 +125,7 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 
 			static char worldSaveTitle[128];
-			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128))
+			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128, true))
 			{
 				World::savePath = std::string(worldSaveTitle);
 			}
