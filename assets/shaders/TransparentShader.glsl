@@ -112,7 +112,7 @@ uniform vec3 uPlayerPosition;
 uniform int uChunkRadius;
 uniform bool uIsDay;
 
-vec3 lightColor = vec3(0.8, 0.8, 0.8);
+vec3 lightColor = vec3(0.3, 0.3, 0.3);
 
 void faceToNormal(in uint face, out vec3 normal)
 {
@@ -141,32 +141,18 @@ void faceToNormal(in uint face, out vec3 normal)
 
 void main()
 {
-	// Calculate ambient light
-    float ambientStrength = 0.4;
-    vec3 ambient = ambientStrength * lightColor;
-
 	// Turn that into diffuse lighting
 	vec3 lightDir = normalize(uSunDirection);
-	lightColor.b = uIsDay ? 0.8 : 0.9;
-
 	vec3 normal;
 	faceToNormal(fFace, normal);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = diff * lightColor;
-
-	float distanceToPlayer = length(fFragPosition - uPlayerPosition);
-	float d = (distanceToPlayer / (float(uChunkRadius) * 16.0)) - 0.5;
-	d = clamp(d, 0, 1);
-	vec4 fogColor = vec4(153.0 / 255.0, 204.0 / 255.0, 1.0, 1.0);
 
 	vec4 objectColor = texture(uTexture, fTexCoords);
-	vec3 result = (diffuse + ambient) * objectColor.rgb;
-
-	float baseLightColor = .2;
+	float baseLightColor = .03;
 	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
 
-	vec4 fragColor = ((lightColor * vec4(fColor, 1.0)) + vec4(diffuse, 0.0)) * objectColor;
+	vec4 fragColor = (lightColor * vec4(fColor, 1.0) + diff) * objectColor;
 	
 	// Weight function
 	float weight = clamp(pow(min(1.0, fragColor.a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
