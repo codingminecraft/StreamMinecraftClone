@@ -62,7 +62,7 @@ namespace Minecraft
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource);
 		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr, bool doImmediately = false);
-		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum);
+		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition);
 
 		// TODO: Make this private

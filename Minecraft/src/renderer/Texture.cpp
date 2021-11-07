@@ -223,10 +223,14 @@ namespace Minecraft
 				return GL_RGBA8;
 			case ByteFormat::RGB8_UI:
 				return GL_RGB8;
+			case ByteFormat::RGBA_16F:
+				return GL_RGBA16F;
 			case ByteFormat::R32_UI:
 				return GL_R32UI;
 			case ByteFormat::R8_UI:
 				return GL_R8UI;
+			case ByteFormat::R8_F:
+				return GL_R8;
 			case ByteFormat::R32_F:
 				return GL_R32F;
 			case ByteFormat::None:
@@ -250,10 +254,14 @@ namespace Minecraft
 				return GL_RGBA;
 			case ByteFormat::RGB8_UI:
 				return GL_RGB;
+			case ByteFormat::RGBA_16F:
+				return GL_RGBA;
 			case ByteFormat::R32_UI:
 				return GL_RED_INTEGER;
 			case ByteFormat::R8_UI:
 				return GL_RED_INTEGER;
+			case ByteFormat::R8_F:
+				return GL_RED;
 			case ByteFormat::R32_F:
 				return GL_RED;
 			case ByteFormat::ALPHA_F:
@@ -277,10 +285,14 @@ namespace Minecraft
 				return GL_UNSIGNED_BYTE;
 			case ByteFormat::RGB8_UI:
 				return GL_UNSIGNED_BYTE;
+			case ByteFormat::RGBA_16F:
+				return GL_HALF_FLOAT;
 			case ByteFormat::R32_UI:
 				return GL_UNSIGNED_INT;
 			case ByteFormat::R8_UI:
 				return GL_UNSIGNED_BYTE;
+			case ByteFormat::R8_F:
+				return GL_FLOAT;
 			case ByteFormat::R32_F:
 				return GL_FLOAT;
 			case ByteFormat::ALPHA_F:

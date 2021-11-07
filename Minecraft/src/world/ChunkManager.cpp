@@ -763,12 +763,9 @@ namespace Minecraft
 			}
 		}
 
-		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& shader, const Frustum& cameraFrustum)
+		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum)
 		{
 			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
-
-			// TODO: Weird that I have to re-enable that here. Try to find out why?
-			glEnable(GL_CULL_FACE);
 
 			for (int i = 0; i < (int)subChunks().size(); i++)
 			{
@@ -828,6 +825,13 @@ namespace Minecraft
 
 			if (solidCommandBuffer().getNumCommands() > 0)
 			{
+				// Render opaque geometry
+				glEnable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
+				glDepthFunc(GL_LESS);
+				glDepthMask(GL_TRUE);
+				glDisable(GL_BLEND);
+
 				solidCommandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getChunkPosBuffer());
@@ -838,16 +842,24 @@ namespace Minecraft
 				DebugStats::numDrawCalls += solidCommandBuffer().getNumCommands();
 
 				glBindVertexArray(globalVao);
-				shader.uploadVec3("uPlayerPosition", playerPosition);
-				shader.uploadInt("uChunkRadius", World::ChunkRadius);
+				opaqueShader.uploadVec3("uPlayerPosition", playerPosition);
+				opaqueShader.uploadInt("uChunkRadius", World::ChunkRadius);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer().getNumCommands(), sizeof(DrawCommand));
 				solidCommandBuffer().softReset();
 			}
 
 			if (transparentCommandBuffer().getNumCommands() > 0)
 			{
-				glDisable(GL_CULL_FACE);
-				transparentCommandBuffer().sort(playerPositionInChunkCoords);
+				// Render transparent geometry
+				// Disable depth writes so transparent objects don't interfere with solid passes depth values
+				glDepthMask(GL_FALSE);
+				glEnable(GL_BLEND);
+				glBlendFunci(1, GL_ONE, GL_ONE); // Accumulation blend target
+				glBlendFunci(2, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // Revealage blend target
+				glBlendEquation(GL_FUNC_ADD);
+
+				// We shouldn't need to even sort this...
+				//transparentCommandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
 				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getChunkPosBuffer());
 				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
@@ -857,11 +869,16 @@ namespace Minecraft
 				DebugStats::numDrawCalls += transparentCommandBuffer().getNumCommands();
 
 				glBindVertexArray(globalVao);
-				shader.uploadVec3("uPlayerPosition", playerPosition);
-				shader.uploadInt("uChunkRadius", World::ChunkRadius);
+				transparentShader.bind();
+				transparentShader.uploadVec3("uPlayerPosition", playerPosition);
+				transparentShader.uploadInt("uChunkRadius", World::ChunkRadius);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, transparentCommandBuffer().getNumCommands(), sizeof(DrawCommand));
 				transparentCommandBuffer().softReset();
+
+				// Reset render state
 				glEnable(GL_CULL_FACE);
+				glDepthMask(GL_TRUE);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}
 		}
 

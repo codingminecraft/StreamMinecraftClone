@@ -20,7 +20,7 @@ namespace Minecraft
 		static glm::vec2 titleSize;
 		static bool isCreatingWorld;
 
-		static Cubemap skybox;
+		static Cubemap menuSkybox;
 		static glm::mat4 projectionMatrix;
 		static glm::mat4 viewMatrix;
 		static glm::vec3 viewAxis;
@@ -36,7 +36,7 @@ namespace Minecraft
 			titleSize = glm::vec2(2.0f, 0.5f);
 			title = menuSprites.at(std::string("title"));
 
-			skybox = Cubemap::generateCubemap(
+			menuSkybox = Cubemap::generateCubemap(
 				"assets/images/menuSkybox/Top.png",
 				"assets/images/menuSkybox/Bottom.png",
 				"assets/images/menuSkybox/Left.png",
@@ -63,7 +63,7 @@ namespace Minecraft
 				);
 				
 				viewMatrix = glm::rotate(glm::radians(viewRotation), viewAxis);
-				skybox.render(cubemapShader, projectionMatrix, viewMatrix);
+				menuSkybox.render(cubemapShader, projectionMatrix, viewMatrix);
 				viewRotation = viewRotation - (3.0f * dt);
 				if (viewRotation < 0)
 				{
@@ -101,7 +101,7 @@ namespace Minecraft
 
 		void free()
 		{
-
+			menuSkybox.destroy();
 		}
 	}
 }

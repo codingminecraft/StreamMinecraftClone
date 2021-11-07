@@ -57,9 +57,20 @@ namespace Minecraft
 		shader.uploadInt("uSkybox", 0);
 
 		glBindVertexArray(vao);
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, graphicsId);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glDepthMask(GL_TRUE);
+	}
+
+	void Cubemap::destroy()
+	{
+		glDeleteBuffers(1, &vbo);
+		glDeleteVertexArrays(1, &vao);
+		glDeleteTextures(1, &graphicsId);
+		graphicsId = UINT32_MAX;
+		vbo = UINT32_MAX;
+		vao = UINT32_MAX;
 	}
 
 	Cubemap Cubemap::generateCubemap(

@@ -40,7 +40,8 @@ namespace Minecraft
 		extern std::string chunkSavePath = "";
 
 		// Members
-		static Shader shader;
+		static Shader opaqueShader;
+		static Shader transparentShader;
 		static Shader cubemapShader;
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
@@ -83,7 +84,8 @@ namespace Minecraft
 			g_logger_info("World seed: %u", seed);
 			g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
-			shader.compile("assets/shaders/default.glsl");
+			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");
+			transparentShader.compile("assets/shaders/TransparentShader.glsl");
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 			skybox = Cubemap::generateCubemap(
 				"assets/images/sky/dayTop.png",
@@ -212,35 +214,49 @@ namespace Minecraft
 				t2.type = c2.lockedToCamera ? TagType::Player : TagType::None;
 			}
 
-			// Upload shader variables
-			shader.bind();
-			shader.uploadMat4("uProjection", projectionMatrix);
-			shader.uploadMat4("uView", viewMatrix);
+			// Upload Transparent Shader variables
+			transparentShader.bind();
+			transparentShader.uploadMat4("uProjection", projectionMatrix);
+			transparentShader.uploadMat4("uView", viewMatrix);
 			static int sunXRotation = 45;
 			static int sunTicks = 0;
 			sunTicks++;
 			if (sunTicks > 20)
 			{
-				//sunXRotation++;
 				sunTicks = 0;
 			}
 			glm::vec3 directionVector = glm::vec3(0.0f, glm::sin(glm::radians((float)sunXRotation)), glm::cos(glm::radians((float)sunXRotation)));
-			shader.uploadVec3("uSunDirection", directionVector);
-			shader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
+			transparentShader.uploadVec3("uSunDirection", directionVector);
+			transparentShader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
 			sunXRotation = sunXRotation % 360;
 			directionVector.y = sunXRotation > 180 && sunXRotation < 360 ? -directionVector.y : directionVector.y;
 			glActiveTexture(GL_TEXTURE0);
 			worldTexture.bind();
-			shader.uploadInt("uTexture", 0);
+			transparentShader.uploadInt("uTexture", 0);
 
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
-			shader.uploadInt("uTexCoordTexture", 1);
+			transparentShader.uploadInt("uTexCoordTexture", 1);
+
+			// Upload Opaque Shader variables
+			opaqueShader.bind();
+			opaqueShader.uploadMat4("uProjection", projectionMatrix);
+			opaqueShader.uploadMat4("uView", viewMatrix);
+			opaqueShader.uploadVec3("uSunDirection", directionVector);
+			opaqueShader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
+
+			glActiveTexture(GL_TEXTURE0);
+			worldTexture.bind();
+			opaqueShader.uploadInt("uTexture", 0);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_BUFFER, BlockMap::getTextureCoordinatesTextureId());
+			opaqueShader.uploadInt("uTexCoordTexture", 1);
 
 			// Render all the loaded chunks
 			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
 			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
-			ChunkManager::render(playerPosition, playerPositionInChunkCoords, shader, cameraFrustum);
+			ChunkManager::render(playerPosition, playerPositionInChunkCoords, opaqueShader, transparentShader, cameraFrustum);
 
 			// Check chunk radius if needed
 			if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)

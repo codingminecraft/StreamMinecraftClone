@@ -6,7 +6,7 @@ namespace Minecraft
 	{
 		namespace Window
 		{
-			extern glm::vec4 clearColor = "#99ccffff"_hex;
+			extern glm::vec4 clearColor = "#00000000"_hex;
 			extern const char* title = "Minecraft Clone";
 		}
 	}

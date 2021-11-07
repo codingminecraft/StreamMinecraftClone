@@ -25,12 +25,12 @@ namespace Minecraft
 
 		// Internal variables
 		static Framebuffer mainFramebuffer;
-		static Texture screenshotTexture;
 		static bool dumpScreenshot = false;
 		static bool screenshotMustBeSquare = false;
 		static std::string screenshotName = "";
 
 		static Shader mainFramebufferShader;
+		static Shader compositeShader;
 		static uint32 mainRectVao;
 		static float mainRectVerts[24] = {
 			1.0f, 1.0f, 1.0f, 1.0f,     // Top-right pos and uvs
@@ -65,35 +65,49 @@ namespace Minecraft
 			GuiElements::init();
 
 			// Initialize the framebuffers
-			Texture textureSpec;
-			textureSpec.width = window.width;
-			textureSpec.height = window.height;
-			textureSpec.magFilter = FilterMode::Linear;
-			textureSpec.minFilter = FilterMode::Linear;
-			textureSpec.type = TextureType::_2D;
-			textureSpec.format = ByteFormat::RGBA8_UI;
-			textureSpec.wrapS = WrapMode::None;
-			textureSpec.wrapT = WrapMode::None;
+			Texture opaqueTextureSpec;
+			opaqueTextureSpec.type = TextureType::_2D;
+			opaqueTextureSpec.width = window.width;
+			opaqueTextureSpec.height = window.height;
+			opaqueTextureSpec.magFilter = FilterMode::Linear;
+			opaqueTextureSpec.minFilter = FilterMode::Linear;
+			opaqueTextureSpec.wrapS = WrapMode::None;
+			opaqueTextureSpec.wrapT = WrapMode::None;
+			opaqueTextureSpec.format = ByteFormat::RGBA_16F;
+
+			Texture accumulationTextureSpec;
+			accumulationTextureSpec.type = TextureType::_2D;
+			accumulationTextureSpec.width = window.width;
+			accumulationTextureSpec.height = window.height;
+			accumulationTextureSpec.magFilter = FilterMode::Linear;
+			accumulationTextureSpec.minFilter = FilterMode::Linear;
+			accumulationTextureSpec.wrapS = WrapMode::None;
+			accumulationTextureSpec.wrapT = WrapMode::None;
+			accumulationTextureSpec.format = ByteFormat::RGBA_16F;
+
+			Texture revealTextureSpec;
+			revealTextureSpec.type = TextureType::_2D;
+			revealTextureSpec.width = window.width;
+			revealTextureSpec.height = window.height;
+			revealTextureSpec.magFilter = FilterMode::Linear;
+			revealTextureSpec.minFilter = FilterMode::Linear;
+			revealTextureSpec.wrapS = WrapMode::None;
+			revealTextureSpec.wrapT = WrapMode::None;
+			revealTextureSpec.format = ByteFormat::R8_F;
 
 			mainFramebuffer = FramebufferBuilder(window.width, window.height)
-				.addColorAttachment(textureSpec)
+				.addColorAttachment(opaqueTextureSpec)
+				.addColorAttachment(accumulationTextureSpec)
+				.addColorAttachment(revealTextureSpec)
 				.includeDepthStencilBuffer()
 				.generate();
 			mainFramebuffer.bind();
 			glViewport(0, 0, window.width, window.height);
 			mainFramebuffer.unbind();
 
-			screenshotTexture = TextureBuilder()
-				.setWidth(window.width)
-				.setHeight(window.height)
-				.setMagFilter(FilterMode::Linear)
-				.setMinFilter(FilterMode::Linear)
-				.setTextureType(TextureType::_2D)
-				.setFormat(ByteFormat::RGBA8_UI)
-				.generate();
-
 			// Initialize rendering state for blitting the main framebuffer to the screen
-			mainFramebufferShader.compile("assets/shaders/mainFramebuffer.glsl");
+			mainFramebufferShader.compile("assets/shaders/MainFramebuffer.glsl");
+			compositeShader.compile("assets/shaders/CompositeShader.glsl");
 
 			glGenVertexArrays(1, &mainRectVao);
 			glBindVertexArray(mainRectVao);
@@ -161,26 +175,51 @@ namespace Minecraft
 					mainFramebuffer.regenerate();
 					mainFramebuffer.bind();
 					glViewport(0, 0, getWindow().width, getWindow().height);
-
-					screenshotTexture.destroy();
-					screenshotTexture.width = getWindow().width;
-					screenshotTexture.height = getWindow().height;
-					screenshotTexture = TextureBuilder(screenshotTexture)
-						.generate();
 				}
 
 				mainFramebuffer.bind();
+				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f };
+				glClearBufferfv(GL_COLOR, 1, &zeroFillerVec[0]);
+				const float oneFillerVec[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				glClearBufferfv(GL_COLOR, 2, &oneFillerVec[0]);
 				Scene::update(deltaTime);
 
-				// Unbind all framebuffers
+				// Set the render state for compositing our transparent and opaque buffers
+				glDepthFunc(GL_ALWAYS);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				// Bind the opaque framebuffer and composite
+				compositeShader.bind();
+
+				// Draw the screen quad
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
+				compositeShader.uploadInt("accumulationTexture", 0);
+				compositeShader.uploadBool("revealTexture", 1);
+
+				glBindVertexArray(mainRectVao);
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+
+				// Unbind all framebuffers and render the composited image
+				glDisable(GL_DEPTH_TEST);
+				glDepthMask(GL_TRUE);
+				glDisable(GL_BLEND);
+
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
-				glClear(GL_DEPTH_BUFFER_BIT);
+				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
 				mainFramebufferShader.bind();
 				glBindTextureUnit(0, mainFramebuffer.getColorAttachment(0).graphicsId);
 				mainFramebufferShader.uploadInt("uMainTexture", 0);
 
 				glBindVertexArray(mainRectVao);
 				glDrawArrays(GL_TRIANGLES, 0, 6);
+
+				glEnable(GL_DEPTH_TEST);
 
 				window.swapBuffers();
 				window.pollInput();

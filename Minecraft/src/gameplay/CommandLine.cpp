@@ -149,7 +149,7 @@ namespace Minecraft
 				Application::takeScreenshot();
 				break;
 			case CommandLineType::GenerateCubemap:
-				Application::getWindow().setSize(1280.0f, 1280.0f);
+				Application::getWindow().setSize(1920.0f, 1920.0f);
 				PlayerController::generateCubemap = true;
 				break;
 			case CommandLineType::DebugLight:
