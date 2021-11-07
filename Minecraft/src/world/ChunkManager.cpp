@@ -917,6 +917,8 @@ namespace Minecraft
 
 				glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
 				glDrawArrays(GL_TRIANGLES, 0, 6);
+
+				glDepthFunc(GL_LESS);
 			}
 		}
 
@@ -1584,6 +1586,7 @@ namespace Minecraft
 						const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
 						bool currentBlockIsBlendable = blockFormat.isBlendable;
 						bool currentBlockIsTransparent = blockFormat.isTransparent;
+						bool currentBlockIsWater = blockId == 19;
 
 						// TODO: SIMDify this section
 						static glm::ivec3 verts[8];
@@ -1653,7 +1656,7 @@ namespace Minecraft
 						// Only add the faces that are not culled by other blocks
 						for (int i = 0; i < 6; i++)
 						{
-							if (blocks[i].id && (blockFormats[i]->isTransparent && !currentBlockIsTransparent) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsTransparent))
+							if (blocks[i].id && (blockFormats[i]->isTransparent && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
 							{
 								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsBlendable);
 								SubChunk* currentSubChunk = *currentSubChunkPtr;
