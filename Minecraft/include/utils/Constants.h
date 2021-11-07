@@ -71,6 +71,14 @@ namespace Minecraft
 			Right
 		};
 	}
+
+	namespace Vertices
+	{
+		extern uint32 fullScreenSpaceRectangleVao;
+
+		void init();
+		void free();
+	}
 }
 
 #endif

@@ -11,6 +11,7 @@
 #include "physics/Physics.h"
 #include "input/Input.h"
 #include "input/KeyBindings.h"
+#include "utils/Constants.h"
 #include "utils/Settings.h"
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
@@ -29,18 +30,7 @@ namespace Minecraft
 		static bool screenshotMustBeSquare = false;
 		static std::string screenshotName = "";
 
-		static Shader mainFramebufferShader;
-		static Shader compositeShader;
-		static uint32 mainRectVao;
-		static float mainRectVerts[24] = {
-			1.0f, 1.0f, 1.0f, 1.0f,     // Top-right pos and uvs
-			-1.0f, 1.0f, 0.0f, 1.0f,   // Top-left pos and uvs
-			1.0f, -1.0f, 1.0f, 0.0f,   // Bottom-right pos and uvs
-
-			1.0f, -1.0f, 1.0f, 0.0f,   // Bottom-right pos and uvs
-			-1.0f, 1.0f, 0.0f, 1.0f,   // Top-left pos and uvs
-			-1.0f, -1.0f, 0.0f, 0.0f  // Bottom-left pos and uvs
-		};
+		static Shader screenShader;
 
 		void init()
 		{
@@ -63,6 +53,9 @@ namespace Minecraft
 			KeyBindings::init();
 			Gui::init();
 			GuiElements::init();
+
+			// Allocate some GPU memory for basic geometry VAOs
+			Vertices::init();
 
 			// Initialize the framebuffers
 			Texture opaqueTextureSpec;
@@ -106,23 +99,7 @@ namespace Minecraft
 			mainFramebuffer.unbind();
 
 			// Initialize rendering state for blitting the main framebuffer to the screen
-			mainFramebufferShader.compile("assets/shaders/MainFramebuffer.glsl");
-			compositeShader.compile("assets/shaders/CompositeShader.glsl");
-
-			glGenVertexArrays(1, &mainRectVao);
-			glBindVertexArray(mainRectVao);
-
-			uint32 vbo;
-			glGenBuffers(1, &vbo);
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-			glBufferData(GL_ARRAY_BUFFER, sizeof(mainRectVerts), mainRectVerts, GL_STATIC_DRAW);
-
-			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)0);
-			glEnableVertexAttribArray(0);
-
-			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 4, (void*)(sizeof(float) * 2));
-			glEnableVertexAttribArray(1);
+			screenShader.compile("assets/shaders/MainFramebuffer.glsl");
 		}
 
 		void run()
@@ -178,30 +155,9 @@ namespace Minecraft
 				}
 
 				mainFramebuffer.bind();
-				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f };
-				glClearBufferfv(GL_COLOR, 1, &zeroFillerVec[0]);
-				const float oneFillerVec[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-				glClearBufferfv(GL_COLOR, 2, &oneFillerVec[0]);
+				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
+				glDrawBuffers(3, mainDrawBuffer);
 				Scene::update(deltaTime);
-
-				// Set the render state for compositing our transparent and opaque buffers
-				glDepthFunc(GL_ALWAYS);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-				// Bind the opaque framebuffer and composite
-				compositeShader.bind();
-
-				// Draw the screen quad
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
-				compositeShader.uploadInt("accumulationTexture", 0);
-				compositeShader.uploadBool("revealTexture", 1);
-
-				glBindVertexArray(mainRectVao);
-				glDrawArrays(GL_TRIANGLES, 0, 6);
 
 				// Unbind all framebuffers and render the composited image
 				glDisable(GL_DEPTH_TEST);
@@ -212,11 +168,12 @@ namespace Minecraft
 				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-				mainFramebufferShader.bind();
-				glBindTextureUnit(0, mainFramebuffer.getColorAttachment(0).graphicsId);
-				mainFramebufferShader.uploadInt("uMainTexture", 0);
+				screenShader.bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(0).graphicsId);
+				screenShader.uploadInt("uMainTexture", 0);
 
-				glBindVertexArray(mainRectVao);
+				glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
 				glDrawArrays(GL_TRIANGLES, 0, 6);
 
 				glEnable(GL_DEPTH_TEST);
@@ -271,6 +228,7 @@ namespace Minecraft
 		void free()
 		{
 			// Free all resources
+			Vertices::free();
 			GuiElements::free();
 			getRegistry().free();
 			Window& window = getWindow();
@@ -288,6 +246,11 @@ namespace Minecraft
 		{
 			static Window* window = Window::create(Settings::Window::title);
 			return *window;
+		}
+
+		Framebuffer& getMainFramebuffer()
+		{
+			return mainFramebuffer;
 		}
 
 		void takeScreenshot(const char* filename, bool mustBeSquare)

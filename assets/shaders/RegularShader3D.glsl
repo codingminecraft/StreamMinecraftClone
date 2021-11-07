@@ -23,7 +23,7 @@ void main()
 #type fragment
 #version 430 core
 #define numTextures 16
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
 
 flat in uint fTexId;
 in vec2 fTexCoord;

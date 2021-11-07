@@ -11,6 +11,9 @@
 #include "renderer/Shader.h"
 #include "renderer/Renderer.h"
 #include "renderer/Frustum.h"
+#include "renderer/Framebuffer.h"
+#include "renderer/Texture.h"
+#include "core/Application.h"
 
 namespace Minecraft
 {
@@ -386,7 +389,8 @@ namespace Minecraft
 		static uint32 globalVao;
 		// TODO: Make this better
 		static uint32 solidDrawCommandVbo;
-		static uint32 transparentDrawCommandVbo;
+		static uint32 blendableDrawCommandVbo;
+		static Shader compositeShader;
 
 		// Singletons
 		static ChunkWorker& chunkWorker()
@@ -414,7 +418,7 @@ namespace Minecraft
 		}
 
 		// TODO: Combine these two buffers into one, since we're wasting RAM
-		static CommandBufferContainer& transparentCommandBuffer()
+		static CommandBufferContainer& blendableCommandBuffer()
 		{
 			static CommandBufferContainer instance(subChunks().size(), true);
 			return instance;
@@ -430,6 +434,8 @@ namespace Minecraft
 			chunkWorker();
 			blockPool();
 
+			compositeShader.compile("assets/shaders/CompositeShader.glsl");
+
 			// Initialize the free list
 			for (int i = 0; i < (int)blockPool().size(); i++)
 			{
@@ -442,9 +448,9 @@ namespace Minecraft
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
 			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
 
-			transparentCommandBuffer().init();
-			glCreateBuffers(1, &transparentDrawCommandVbo);
-			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, transparentDrawCommandVbo);
+			blendableCommandBuffer().init();
+			glCreateBuffers(1, &blendableDrawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
 			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
@@ -512,7 +518,7 @@ namespace Minecraft
 		{
 			chunkWorker().free();
 			solidCommandBuffer().free();
-			transparentCommandBuffer().free();
+			blendableCommandBuffer().free();
 		}
 
 		void serialize()
@@ -802,9 +808,9 @@ namespace Minecraft
 								drawCommand.instanceCount = 1;
 								drawCommand.count = subChunks()[i]->numVertsUsed;
 								drawCommand.first = subChunks()[i]->first;
-								if (subChunks()[i]->isTransparent)
+								if (subChunks()[i]->isBlendable)
 								{
-									transparentCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+									blendableCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 								}
 								else
 								{
@@ -842,14 +848,23 @@ namespace Minecraft
 				DebugStats::numDrawCalls += solidCommandBuffer().getNumCommands();
 
 				glBindVertexArray(globalVao);
+				opaqueShader.bind();
 				opaqueShader.uploadVec3("uPlayerPosition", playerPosition);
 				opaqueShader.uploadInt("uChunkRadius", World::ChunkRadius);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer().getNumCommands(), sizeof(DrawCommand));
 				solidCommandBuffer().softReset();
 			}
 
-			if (transparentCommandBuffer().getNumCommands() > 0)
+			if (blendableCommandBuffer().getNumCommands() > 0)
 			{
+				const GLenum blendableDrawBuffer[3] = { GL_NONE, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+				glDrawBuffers(3, blendableDrawBuffer);
+
+				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f };
+				glClearBufferfv(GL_COLOR, 1, &zeroFillerVec[0]);
+				const float oneFillerVec[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+				glClearBufferfv(GL_COLOR, 2, &oneFillerVec[0]);
+
 				// Render transparent geometry
 				// Disable depth writes so transparent objects don't interfere with solid passes depth values
 				glDepthMask(GL_FALSE);
@@ -861,24 +876,47 @@ namespace Minecraft
 				// We shouldn't need to even sort this...
 				//transparentCommandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getChunkPosBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getChunkPosBuffer());
 				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getBiomeBuffer());
-				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, transparentDrawCommandVbo);
-				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * transparentCommandBuffer().getNumCommands(), transparentCommandBuffer().getCommandBuffer());
-				DebugStats::numDrawCalls += transparentCommandBuffer().getNumCommands();
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getBiomeBuffer());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getCommandBuffer());
+				DebugStats::numDrawCalls += blendableCommandBuffer().getNumCommands();
 
-				glBindVertexArray(globalVao);
 				transparentShader.bind();
 				transparentShader.uploadVec3("uPlayerPosition", playerPosition);
 				transparentShader.uploadInt("uChunkRadius", World::ChunkRadius);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, transparentCommandBuffer().getNumCommands(), sizeof(DrawCommand));
-				transparentCommandBuffer().softReset();
+
+				glBindVertexArray(globalVao);
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBuffer().getNumCommands(), sizeof(DrawCommand));
+				blendableCommandBuffer().softReset();
 
 				// Reset render state
 				glEnable(GL_CULL_FACE);
 				glDepthMask(GL_TRUE);
 				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
+				glDrawBuffers(3, mainDrawBuffer);
+
+				// Blend the opaque and blended stuff together now...
+				// Set the render state for compositing our transparent and opaque buffers
+				glDepthFunc(GL_ALWAYS);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				// Draw the screen quad
+				Framebuffer& mainFramebuffer = Application::getMainFramebuffer();
+				compositeShader.bind();
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
+				compositeShader.uploadInt("accumulationTexture", 0);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
+				compositeShader.uploadInt("revealTexture", 1);
+
+				glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
+				glDrawArrays(GL_TRIANGLES, 0, 6);
 			}
 		}
 
@@ -1486,7 +1524,7 @@ namespace Minecraft
 			return removeLocalBlock(localPosition, chunkCoordinates, chunk);
 		}
 
-		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates, bool isTransparentSubChunk)
+		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates, bool isBlendableSubChunk)
 		{
 			bool needsNewChunk = currentSubChunk == nullptr
 				|| currentSubChunk->subChunkLevel != currentLevel
@@ -1508,7 +1546,7 @@ namespace Minecraft
 					ret->state = SubChunkState::TesselatingVertices;
 					ret->subChunkLevel = currentLevel;
 					ret->chunkCoordinates = chunkCoordinates;
-					ret->isTransparent = isTransparentSubChunk;
+					ret->isBlendable = isBlendableSubChunk;
 				}
 				else
 				{
@@ -1525,7 +1563,7 @@ namespace Minecraft
 			const int worldChunkZ = chunkCoordinates.y * 16;
 
 			SubChunk* solidSubChunk = nullptr;
-			SubChunk* transparentSubChunk = nullptr;
+			SubChunk* blendableSubChunk = nullptr;
 			for (int y = 0; y < World::ChunkHeight; y++)
 			{
 				int currentLevel = y / 16;
@@ -1544,6 +1582,7 @@ namespace Minecraft
 						}
 
 						const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
+						bool currentBlockIsBlendable = blockFormat.isBlendable;
 						bool currentBlockIsTransparent = blockFormat.isTransparent;
 
 						// TODO: SIMDify this section
@@ -1606,9 +1645,9 @@ namespace Minecraft
 						};
 
 						SubChunk** currentSubChunkPtr = &solidSubChunk;
-						if (currentBlockIsTransparent)
+						if (currentBlockIsBlendable)
 						{
-							currentSubChunkPtr = &transparentSubChunk;
+							currentSubChunkPtr = &blendableSubChunk;
 						}
 
 						// Only add the faces that are not culled by other blocks
@@ -1616,7 +1655,7 @@ namespace Minecraft
 						{
 							if (blocks[i].id && (blockFormats[i]->isTransparent && !currentBlockIsTransparent) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsTransparent))
 							{
-								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsTransparent);
+								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsBlendable);
 								SubChunk* currentSubChunk = *currentSubChunkPtr;
 								if (!currentSubChunk)
 								{
@@ -1650,9 +1689,9 @@ namespace Minecraft
 				solidSubChunk->state = SubChunkState::UploadVerticesToGpu;
 			}
 
-			if (transparentSubChunk && transparentSubChunk->numVertsUsed > 0)
+			if (blendableSubChunk && blendableSubChunk->numVertsUsed > 0)
 			{
-				transparentSubChunk->state = SubChunkState::UploadVerticesToGpu;
+				blendableSubChunk->state = SubChunkState::UploadVerticesToGpu;
 			}
 
 			for (int i = 0; i < (int)(*subChunks).size(); i++)

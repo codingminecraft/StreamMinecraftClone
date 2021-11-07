@@ -134,6 +134,7 @@ blue_stained_glass:
   top: blue_stained_glass
   isSolid: true
   isTransparent: true
+  isBlendable: true
 water:
   id: 19
   side: water
@@ -141,3 +142,4 @@ water:
   top: water
   isSolid: false
   isTransparent: true
+  isBlendable: true

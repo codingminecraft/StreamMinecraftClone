@@ -5,6 +5,7 @@
 namespace Minecraft
 {
 	struct Window;
+	struct Framebuffer;
 
 	namespace Application
 	{
@@ -15,6 +16,8 @@ namespace Minecraft
 		void takeScreenshot(const char* filename = "", bool mustBeSquare = false);
 
 		Window& getWindow();
+
+		Framebuffer& getMainFramebuffer();
 	}
 }
 

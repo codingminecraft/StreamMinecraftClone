@@ -145,6 +145,13 @@ void main()
 	float diff = max(dot(normal, lightDir), 0.0);
 
 	vec4 objectColor = texture(uTexture, fTexCoords);
+
+	// Is this very bad for performance??
+	if (objectColor.a < 0.3) 
+	{
+		discard;
+	}
+
 	float baseLightColor = .03;
 	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);

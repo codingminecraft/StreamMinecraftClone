@@ -103,6 +103,7 @@ namespace Minecraft
 				false,
 				false,
 				false,
+				false,
 				0
 				});
 
@@ -164,6 +165,7 @@ namespace Minecraft
 				bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
 				bool colorSideByBiome = block.second["colorSideByBiome"].IsDefined() ? block.second["colorSideByBiome"].as<bool>() : false;
 				bool colorBottomByBiome = block.second["colorBottomByBiome"].IsDefined() ? block.second["colorBottomByBiome"].as<bool>() : false;
+				bool isBlendable = block.second["isBlendable"].IsDefined() ? block.second["isBlendable"].as<bool>() : false;
 				bool isLightSource = block.second["isLightSource"].IsDefined() ? block.second["isLightSource"].as<bool>() : false;
 				int lightLevel = block.second["lightLevel"].IsDefined() ? block.second["lightLevel"].as<int>() : 0;
 
@@ -195,7 +197,7 @@ namespace Minecraft
 
 				blockFormats.emplace_back(BlockFormat{
 					sideTexture, topTexture, bottomTexture, itemPictureName, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
-					isLightSource, lightLevel
+					isBlendable, isLightSource, lightLevel
 					});
 			}
 		}

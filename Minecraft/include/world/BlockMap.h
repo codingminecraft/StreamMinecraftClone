@@ -50,6 +50,7 @@ namespace Minecraft
 		bool colorTopByBiome;
 		bool colorSideByBiome;
 		bool colorBottomByBiome;
+		bool isBlendable;
 		bool isLightSource;
 		int lightLevel;
 		// TODO: Add bounding box definition here. That way we can add custom bounding boxes for different blocks

@@ -37,7 +37,7 @@ namespace Minecraft
 		uint32 drawCommandIndex;
 		uint8 subChunkLevel;
 		glm::ivec2 chunkCoordinates;
-		std::atomic<bool> isTransparent;
+		std::atomic<bool> isBlendable;
 		std::atomic<uint32> numVertsUsed;
 		std::atomic<SubChunkState> state;
 	};
