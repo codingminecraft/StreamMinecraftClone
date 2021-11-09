@@ -49,6 +49,7 @@ namespace Minecraft
 				.setMagFilter(FilterMode::Nearest)
 				.setMinFilter(FilterMode::Nearest)
 				.setFilepath(packedTexturesFilepath)
+				//.generateMipmap()
 				.generateTextureObject()
 				.bindTextureObject()
 				.generate(true);

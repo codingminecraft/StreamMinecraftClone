@@ -60,8 +60,8 @@ namespace Minecraft
 
 				// Save the current x and current y and width and height and filename
 				textureLocations.push_back({
-					(float)currentX + 0.5f, (float)currentY + 0.5f,
-					(float)width - 1.0f, (float)height - 1.0f,
+					(float)(currentX), (float)(currentY),
+					(float)(width), (float)(height),
 					image.path().stem().string()
 				});
 
@@ -95,19 +95,19 @@ namespace Minecraft
 				YAML::Node uvs;
 				YamlExtended::writeVec2(
 					"0",
-					glm::vec2{ (location.x + location.width) / pngOutputWidth, location.y / pngOutputHeight },
+					glm::vec2{ (location.x + location.width) / (float)pngOutputWidth, location.y / (float)pngOutputHeight },
 					uvs["UVS"]);
 				YamlExtended::writeVec2(
 					"1",
-					glm::vec2{ (location.x + location.width) / pngOutputWidth, (location.y + location.height) / pngOutputHeight },
+					glm::vec2{ (location.x + location.width) / (float)pngOutputWidth, (location.y + location.height) / (float)pngOutputHeight },
 					uvs["UVS"]);
 				YamlExtended::writeVec2(
 					"2",
-					glm::vec2{ location.x / (float)pngOutputWidth, (location.y + location.height) / pngOutputHeight },
+					glm::vec2{ location.x / (float)pngOutputWidth, (location.y + location.height) / (float)pngOutputHeight },
 					uvs["UVS"]);
 				YamlExtended::writeVec2(
 					"3", 
-					glm::vec2{ location.x / pngOutputWidth, location.y / pngOutputHeight },
+					glm::vec2{ location.x / (float)pngOutputWidth, location.y / (float)pngOutputHeight },
 					uvs["UVS"]);
 
 				textureFormat[yamlKeyName][location.name] = uvs;

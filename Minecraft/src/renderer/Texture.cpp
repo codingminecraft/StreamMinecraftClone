@@ -26,6 +26,7 @@ namespace Minecraft
 		texture.swizzleFormat[1] = ColorChannel::Green;
 		texture.swizzleFormat[2] = ColorChannel::Blue;
 		texture.swizzleFormat[3] = ColorChannel::Alpha;
+		texture.generateMipmap = false;
 	}
 
 	TextureBuilder::TextureBuilder(const Texture& texture)
@@ -106,6 +107,12 @@ namespace Minecraft
 	TextureBuilder& TextureBuilder::setTextureObject(uint32 textureObjectId)
 	{
 		texture.graphicsId = textureObjectId;
+		return *this;
+	}
+
+	TextureBuilder& TextureBuilder::generateMipmap()
+	{
+		texture.generateMipmap = true;
 		return *this;
 	}
 
@@ -206,6 +213,14 @@ namespace Minecraft
 				return GL_LINEAR;
 			case FilterMode::Nearest:
 				return GL_NEAREST;
+			case FilterMode::LinearMipmapLinear:
+				return GL_LINEAR_MIPMAP_LINEAR;
+			case FilterMode::NearestMipmapNearest:
+				return GL_NEAREST_MIPMAP_NEAREST;
+			case FilterMode::LinearMipmapNearest:
+				return GL_LINEAR_MIPMAP_NEAREST;
+			case FilterMode::NearestMipmapLinear:
+				return GL_NEAREST_MIPMAP_LINEAR;
 			case FilterMode::None:
 				return GL_NONE;
 			default:
@@ -447,6 +462,11 @@ namespace Minecraft
 				g_logger_error("Invalid texture type '%d'.", texture.type);
 			}
 
+			if (texture.generateMipmap)
+			{
+				glGenerateMipmap(textureType);
+			}
+
 			stbi_image_free(pixels);
 		}
 
@@ -510,7 +530,6 @@ namespace Minecraft
 			glTexParameteri(type, GL_TEXTURE_MAG_FILTER, TextureUtil::toGl(texture.magFilter));
 		}
 
-		
 		//GLint swizzleMask[4] = {
 		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[0]),
 		//	TextureUtil::toGlSwizzle(texture.swizzleFormat[1]),

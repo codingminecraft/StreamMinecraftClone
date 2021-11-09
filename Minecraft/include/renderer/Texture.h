@@ -8,6 +8,10 @@ namespace Minecraft
 	{
 		None = 0,
 		Linear,
+		LinearMipmapLinear,
+		NearestMipmapNearest,
+		LinearMipmapNearest,
+		NearestMipmapLinear,
 		Nearest
 	};
 
@@ -75,6 +79,7 @@ namespace Minecraft
 		WrapMode wrapT;
 		ByteFormat format;
 		ColorChannel swizzleFormat[4];
+		bool generateMipmap;
 
 		std::filesystem::path path;
 
@@ -105,6 +110,7 @@ namespace Minecraft
 		TextureBuilder& setTextureType(TextureType type);
 		TextureBuilder& generateTextureObject();
 		TextureBuilder& setTextureObject(uint32 textureObjectId);
+		TextureBuilder& generateMipmap();
 		TextureBuilder& bindTextureObject();
 
 		Texture generate(bool generateFromFilepath = false);
