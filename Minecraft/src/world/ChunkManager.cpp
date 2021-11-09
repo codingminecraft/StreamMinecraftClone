@@ -1144,6 +1144,7 @@ namespace Minecraft
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
 		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, int lightLevel, const glm::ivec3& lightColor);
 		static void calculateNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck);
+		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources);
 
 		void info()
 		{
@@ -1462,6 +1463,25 @@ namespace Minecraft
 				//		updateBlockLightLevel(chunk, blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
 				//	}
 				//}
+			}
+			else if (removedLightSource)
+			{
+				std::queue<glm::ivec3> blocksToZero = {};
+				std::queue<glm::ivec3> blocksToUpdate = {};
+				robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
+				blocksToZero.push({ localX, localY, localZ });
+				int arrayExpansion = to1DArray(localX, localY, localZ);
+				// Zero out
+				while (!blocksToZero.empty())
+				{
+					removeNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToZero, blocksToUpdate);
+				}
+
+				// Flood fill from all the light sources that were found
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
 			}
 			else
 			{
@@ -1846,12 +1866,11 @@ namespace Minecraft
 			}
 
 			int index = to1DArray(x, y, z);
-			chunk->data[index] = BlockMap::AIR_BLOCK;
+			chunk->data[index].id = BlockMap::AIR_BLOCK.id;
 			chunk->data[index].lightColor =
 				((7 << 0) & 0x7) | // R
 				((7 << 3) & 0x38) | // G
 				((7 << 6) & 0x1C0); // B
-			chunk->data[index].lightLevel = 0;
 
 			return true;
 		}
@@ -1954,6 +1973,73 @@ namespace Minecraft
 							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].lightLevel = myLightLevel - 1;
 							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 						}
+					}
+				}
+			}
+		}
+
+		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources)
+		{
+			glm::ivec3 blockToUpdate = blocksToCheck.front();
+			blocksToCheck.pop();
+
+			if (!originalChunk)
+			{
+				g_logger_warning("Encountered weird null chunk while updating block lighting.");
+				return;
+			}
+
+			int blockToUpdateX = blockToUpdate.x;
+			int blockToUpdateY = blockToUpdate.y;
+			int blockToUpdateZ = blockToUpdate.z;
+			Chunk* blockToUpdateChunk = originalChunk;
+			if (blockToUpdateX >= World::ChunkDepth || blockToUpdateX < 0 || blockToUpdateZ >= World::ChunkWidth || blockToUpdateZ < 0)
+			{
+				if (!checkPositionInBounds(&blockToUpdateChunk, &blockToUpdateX, &blockToUpdateZ))
+				{
+					g_logger_warning("Position totally out of bounds...");
+					return;
+				}
+			}
+
+			if (blockToUpdateY >= World::ChunkHeight || blockToUpdateY < 0)
+			{
+				return;
+			}
+
+			int arrayExpansion = to1DArray(blockToUpdateX, blockToUpdateY, blockToUpdateZ);
+			if (!blockToUpdateChunk->data[arrayExpansion].isTransparent() &&
+				!blockToUpdateChunk->data[arrayExpansion].isLightSource())
+			{
+				return;
+			}
+
+			int myOldLightLevel = blockToUpdateChunk->data[arrayExpansion].calculatedLightLevel();
+			blockToUpdateChunk->data[arrayExpansion].lightLevel = 0;
+			for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
+			{
+				const glm::ivec3& iNormal = INormals3::CardinalDirections[i];
+				const glm::ivec3 pos = glm::ivec3(blockToUpdateX + iNormal.x, blockToUpdateY + iNormal.y, blockToUpdateZ + iNormal.z);
+				Block neighbor = getBlockInternal(blockToUpdateChunk, pos.x, pos.y, pos.z);
+				int neighborLight = neighbor.calculatedLightLevel();
+				if (neighborLight != 0 && neighborLight < myOldLightLevel && neighbor.isTransparent())
+				{
+					Chunk* neighborChunk = blockToUpdateChunk;
+					int neighborLocalX = pos.x;
+					int neighborLocalZ = pos.z;
+					if (checkPositionInBounds(&neighborChunk, &neighborLocalX, &neighborLocalZ))
+					{
+						blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
+					}
+				}
+				else if (neighborLight > myOldLightLevel)
+				{
+					Chunk* neighborChunk = blockToUpdateChunk;
+					int neighborLocalX = pos.x;
+					int neighborLocalZ = pos.z;
+					if (checkPositionInBounds(&neighborChunk, &neighborLocalX, &neighborLocalZ))
+					{
+						lightSources.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 					}
 				}
 			}
