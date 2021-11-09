@@ -152,7 +152,7 @@ void main()
 	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
 
-	vec4 fragColor = (lightColor * vec4(fColor, 1.0) + diff) * objectColor;
+	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor;
 	
 	// Weight function
 	float weight = clamp(pow(min(1.0, fragColor.a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);

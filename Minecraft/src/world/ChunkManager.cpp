@@ -44,7 +44,7 @@ namespace Minecraft
 		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
-		void calculateLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates);
+		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords);
 		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource);
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Chunk* blockData);
@@ -73,12 +73,17 @@ namespace Minecraft
 				return (uint8)a.type > (uint8)b.type;
 			}
 
-			// They are the same type of command, the chunk closer to the player has higher priority
-			glm::ivec2 tmpA = a.playerPosChunkCoords - a.chunk->chunkCoords;
-			int32 aDistanceSquared = (tmpA.x * tmpA.x) + (tmpA.y * tmpA.y);
-			glm::ivec2 tmpB = b.playerPosChunkCoords - b.chunk->chunkCoords;
-			int32 bDistanceSquared = (tmpB.x * tmpB.x) + (tmpB.y * tmpB.y);
-			return aDistanceSquared > bDistanceSquared;
+			if (a.type != CommandType::CalculateLighting && a.type != CommandType::GenerateDecorations)
+			{
+				// They are the same type of command, the chunk closer to the player has higher priority
+				glm::ivec2 tmpA = a.playerPosChunkCoords - a.chunk->chunkCoords;
+				int32 aDistanceSquared = (tmpA.x * tmpA.x) + (tmpA.y * tmpA.y);
+				glm::ivec2 tmpB = b.playerPosChunkCoords - b.chunk->chunkCoords;
+				int32 bDistanceSquared = (tmpB.x * tmpB.x) + (tmpB.y * tmpB.y);
+				return aDistanceSquared > bDistanceSquared;
+			}
+
+			return false;
 		}
 	};
 
@@ -166,6 +171,7 @@ namespace Minecraft
 								ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat, noiseGenerators[0]);
 								command.chunk->needsToGenerateDecorations = true;
 							}
+							command.chunk->needsToCalculateLighting = true;
 						}
 						break;
 						case CommandType::GenerateDecorations:
@@ -175,7 +181,7 @@ namespace Minecraft
 						break;
 						case CommandType::CalculateLighting:
 						{
-							ChunkPrivate::calculateLighting(command.chunk, command.chunk->chunkCoords);
+							ChunkPrivate::calculateLighting(command.playerPosChunkCoords);
 						}
 						break;
 						case CommandType::RecalculateLighting:
@@ -586,6 +592,14 @@ namespace Minecraft
 					g_logger_warning("No free pools for block data.");
 				}
 			}
+		}
+
+		void queueCalculateLighting(const glm::ivec2& lastPlayerPosInChunkCoords)
+		{
+			FillChunkCommand cmd;
+			cmd.type = CommandType::CalculateLighting;
+			cmd.playerPosChunkCoords = lastPlayerPosInChunkCoords;
+			chunkWorker().queueCommand(cmd);
 		}
 
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource)
@@ -1005,6 +1019,7 @@ namespace Minecraft
 			}
 
 			ChunkManager::queueGenerateDecorations(playerPosChunkCoords);
+			ChunkManager::queueCalculateLighting(playerPosChunkCoords);
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
 
 			ChunkManager::patchChunkPointers();
@@ -1128,7 +1143,7 @@ namespace Minecraft
 		static bool removeBlockInternal(Chunk* chunk, int x, int y, int z);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
 		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, int lightLevel, const glm::ivec3& lightColor);
-		static void updateBlockLightLevel(Chunk* chunk, int localX, int localY, int localZ, const glm::ivec2& chunkCoordinates, bool zeroOut, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate = robin_hood::unordered_flat_set<Chunk*>());
+		static void calculateNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck);
 
 		void info()
 		{
@@ -1303,94 +1318,44 @@ namespace Minecraft
 			}
 		}
 
-		void calculateLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates)
+		static void calculateChunkLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates);
+		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords)
+		{
+			for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
+			{
+				for (int chunkX = lastPlayerLoadPosChunkCoords.x - World::ChunkRadius; chunkX <= lastPlayerLoadPosChunkCoords.x + World::ChunkRadius; chunkX++)
+				{
+					const int worldChunkX = chunkX * 16;
+					const int worldChunkZ = chunkZ * 16;
+
+					if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+					{
+						// Skip over all chunks in range radius - 1
+						continue;
+					}
+
+					Chunk* chunk = ChunkManager::getChunk(glm::vec3(worldChunkX, 128.0f, worldChunkZ));
+					if (!chunk)
+					{
+						g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
+						continue;
+					}
+
+					if (!chunk->needsToCalculateLighting)
+					{
+						continue;
+					}
+					chunk->needsToCalculateLighting = false;
+
+					calculateChunkLighting(chunk, glm::ivec2(chunkX, chunkZ));
+				}
+			}
+		}
+
+		static void calculateChunkLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates)
 		{
 			// First set all the sky blocks and reset any non-sky blocks to 0 unless they are a source
-			for (int y = World::ChunkHeight - 1; y >= 0; y--)
-			{
-				for (int x = 0; x < World::ChunkDepth; x++)
-				{
-					for (int z = 0; z < World::ChunkWidth; z++)
-					{
-						int arrayExpansion = to1DArray(x, y, z);
-						if (chunk->data[arrayExpansion] != BlockMap::AIR_BLOCK)
-						{
-							continue;
-						}
-
-						// If the 32 bit is set in the block above, this is a sky block
-						const Block& topNeighbor = y + 1 >= World::ChunkHeight ? BlockMap::NULL_BLOCK : chunk->data[to1DArray(x, y + 1, z)];
-						int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
-
-						bool isSkyblock = (topNeighbor.lightLevel & 32) || (y == World::ChunkHeight - 1);
-						if (isSkyblock)
-						{
-							chunk->data[arrayExpansion].lightLevel = 31 | 32;
-						}
-						else
-						{
-							chunk->data[arrayExpansion].lightLevel = 0;
-						}
-
-						chunk->data[arrayExpansion].lightColor =
-							((7 << 0) & 0x7) |  // R
-							((7 << 3) & 0x38) | // G
-							((7 << 6) & 0x1C0); // B
-					}
-				}
-			}
-
-			// Then set any blocks that are easy to calculate
-			for (int y = 0; y < World::ChunkHeight; y++)
-			{
-				for (int x = 0; x < World::ChunkDepth; x++)
-				{
-					for (int z = 0; z < World::ChunkWidth; z++)
-					{
-						int arrayExpansion = to1DArray(x, y, z);
-						if (chunk->data[arrayExpansion] != BlockMap::AIR_BLOCK)
-						{
-							continue;
-						}
-
-						bool isSkyblock = chunk->data[arrayExpansion].lightLevel & 32;
-						if (!isSkyblock)
-						{
-							// If the 32 bit is set in the block above, this is a sky block
-							const Block& topNeighbor = chunk->data[to1DArray(x, y + 1, z)];
-							int topNeighborLight = topNeighbor.calculatedLightLevel();
-							Block bottomNeighbor = getBlockInternal(chunk, x, y - 1, z);
-							int bottomNeighborLight = bottomNeighbor.calculatedLightLevel();
-							Block leftNeighbor = getBlockInternal(chunk, x, y, z - 1);
-							int leftNeighborLight = leftNeighbor.calculatedLightLevel();
-							Block rightNeighbor = getBlockInternal(chunk, x, y, z + 1);
-							int rightNeighborLight = rightNeighbor.calculatedLightLevel();
-							Block frontNeighbor = getBlockInternal(chunk, x + 1, y, z);
-							int frontNeighborLight = frontNeighbor.calculatedLightLevel();
-							Block backNeighbor = getBlockInternal(chunk, x - 1, y, z);
-							int backNeighborLight = backNeighbor.calculatedLightLevel();
-
-							// Check what the light level should be, if it's not set properly, then
-							// we'll do a flood-fill from here to fill in this light properly
-							int newLightLevel =
-								glm::max(glm::max(leftNeighborLight,
-									glm::max(rightNeighborLight,
-										glm::max(topNeighborLight,
-											glm::max(frontNeighborLight, backNeighborLight)
-										)
-									)
-								) - 1, 0);
-							if (newLightLevel != chunk->data[arrayExpansion].calculatedLightLevel())
-							{
-								chunk->data[arrayExpansion].lightLevel = newLightLevel;
-							}
-						}
-					}
-				}
-			}
-
-			// Then flood-fill to zero any blocks that need to be set
-			//for (int y = 0; y < World::ChunkHeight; y++)
+			//for (int y = World::ChunkHeight - 1; y >= 0; y--)
 			//{
 			//	for (int x = 0; x < World::ChunkDepth; x++)
 			//	{
@@ -1402,41 +1367,52 @@ namespace Minecraft
 			//				continue;
 			//			}
 
-			//			bool isSkyblock = chunk->data[arrayExpansion].lightLevel & 32;
-			//			if (!isSkyblock)
-			//			{
-			//				// If the 32 bit is set in the block above, this is a sky block
-			//				const Block& topNeighbor = chunk->data[to1DArray(x, y + 1, z)];
-			//				int topNeighborLight = topNeighbor.calculatedLightLevel();
-			//				Block bottomNeighbor = getBlockInternal(chunk, x, y - 1, z);
-			//				int bottomNeighborLight = bottomNeighbor.calculatedLightLevel();
-			//				Block leftNeighbor = getBlockInternal(chunk, x, y, z - 1);
-			//				int leftNeighborLight = leftNeighbor.calculatedLightLevel();
-			//				Block rightNeighbor = getBlockInternal(chunk, x, y, z + 1);
-			//				int rightNeighborLight = rightNeighbor.calculatedLightLevel();
-			//				Block frontNeighbor = getBlockInternal(chunk, x + 1, y, z);
-			//				int frontNeighborLight = frontNeighbor.calculatedLightLevel();
-			//				Block backNeighbor = getBlockInternal(chunk, x - 1, y, z);
-			//				int backNeighborLight = backNeighbor.calculatedLightLevel();
+			//			// If the 32 bit is set in the block above, this is a sky block
+			//			const Block& topNeighbor = y + 1 >= World::ChunkHeight ? BlockMap::NULL_BLOCK : chunk->data[to1DArray(x, y + 1, z)];
+			//			int topNeighborLight = topNeighbor == BlockMap::AIR_BLOCK ? topNeighbor.lightLevel & 31 : 0;
 
-			//				// Check what the light level should be, if it's not set properly, then
-			//				// we'll do a flood-fill from here to fill in this light properly
-			//				int newLightLevel =
-			//					glm::max(glm::max(leftNeighborLight,
-			//						glm::max(rightNeighborLight,
-			//							glm::max(topNeighborLight,
-			//								glm::max(frontNeighborLight, backNeighborLight)
-			//							)
-			//						)
-			//					) - 1, 0);
-			//				if (newLightLevel != chunk->data[arrayExpansion].calculatedLightLevel())
-			//				{
-			//					updateBlockLightLevel(chunk, x, y, z, chunkCoordinates, false);
-			//				}
+			//			bool isSkyblock = (topNeighbor.lightLevel & 32) || (y == World::ChunkHeight - 1);
+			//			if (isSkyblock)
+			//			{
+			//				chunk->data[arrayExpansion].lightLevel = 31 | 32;
 			//			}
+			//			else
+			//			{
+			//				chunk->data[arrayExpansion].lightLevel = 0;
+			//			}
+
+			//			chunk->data[arrayExpansion].lightColor =
+			//				((7 << 0) & 0x7) |  // R
+			//				((7 << 3) & 0x38) | // G
+			//				((7 << 6) & 0x1C0); // B
 			//		}
 			//	}
 			//}
+
+			// Then set any blocks that are easy to calculate
+			std::queue<glm::ivec3> blocksToUpdate = {};
+			for (int y = 0; y < World::ChunkHeight; y++)
+			{
+				for (int x = 0; x < World::ChunkDepth; x++)
+				{
+					for (int z = 0; z < World::ChunkWidth; z++)
+					{
+						int arrayExpansion = to1DArray(x, y, z);
+						if (!chunk->data[arrayExpansion].isLightSource())
+						{
+							continue;
+						}
+						chunk->data[arrayExpansion].lightLevel = BlockMap::getBlock(chunk->data[arrayExpansion].id).lightLevel;
+						blocksToUpdate.push({ x, y, z });
+					}
+				}
+			}
+
+			robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
+			while (!blocksToUpdate.empty())
+			{
+				calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+			}
 		}
 
 		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource)
@@ -1448,48 +1424,56 @@ namespace Minecraft
 			Block blockThatsUpdating = chunk->data[to1DArray(localX, localY, localZ)];
 			if (!blockThatsUpdating.isTransparent() && !blockThatsUpdating.isLightSource())
 			{
-				// Update all blocks surrounding the block that was just placed
-				for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
-				{
-					glm::ivec3 blockToCheck = localPosition + INormals3::CardinalDirections[i];
-					// If the block is outside this chunk, update the correct chunk and block
-					if (blockToCheck.x >= World::ChunkDepth)
-					{
-						if (chunk->topNeighbor)
-						{
-							updateBlockLightLevel(chunk->topNeighbor, blockToCheck.x - World::ChunkDepth, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-						}
-					}
-					else if (blockToCheck.x < 0)
-					{
-						if (chunk->bottomNeighbor)
-						{
-							updateBlockLightLevel(chunk->bottomNeighbor, World::ChunkDepth + blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-						}
-					}
-					else if (blockToCheck.z >= World::ChunkWidth)
-					{
-						if (chunk->rightNeighbor)
-						{
-							updateBlockLightLevel(chunk->rightNeighbor, blockToCheck.x, blockToCheck.y, blockToCheck.z - World::ChunkWidth, chunkCoordinates, true);
-						}
-					}
-					else if (blockToCheck.z < 0)
-					{
-						if (chunk->leftNeighbor)
-						{
-							updateBlockLightLevel(chunk->leftNeighbor, blockToCheck.x, blockToCheck.y, World::ChunkDepth + blockToCheck.z, chunkCoordinates, true);
-						}
-					}
-					else
-					{
-						updateBlockLightLevel(chunk, blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-					}
-				}
+				//// Update all blocks surrounding the block that was just placed
+				//for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
+				//{
+				//	glm::ivec3 blockToCheck = localPosition + INormals3::CardinalDirections[i];
+				//	// If the block is outside this chunk, update the correct chunk and block
+				//	if (blockToCheck.x >= World::ChunkDepth)
+				//	{
+				//		if (chunk->topNeighbor)
+				//		{
+				//			updateBlockLightLevel(chunk->topNeighbor, blockToCheck.x - World::ChunkDepth, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
+				//		}
+				//	}
+				//	else if (blockToCheck.x < 0)
+				//	{
+				//		if (chunk->bottomNeighbor)
+				//		{
+				//			updateBlockLightLevel(chunk->bottomNeighbor, World::ChunkDepth + blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
+				//		}
+				//	}
+				//	else if (blockToCheck.z >= World::ChunkWidth)
+				//	{
+				//		if (chunk->rightNeighbor)
+				//		{
+				//			updateBlockLightLevel(chunk->rightNeighbor, blockToCheck.x, blockToCheck.y, blockToCheck.z - World::ChunkWidth, chunkCoordinates, true);
+				//		}
+				//	}
+				//	else if (blockToCheck.z < 0)
+				//	{
+				//		if (chunk->leftNeighbor)
+				//		{
+				//			updateBlockLightLevel(chunk->leftNeighbor, blockToCheck.x, blockToCheck.y, World::ChunkDepth + blockToCheck.z, chunkCoordinates, true);
+				//		}
+				//	}
+				//	else
+				//	{
+				//		updateBlockLightLevel(chunk, blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
+				//	}
+				//}
 			}
 			else
 			{
-				updateBlockLightLevel(chunk, localX, localY, localZ, chunkCoordinates, removedLightSource);
+				std::queue<glm::ivec3> blocksToUpdate = {};
+				robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
+				blocksToUpdate.push({ localX, localY, localZ });
+				int arrayExpansion = to1DArray(localX, localY, localZ);
+				chunk->data[arrayExpansion].lightLevel = BlockMap::getBlock(chunk->data[arrayExpansion].id).lightLevel;
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
 			}
 		}
 
@@ -1726,6 +1710,17 @@ namespace Minecraft
 			}
 
 			fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
+			// TODO: Separate lightmaps into different arrays than block ids
+			for (int y = 0; y < World::ChunkHeight; y++)
+			{
+				for (int x = 0; x < World::ChunkDepth; x++)
+				{
+					for (int z = 0; z < World::ChunkWidth; z++)
+					{
+						blockData[to1DArray(x, y, z)].lightLevel = 0;
+					}
+				}
+			}
 			fclose(fp);
 		}
 
@@ -1904,12 +1899,10 @@ namespace Minecraft
 			return true;
 		}
 
-		static void updateBlockLightLevel(Chunk* originalChunk, int localX, int localY, int localZ, const glm::ivec2& chunkCoordinates, bool zeroOut, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate)
+		static void calculateNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck)
 		{
-			if (ChunkManager::doStepLogic && !zeroOut)
-			{
-				return;
-			}
+			glm::ivec3 blockToUpdate = blocksToCheck.front();
+			blocksToCheck.pop();
 
 			if (!originalChunk)
 			{
@@ -1917,215 +1910,51 @@ namespace Minecraft
 				return;
 			}
 
-			if (localX >= World::ChunkDepth || localX < 0 || localZ >= World::ChunkWidth || localZ < 0)
+			int blockToUpdateX = blockToUpdate.x;
+			int blockToUpdateY = blockToUpdate.y;
+			int blockToUpdateZ = blockToUpdate.z;
+			Chunk* blockToUpdateChunk = originalChunk;
+			if (blockToUpdateX >= World::ChunkDepth || blockToUpdateX < 0 || blockToUpdateZ >= World::ChunkWidth || blockToUpdateZ < 0)
 			{
-				if (!checkPositionInBounds(&originalChunk, &localX, &localZ))
+				if (!checkPositionInBounds(&blockToUpdateChunk, &blockToUpdateX, &blockToUpdateZ))
 				{
 					g_logger_warning("Position totally out of bounds...");
 					return;
 				}
 			}
 
-			if (localY >= World::ChunkHeight || localY < 0)
+			if (blockToUpdateY >= World::ChunkHeight || blockToUpdateY < 0)
 			{
 				return;
 			}
 
-			if (!originalChunk->data[to1DArray(localX, localY, localZ)].isTransparent() &&
-				!originalChunk->data[to1DArray(localX, localY, localZ)].isLightSource())
+			int arrayExpansion = to1DArray(blockToUpdateX, blockToUpdateY, blockToUpdateZ);
+			if (!blockToUpdateChunk->data[arrayExpansion].isTransparent() &&
+				!blockToUpdateChunk->data[arrayExpansion].isLightSource())
 			{
 				return;
 			}
 
-			Chunk* currentChunk = originalChunk;
-			//auto backPropagationBlocks = robin_hood::unordered_flat_set<glm::ivec3>();
-			glm::ivec3 backPropagationBlock = glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX);
-			auto blocksAlreadyChecked = robin_hood::unordered_flat_set<glm::ivec3>();
-			auto blocksToUpdate = std::queue<glm::ivec3>();
-			blocksToUpdate.push(glm::ivec3(localX, localY, localZ));
-			blocksAlreadyChecked.insert(glm::ivec3(localX, localY, localZ));
-			bool firstIteration = true;
-			while (!blocksToUpdate.empty())
+			int myLightLevel = blockToUpdateChunk->data[arrayExpansion].calculatedLightLevel();
+			if (myLightLevel > 0)
 			{
-				glm::ivec3 blockToUpdate = blocksToUpdate.front();
-				blocksToUpdate.pop();
-				int x = blockToUpdate.x;
-				int y = blockToUpdate.y;
-				int z = blockToUpdate.z;
-
-				if (y >= 256 || y < 0)
+				for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
 				{
-					continue;
-				}
-
-				currentChunk = originalChunk;
-				if (!checkPositionInBounds(&currentChunk, &x, &z))
-				{
-					g_logger_warning("Out of bounds block...");
-					continue;
-				}
-
-				int arrayExpansion = to1DArray(x, y, z);
-				if (!currentChunk->data[arrayExpansion].isTransparent() &&
-					!currentChunk->data[arrayExpansion].isLightSource())
-				{
-					continue;
-				}
-
-				Block topNeighbor = getBlockInternal(currentChunk, x, y + 1, z);
-				int topNeighborLight = topNeighbor.calculatedLightLevel();
-				Block bottomNeighbor = getBlockInternal(currentChunk, x, y - 1, z);
-				int bottomNeighborLight = bottomNeighbor.calculatedLightLevel();
-				Block leftNeighbor = getBlockInternal(currentChunk, x, y, z - 1);
-				int leftNeighborLight = leftNeighbor.calculatedLightLevel();
-				Block rightNeighbor = getBlockInternal(currentChunk, x, y, z + 1);
-				int rightNeighborLight = rightNeighbor.calculatedLightLevel();
-				Block frontNeighbor = getBlockInternal(currentChunk, x + 1, y, z);
-				int frontNeighborLight = frontNeighbor.calculatedLightLevel();
-				Block backNeighbor = getBlockInternal(currentChunk, x - 1, y, z);
-				int backNeighborLight = backNeighbor.calculatedLightLevel();
-
-				int newLightLevel;
-				// If the 32 bit is set in the block above, this is a sky block
-				// If the top neighbor is a skyblock and this block is air, set this to a skyblock too
-				if ((topNeighbor.lightLevel & 32) && currentChunk->data[arrayExpansion] == BlockMap::AIR_BLOCK)
-				{
-					newLightLevel = 31 | 32;
-				}
-				// Else If this block is a light source and it's not air, use the block format's base light source level for it
-				else if (currentChunk->data[arrayExpansion].isLightSource())
-				{
-					newLightLevel = BlockMap::getBlock(currentChunk->data[arrayExpansion].id).lightLevel;
-				}
-				// Otherwise we take the max of our surrounding light levels minus one
-				else
-				{
-					newLightLevel =
-						glm::max(glm::max(leftNeighborLight,
-							glm::max(rightNeighborLight,
-								glm::max(topNeighborLight,
-									glm::max(bottomNeighborLight,
-										glm::max(frontNeighborLight, backNeighborLight)
-									)
-								)
-							)
-						) - 1, 0);
-				}
-
-				// Check if the light level has changed, if it hasn't add the block to our back-propagation blocks
-				// if we're currently zeroing out
-				bool thisLightLevelChanged = false;
-				if (zeroOut)
-				{
-					// If we are in the first iteration of this loop, and the light level is fine, don't do anything
-					// because this block's light level doesn't *actually* need to be updated
-					if (firstIteration && newLightLevel == currentChunk->data[arrayExpansion].lightLevel)
+					const glm::ivec3& iNormal = INormals3::CardinalDirections[i];
+					const glm::ivec3 pos = glm::ivec3(blockToUpdateX + iNormal.x, blockToUpdateY + iNormal.y, blockToUpdateZ + iNormal.z);
+					Block neighbor = getBlockInternal(blockToUpdateChunk, pos.x, pos.y, pos.z);
+					int neighborLight = neighbor.calculatedLightLevel();
+					if (neighborLight <= myLightLevel - 2 && neighbor.isTransparent())
 					{
-						break;
-					}
-					else if ((newLightLevel & 32) != 32 && !currentChunk->data[arrayExpansion].isLightSource())
-					{
-						currentChunk->data[arrayExpansion].lightLevel = 0;
-						thisLightLevelChanged = true;
-					}
-					else if (currentChunk->data[arrayExpansion].isLightSource() ||
-						((newLightLevel & 32) == 32 && currentChunk->data[arrayExpansion] == BlockMap::AIR_BLOCK))
-					{
-						//backPropagationBlocks.insert(blockToUpdate);
-						backPropagationBlock = blockToUpdate;
-					}
-				}
-				else
-				{
-					if (currentChunk->data[arrayExpansion].lightLevel != newLightLevel)
-					{
-						// Set the light level to the new light level
-						currentChunk->data[arrayExpansion].lightLevel = newLightLevel;
-						thisLightLevelChanged = true;
-					}
-				}
-
-				if (thisLightLevelChanged)
-				{
-					chunksToRetesselate.insert(currentChunk);
-					currentChunk->data[arrayExpansion].lightColor =
-						((7 << 0) & 0x7) | // R
-						((7 << 3) & 0x38) | // G
-						((7 << 6) & 0x1C0); // B
-					if (newLightLevel != 0)
-					{
-						// We have to add the coordinates local to the original chunk and not the coordinates local to the current chunk
-						x = blockToUpdate.x;
-						y = blockToUpdate.y;
-						z = blockToUpdate.z;
-						// We skip a block if we've already checked it
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y + 1, z)) &&
-							topNeighbor.isLightPassable())
+						Chunk* neighborChunk = blockToUpdateChunk;
+						int neighborLocalX = pos.x;
+						int neighborLocalZ = pos.z;
+						if (checkPositionInBounds(&neighborChunk, &neighborLocalX, &neighborLocalZ))
 						{
-							blocksToUpdate.push(glm::ivec3(x, y + 1, z));
-							blocksAlreadyChecked.insert(glm::ivec3(x, y + 1, z));
-						}
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y - 1, z)) &&
-							bottomNeighbor.isLightPassable())
-						{
-							blocksToUpdate.push(glm::ivec3(x, y - 1, z));
-							blocksAlreadyChecked.insert(glm::ivec3(x, y - 1, z));
-						}
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y, z - 1)) &&
-							leftNeighbor.isLightPassable())
-						{
-							blocksToUpdate.push(glm::ivec3(x, y, z - 1));
-							blocksAlreadyChecked.insert(glm::ivec3(x, y, z - 1));
-						}
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x, y, z + 1)) &&
-							rightNeighbor.isLightPassable())
-						{
-							blocksToUpdate.push(glm::ivec3(x, y, z + 1));
-							blocksAlreadyChecked.insert(glm::ivec3(x, y, z + 1));
-						}
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x + 1, y, z)) &&
-							frontNeighbor.isLightPassable())
-						{
-							blocksToUpdate.push(glm::ivec3(x + 1, y, z));
-							blocksAlreadyChecked.insert(glm::ivec3(x + 1, y, z));
-						}
-						if (!blocksAlreadyChecked.contains(glm::ivec3(x - 1, y, z)) &&
-							backNeighbor.isLightPassable())
-						{
-							blocksToUpdate.push(glm::ivec3(x - 1, y, z));
-							blocksAlreadyChecked.insert(glm::ivec3(x - 1, y, z));
+							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].lightLevel = myLightLevel - 1;
+							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 						}
 					}
-				}
-
-				firstIteration = false;
-			}
-
-			//for (auto backPropagationBlock : backPropagationBlocks)
-			if (backPropagationBlock != glm::ivec3(INT32_MAX, INT32_MAX, INT32_MAX))
-			{
-				glm::ivec2 chunkCoords = originalChunk->chunkCoords;
-				glm::vec3 worldPosition = glm::vec3(chunkCoords.x * 16.0f + backPropagationBlock.x, backPropagationBlock.y,
-					chunkCoords.y * 16.0f + backPropagationBlock.z);
-				glm::ivec2 chunkToUpdateCoords = World::toChunkCoords(worldPosition);
-				glm::ivec3 localPosition = glm::floor(worldPosition - glm::vec3(chunkToUpdateCoords.x * 16.0f, 0.0f, chunkToUpdateCoords.y * 16.0f));
-				Chunk* chunk = ChunkManager::getChunk(chunkToUpdateCoords);
-				// Update all the neighbors
-				updateBlockLightLevel(chunk, localPosition.x + 1, localPosition.y, localPosition.z, chunkToUpdateCoords, false, chunksToRetesselate);
-				updateBlockLightLevel(chunk, localPosition.x - 1, localPosition.y, localPosition.z, chunkToUpdateCoords, false, chunksToRetesselate);
-				updateBlockLightLevel(chunk, localPosition.x, localPosition.y + 1, localPosition.z, chunkToUpdateCoords, false, chunksToRetesselate);
-				updateBlockLightLevel(chunk, localPosition.x, localPosition.y - 1, localPosition.z, chunkToUpdateCoords, false, chunksToRetesselate);
-				updateBlockLightLevel(chunk, localPosition.x, localPosition.y, localPosition.z + 1, chunkToUpdateCoords, false, chunksToRetesselate);
-				updateBlockLightLevel(chunk, localPosition.x, localPosition.y, localPosition.z - 1, chunkToUpdateCoords, false, chunksToRetesselate);
-			}
-
-			// TODO: Figure out how to retesselate the chunks only once
-			// Retesselate all effected chunks
-			for (auto& chunk : chunksToRetesselate)
-			{
-				if (chunk)
-				{
-					ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
 				}
 			}
 		}

@@ -21,6 +21,7 @@ namespace Minecraft
 		glm::ivec2 chunkCoords;
 		ChunkState state;
 		bool needsToGenerateDecorations;
+		bool needsToCalculateLighting;
 
 		Chunk* topNeighbor;
 		Chunk* bottomNeighbor;

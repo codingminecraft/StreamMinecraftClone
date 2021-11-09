@@ -58,6 +58,7 @@ namespace Minecraft
 		void patchChunkPointers();
 
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
+		void queueCalculateLighting(const glm::ivec2& lastPlayerPosInChunkCoords);
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource);
