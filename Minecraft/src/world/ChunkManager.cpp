@@ -45,7 +45,7 @@ namespace Minecraft
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
 		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords);
-		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource);
+		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate);
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Chunk* blockData);
 		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Chunk* blockData);
@@ -186,7 +186,16 @@ namespace Minecraft
 						break;
 						case CommandType::RecalculateLighting:
 						{
-							ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource);
+							robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
+							ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource, chunksToRetesselate);
+							for (Chunk* chunk : chunksToRetesselate)
+							{
+								// TODO: I should probably do all this from within the thread...
+								ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
+								//command.chunk = chunk;
+								//command.type = CommandType::TesselateVertices;
+								//queueCommand(command);
+							}
 						}
 						break;
 						case CommandType::TesselateVertices:
@@ -1416,7 +1425,7 @@ namespace Minecraft
 			}
 		}
 
-		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource)
+		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate)
 		{
 			glm::ivec3 localPosition = glm::floor(blockPosition - glm::vec3(chunkCoordinates.x * 16.0f, 0.0f, chunkCoordinates.y * 16.0f));
 			int localX = localPosition.x;
@@ -1468,7 +1477,6 @@ namespace Minecraft
 			{
 				std::queue<glm::ivec3> blocksToZero = {};
 				std::queue<glm::ivec3> blocksToUpdate = {};
-				robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
 				blocksToZero.push({ localX, localY, localZ });
 				int arrayExpansion = to1DArray(localX, localY, localZ);
 				// Zero out
@@ -1486,7 +1494,6 @@ namespace Minecraft
 			else
 			{
 				std::queue<glm::ivec3> blocksToUpdate = {};
-				robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
 				blocksToUpdate.push({ localX, localY, localZ });
 				int arrayExpansion = to1DArray(localX, localY, localZ);
 				chunk->data[arrayExpansion].lightLevel = BlockMap::getBlock(chunk->data[arrayExpansion].id).lightLevel;
@@ -1940,6 +1947,7 @@ namespace Minecraft
 					g_logger_warning("Position totally out of bounds...");
 					return;
 				}
+				chunksToRetesselate.insert(blockToUpdateChunk);
 			}
 
 			if (blockToUpdateY >= World::ChunkHeight || blockToUpdateY < 0)
@@ -1973,6 +1981,7 @@ namespace Minecraft
 							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].lightLevel = myLightLevel - 1;
 							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 						}
+						chunksToRetesselate.insert(neighborChunk);
 					}
 				}
 			}
@@ -2000,6 +2009,7 @@ namespace Minecraft
 					g_logger_warning("Position totally out of bounds...");
 					return;
 				}
+				chunksToRetesselate.insert(blockToUpdateChunk);
 			}
 
 			if (blockToUpdateY >= World::ChunkHeight || blockToUpdateY < 0)
@@ -2031,6 +2041,7 @@ namespace Minecraft
 					{
 						blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 					}
+					chunksToRetesselate.insert(neighborChunk);
 				}
 				else if (neighborLight > myOldLightLevel)
 				{
@@ -2041,6 +2052,7 @@ namespace Minecraft
 					{
 						lightSources.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 					}
+					chunksToRetesselate.insert(neighborChunk);
 				}
 			}
 		}
