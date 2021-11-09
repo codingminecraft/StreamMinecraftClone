@@ -1978,7 +1978,7 @@ namespace Minecraft
 						int neighborLocalZ = pos.z;
 						if (checkPositionInBounds(&neighborChunk, &neighborLocalX, &neighborLocalZ))
 						{
-							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].lightLevel = myLightLevel - 1;
+							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].setLightLevel(myLightLevel - 1);
 							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 						}
 						chunksToRetesselate.insert(neighborChunk);
@@ -2025,7 +2025,7 @@ namespace Minecraft
 			}
 
 			int myOldLightLevel = blockToUpdateChunk->data[arrayExpansion].calculatedLightLevel();
-			blockToUpdateChunk->data[arrayExpansion].lightLevel = 0;
+			blockToUpdateChunk->data[arrayExpansion].setLightLevel(0);
 			for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
 			{
 				const glm::ivec3& iNormal = INormals3::CardinalDirections[i];

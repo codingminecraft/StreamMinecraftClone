@@ -16,8 +16,7 @@ namespace Minecraft
 	struct Block
 	{
 		int16 id;
-		uint8 lightLevel;
-		int8 rotation;
+		uint16 lightLevel;
 		int16 lightColor;
 		int16 padding;
 
@@ -29,9 +28,30 @@ namespace Minecraft
 			return isLightSource() || isTransparent();
 		}
 
+		inline void setLightLevel(int level)
+		{
+			// Mask out the lower 5 bits
+			lightLevel &= 0x3e0;
+			// Set the lower 5 bits to the new level
+			lightLevel |= (level & 0x1f);
+		}
+
+		inline void setSkyLightLevel(int level)
+		{
+			// Mask out the 5-10 bits
+			lightLevel &= 0x01f;
+			// Set the 5-10 bits to the new level
+			lightLevel |= ((level & 0x1f) << 5);
+		}
+
 		inline int calculatedLightLevel() const
 		{
-			return lightLevel & 31;
+			return lightLevel & 0x1f;
+		}
+
+		inline int calculatedSkyLightLevel() const
+		{
+			return (lightLevel & 0x3e0) >> 5;
 		}
 	};
 
