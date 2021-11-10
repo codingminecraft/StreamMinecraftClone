@@ -11,6 +11,7 @@ flat out uint fFace;
 out vec3 fFragPosition;
 out vec3 fColor;
 out float fLightLevel;
+out float fSkyLightLevel;
 out vec3 fLightColor;
 
 uniform samplerBuffer uTexCoordTexture;
@@ -26,6 +27,7 @@ uniform mat4 uView;
 #define LIGHT_COLOR_BITMASK_R uint(0x00700)
 #define LIGHT_COLOR_BITMASK_G uint(0x03800)
 #define LIGHT_COLOR_BITMASK_B uint(0x1C000)
+#define SKY_LIGHT_LEVEL_BITMASK uint(0x3E0000)
 
 #define BASE_17_WIDTH uint(17)
 #define BASE_17_DEPTH uint(17)
@@ -64,6 +66,11 @@ void extractLightLevel(in uint data2, out float lightLevel)
 	lightLevel = float((data2 & LIGHT_LEVEL_BITMASK) >> 3);
 }
 
+void extractSkyLightLevel(in uint data2, out float skyLightLevel)
+{
+	skyLightLevel = float((data2 & SKY_LIGHT_LEVEL_BITMASK) >> 17);
+}
+
 void extractLightColor(in uint data2, out vec3 lightColor)
 {
 	lightColor.r = float((data2 & LIGHT_COLOR_BITMASK_R) >> 8) / 8.0;
@@ -80,6 +87,7 @@ void main()
 	extractColorVertexBiome(aData2, colorVertexByBiome);
 	extractLightLevel(aData2, fLightLevel);
 	extractLightColor(aData2, fLightColor);
+	extractSkyLightLevel(aData2, fSkyLightLevel);
 
 	// Convert from local Chunk Coords to world Coords
 	fFragPosition.x += float(aChunkPos.x) * 16.0;
@@ -105,6 +113,7 @@ in vec3 fFragPosition;
 in vec3 fColor;
 in float fLightLevel;
 in vec3 fLightColor;
+in float fSkyLightLevel;
 
 uniform sampler2D uTexture;
 uniform vec3 uSunDirection;
@@ -148,9 +157,13 @@ void main()
 	float diff = max(dot(normal, lightDir), 0.0);
 
 	vec4 objectColor = texture(uTexture, fTexCoords);
-	float baseLightColor = .03;
-	float colorLightValue = pow(float(fLightLevel) / 32.0, 1.4) + baseLightColor;
-	vec4 lightColor = vec4(colorLightValue, colorLightValue, colorLightValue, 1.0) * vec4(fLightColor, 1.0);
+	float sunlightIntensity = uSunDirection.y * 0.96f;
+	float skyLevel = max(float(fSkyLightLevel) * sunlightIntensity, 7.0f);
+	float combinedLightLevel = max(skyLevel, float(fLightLevel));
+
+	float baseLightColor = .04;
+	float lightIntensity = pow(combinedLightLevel / 31.0, 1.4) + baseLightColor;
+	vec4 lightColor = vec4(vec3(lightIntensity), 1.0) * vec4(fLightColor, 1.0);
 
 	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor;
 	

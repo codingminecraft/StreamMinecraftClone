@@ -221,15 +221,15 @@ namespace Minecraft
 			static int sunXRotation = 45;
 			static int sunTicks = 0;
 			sunTicks++;
-			if (sunTicks > 20)
+			if (sunTicks > 1)
 			{
 				sunTicks = 0;
+				sunXRotation++;
 			}
-			glm::vec3 directionVector = glm::vec3(0.0f, glm::sin(glm::radians((float)sunXRotation)), glm::cos(glm::radians((float)sunXRotation)));
+			glm::vec3 directionVector = glm::normalize(glm::vec3(0.0f, glm::sin(glm::radians((float)sunXRotation)), glm::cos(glm::radians((float)sunXRotation))));
 			transparentShader.uploadVec3("uSunDirection", directionVector);
 			transparentShader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
 			sunXRotation = sunXRotation % 360;
-			directionVector.y = sunXRotation > 180 && sunXRotation < 360 ? -directionVector.y : directionVector.y;
 			glActiveTexture(GL_TEXTURE0);
 			worldTexture.bind();
 			transparentShader.uploadInt("uTexture", 0);
