@@ -27,6 +27,7 @@
 #include "gameplay/CharacterSystem.h"
 #include "utils/TexturePacker.h"
 #include "utils/DebugStats.h"
+#include "utils/CMath.h"
 #include "gui/Gui.h"
 #include "gui/MainHud.h"
 
@@ -38,6 +39,8 @@ namespace Minecraft
 		extern uint32 seed = UINT32_MAX;
 		extern std::atomic<float> seedAsFloat = 0.0f;
 		extern std::string chunkSavePath = "";
+		extern int worldTime = 0;
+		extern bool doDaylightCycle = false;
 
 		// Members
 		static Shader opaqueShader;
@@ -197,7 +200,7 @@ namespace Minecraft
 				DebugStats::lastFrameTime = dt;
 				ticks = 0;
 			}
-			
+
 			Transform& t2 = registry->getComponent<Transform>(randomEntity);
 			Physics::raycastStatic(t2.position, glm::normalize(glm::vec3(0.5f, -0.3f, -0.5f)), 10.0f, true);
 
@@ -214,22 +217,37 @@ namespace Minecraft
 				t2.type = c2.lockedToCamera ? TagType::Player : TagType::None;
 			}
 
+			if (doDaylightCycle)
+			{
+				worldTime = (worldTime + 10) % 2400;
+			}
+			int sunXRotation;
+			// Since 0-180 is daytime, but 600-1800 is daytime in actual units, we need to offset our time here
+			// 120 degrees - 300 degrees is daytime
+			if (worldTime >= 600 && worldTime <= 1800)
+			{
+				sunXRotation = (int)CMath::mapRange((float)worldTime, 600.0f, 1800.0f, -45.0f, 235.0f);
+				if (sunXRotation < 0)
+				{
+					sunXRotation = 360 - sunXRotation;
+				}
+			}
+			else if (worldTime > 1800)
+			{
+				sunXRotation = (int)CMath::mapRange((float)worldTime, 1800.0f, 2400.0f, 235.0f, 240.0f);
+			}
+			else
+			{
+				sunXRotation = (int)CMath::mapRange((float)worldTime, 0.0f, 600.0f, 240.0f, 315.0f);
+			}
+
 			// Upload Transparent Shader variables
 			transparentShader.bind();
 			transparentShader.uploadMat4("uProjection", projectionMatrix);
 			transparentShader.uploadMat4("uView", viewMatrix);
-			static int sunXRotation = 45;
-			static int sunTicks = 0;
-			sunTicks++;
-			if (sunTicks > 1)
-			{
-				sunTicks = 0;
-				sunXRotation++;
-			}
 			glm::vec3 directionVector = glm::normalize(glm::vec3(0.0f, glm::sin(glm::radians((float)sunXRotation)), glm::cos(glm::radians((float)sunXRotation))));
 			transparentShader.uploadVec3("uSunDirection", directionVector);
 			transparentShader.uploadBool("uIsDay", sunXRotation > 180 && sunXRotation < 360);
-			sunXRotation = sunXRotation % 360;
 			glActiveTexture(GL_TEXTURE0);
 			worldTexture.bind();
 			transparentShader.uploadInt("uTexture", 0);

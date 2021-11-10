@@ -26,6 +26,8 @@ namespace Minecraft
 		Screenshot,
 		GenerateCubemap,
 		DebugLight,
+		DoDaylightCycle,
+		SetTime,
 		Length
 	};
 
@@ -37,6 +39,8 @@ namespace Minecraft
 		static void executeCommand(CommandLineType type, CommandStringView* args, int argsLength);
 		static void executeSetInventorySlot(CommandStringView* args, int argsLength);
 		static void executeDebugLight(CommandStringView* args, int argsLength);
+		static void executeDoDaylightCycle(CommandStringView* args, int argsLength);
+		static void executeSetTime(CommandStringView* args, int argsLength);
 
 		static inline bool isNumber(char c) { return c >= '0' && c <= '9'; }
 		static inline bool isIntegerDigit(char c) { return isNumber(c) || c == '+' || c == '-'; }
@@ -155,6 +159,12 @@ namespace Minecraft
 			case CommandLineType::DebugLight:
 				executeDebugLight(args, argsLength);
 				break;
+			case CommandLineType::DoDaylightCycle:
+				executeDoDaylightCycle(args, argsLength);
+				break;
+			case CommandLineType::SetTime:
+				executeSetTime(args, argsLength);
+				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
 				break;
@@ -213,6 +223,49 @@ namespace Minecraft
 			{
 				g_logger_info("Debug Lighting turned on. Run command DebugStepLight to step the lighting calculations by one. Run DebugLight false to turn debugging off.");
 			}
+		}
+
+		static void executeDoDaylightCycle(CommandStringView* args, int argsLength)
+		{
+			if (argsLength != 1)
+			{
+				g_logger_warning("DoDaylightCycle expects 1 argument: 'true' or 'false'.");
+				return;
+			}
+
+			bool val;
+			if (!parseBoolean(args[0].string, args[0].length, &val))
+			{
+				g_logger_warning("DoDaylightCycle expects 'true' or 'false'.");
+				return;
+			}
+
+			World::doDaylightCycle = val;
+			// TODO: Put this in the chat
+			g_logger_info("DoDaylightCycle: %d", val);
+		}
+
+		static void executeSetTime(CommandStringView* args, int argsLength)
+		{
+			if (argsLength != 1)
+			{
+				g_logger_warning("SetTime expects 1 arguments: A number from 0-2400 representing the time.");
+				return;
+			}
+
+			if (!isInteger(args[0].string, args[0].length))
+			{
+				g_logger_warning("SetTime expects an integer between 0-2400.");
+				return;
+			}
+			int time = atoi(args[0].string);
+			if (time < 0 || time > 2400)
+			{
+				g_logger_warning("Invalid time '%d' passed to SetTime. SetTime expects an integer between 0-2400.", time);
+				return;
+			}
+
+			World::worldTime = time;
 		}
 
 		static bool parseBoolean(const char* str, int strLength, bool* result)

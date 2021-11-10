@@ -1154,10 +1154,10 @@ namespace Minecraft
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
 		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, int lightLevel, const glm::ivec3& lightColor, int skyLightLevel);
 		static void calculateNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck);
-		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources);
+		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources, bool ignoreThisSolidBlock);
 		// TODO: Consider removing this duplication if it doesn't effect performance
 		static void calculateNextSkyLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck);
-		static void removeNextSkyLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources);
+		static void removeNextSkyLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources, bool ignoreThisSolidBlock);
 
 		void info()
 		{
@@ -1491,57 +1491,51 @@ namespace Minecraft
 			int localY = localPosition.y;
 			int localZ = localPosition.z;
 			Block blockThatsUpdating = chunk->data[to1DArray(localX, localY, localZ)];
-			if (!blockThatsUpdating.isTransparent() && !blockThatsUpdating.isLightSource())
+			if (!blockThatsUpdating.isTransparent() && !blockThatsUpdating.isLightSource() && !removedLightSource)
 			{
-				//// Update all blocks surrounding the block that was just placed
-				//for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
-				//{
-				//	glm::ivec3 blockToCheck = localPosition + INormals3::CardinalDirections[i];
-				//	// If the block is outside this chunk, update the correct chunk and block
-				//	if (blockToCheck.x >= World::ChunkDepth)
-				//	{
-				//		if (chunk->topNeighbor)
-				//		{
-				//			updateBlockLightLevel(chunk->topNeighbor, blockToCheck.x - World::ChunkDepth, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-				//		}
-				//	}
-				//	else if (blockToCheck.x < 0)
-				//	{
-				//		if (chunk->bottomNeighbor)
-				//		{
-				//			updateBlockLightLevel(chunk->bottomNeighbor, World::ChunkDepth + blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-				//		}
-				//	}
-				//	else if (blockToCheck.z >= World::ChunkWidth)
-				//	{
-				//		if (chunk->rightNeighbor)
-				//		{
-				//			updateBlockLightLevel(chunk->rightNeighbor, blockToCheck.x, blockToCheck.y, blockToCheck.z - World::ChunkWidth, chunkCoordinates, true);
-				//		}
-				//	}
-				//	else if (blockToCheck.z < 0)
-				//	{
-				//		if (chunk->leftNeighbor)
-				//		{
-				//			updateBlockLightLevel(chunk->leftNeighbor, blockToCheck.x, blockToCheck.y, World::ChunkDepth + blockToCheck.z, chunkCoordinates, true);
-				//		}
-				//	}
-				//	else
-				//	{
-				//		updateBlockLightLevel(chunk, blockToCheck.x, blockToCheck.y, blockToCheck.z, chunkCoordinates, true);
-				//	}
-				//}
-			}
-			else if (removedLightSource)
-			{
+				// Just placed a solid block
 				std::queue<glm::ivec3> blocksToZero = {};
 				std::queue<glm::ivec3> blocksToUpdate = {};
 				blocksToZero.push({ localX, localY, localZ });
-				int arrayExpansion = to1DArray(localX, localY, localZ);
+				bool ignoreThisSolidBlock = true;
 				// Zero out
 				while (!blocksToZero.empty())
 				{
-					removeNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToZero, blocksToUpdate);
+					removeNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToZero, blocksToUpdate, ignoreThisSolidBlock);
+					ignoreThisSolidBlock = false;
+				}
+
+				// Flood fill from all the light sources that were found
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
+
+				blocksToZero.push({ localX, localY, localZ });
+				ignoreThisSolidBlock = true;
+				// Zero out
+				while (!blocksToZero.empty())
+				{
+					removeNextSkyLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToZero, blocksToUpdate, ignoreThisSolidBlock);
+					ignoreThisSolidBlock = false;
+				}
+
+				// Flood fill from all the light sources that were found
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextSkyLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
+			}
+			else if (removedLightSource)
+			{
+				// Just removed a light source
+				std::queue<glm::ivec3> blocksToZero = {};
+				std::queue<glm::ivec3> blocksToUpdate = {};
+				blocksToZero.push({ localX, localY, localZ });
+				// Zero out
+				while (!blocksToZero.empty())
+				{
+					removeNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToZero, blocksToUpdate, false);
 				}
 
 				// Flood fill from all the light sources that were found
@@ -1550,15 +1544,74 @@ namespace Minecraft
 					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
 				}
 			}
-			else
+			else if (blockThatsUpdating.isLightSource())
 			{
+				// Just added a light source
 				std::queue<glm::ivec3> blocksToUpdate = {};
 				blocksToUpdate.push({ localX, localY, localZ });
 				int arrayExpansion = to1DArray(localX, localY, localZ);
-				chunk->data[arrayExpansion].lightLevel = BlockMap::getBlock(chunk->data[arrayExpansion].id).lightLevel;
+				chunk->data[arrayExpansion].setLightLevel(BlockMap::getBlock(chunk->data[arrayExpansion].id).lightLevel);
 				while (!blocksToUpdate.empty())
 				{
 					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
+			}
+			else
+			{
+				// Just removed a block
+				std::queue<glm::ivec3> blocksToUpdate = {};
+				blocksToUpdate.push({ localX, localY, localZ });
+				int arrayExpansion = to1DArray(localX, localY, localZ);
+
+				// My light level is now the max of all my neighbors minus one
+				int myLightLevel = 0;
+				int mySkyLevel = 0;
+				for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
+				{
+					const glm::ivec3& normal = INormals3::CardinalDirections[i];
+					Block block = getBlockInternal(chunk, localX + normal.x, localY + normal.y, localZ + normal.z);
+					if ((block.calculatedLightLevel() - 1) > myLightLevel)
+					{
+						myLightLevel = block.calculatedLightLevel() - 1;
+					}
+					if ((block.calculatedSkyLightLevel() - 1) > mySkyLevel)
+					{
+						mySkyLevel = block.calculatedSkyLightLevel() - 1;
+					}
+					// If the block above me is a sky block, I am also a sky block
+					if (block.calculatedSkyLightLevel() == 31 && normal.y == 1)
+					{
+						mySkyLevel = 31;
+					}
+				}
+				chunk->data[arrayExpansion].setLightLevel(myLightLevel);
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextLightLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
+				}
+
+				chunk->data[arrayExpansion].setSkyLightLevel(mySkyLevel);
+				blocksToUpdate.push({ localX, localY, localZ });
+				// If I was a sky block, set all transparent blocks below me to sky blocks
+				if (mySkyLevel == 31)
+				{
+					for (int y = localY; y >= 0; y--)
+					{
+						int otherBlockArrayExpansion = to1DArray(localX, y, localZ);
+						Block otherBlock = chunk->data[otherBlockArrayExpansion];
+						if (!otherBlock.isTransparent())
+						{
+							break;
+						}
+
+						chunk->data[arrayExpansion].setSkyLightLevel(31);
+						blocksToUpdate.push({ localX, y, localZ });
+					}
+				}
+
+				while (!blocksToUpdate.empty())
+				{
+					calculateNextSkyLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
 				}
 			}
 		}
@@ -1893,8 +1946,7 @@ namespace Minecraft
 			}
 
 			int index = to1DArray(x, y, z);
-			chunk->data[index] = newBlock;
-			chunk->data[index].lightLevel = 0;
+			chunk->data[index].id = newBlock.id;
 
 			return true;
 		}
@@ -2046,7 +2098,7 @@ namespace Minecraft
 			}
 		}
 
-		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources)
+		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources, bool ignoreThisSolidBlock)
 		{
 			glm::ivec3 blockToUpdate = blocksToCheck.front();
 			blocksToCheck.pop();
@@ -2072,7 +2124,8 @@ namespace Minecraft
 			}
 
 			int arrayExpansion = to1DArray(blockToUpdateX, blockToUpdateY, blockToUpdateZ);
-			if (!blockToUpdateChunk->data[arrayExpansion].isTransparent() &&
+			if (!ignoreThisSolidBlock && 
+				!blockToUpdateChunk->data[arrayExpansion].isTransparent() &&
 				!blockToUpdateChunk->data[arrayExpansion].isLightSource())
 			{
 				return;
@@ -2168,7 +2221,7 @@ namespace Minecraft
 			}
 		}
 
-		static void removeNextSkyLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources)
+		static void removeNextSkyLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources, bool ignoreThisSolidBlock)
 		{
 			glm::ivec3 blockToUpdate = blocksToCheck.front();
 			blocksToCheck.pop();
@@ -2193,7 +2246,8 @@ namespace Minecraft
 			}
 
 			int arrayExpansion = to1DArray(blockToUpdateX, blockToUpdateY, blockToUpdateZ);
-			if (!blockToUpdateChunk->data[arrayExpansion].isTransparent())
+			if (!ignoreThisSolidBlock &&
+				!blockToUpdateChunk->data[arrayExpansion].isTransparent())
 			{
 				return;
 			}
@@ -2206,7 +2260,8 @@ namespace Minecraft
 				const glm::ivec3 pos = glm::ivec3(blockToUpdateX + iNormal.x, blockToUpdateY + iNormal.y, blockToUpdateZ + iNormal.z);
 				Block neighbor = getBlockInternal(blockToUpdateChunk, pos.x, pos.y, pos.z);
 				int neighborLight = neighbor.calculatedSkyLightLevel();
-				if (neighborLight != 0 && neighborLight < myOldLightLevel && neighbor.isTransparent())
+				bool neighborLightEffectedByMe = (neighborLight < myOldLightLevel) || (myOldLightLevel == 31 && iNormal.y == -1);
+				if (neighborLight != 0 && neighborLightEffectedByMe && neighbor.isTransparent())
 				{
 					Chunk* neighborChunk = blockToUpdateChunk;
 					int neighborLocalX = pos.x;

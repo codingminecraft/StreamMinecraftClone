@@ -34,6 +34,8 @@ namespace Minecraft
 		extern std::string chunkSavePath;
 		extern uint32 seed;
 		extern std::atomic<float> seedAsFloat;
+		extern int worldTime;
+		extern bool doDaylightCycle;
 	}
 }
 
