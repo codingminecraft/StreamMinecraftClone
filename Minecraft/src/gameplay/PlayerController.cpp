@@ -169,81 +169,84 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
-			RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
-			if (res.hit)
+			if (!MainHud::viewingCraftScreen)
 			{
-				glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
-				DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
-
-				// TODO: Clean this garbage up
-				Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
-				//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
-				static float rotation = 0.0f;
-				static glm::vec3 verticalOffset = glm::vec3(0.0f);
-				static float speedDir = 0.05f;
-				static int changeDirTick = 0;
-				verticalOffset.y += speedDir * dt;
-				//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
-				rotation = rotation + 30.0f * dt;
-				changeDirTick++;
-				if (changeDirTick > 30)
+				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
+				if (res.hit)
 				{
-					changeDirTick = 0;
-					speedDir *= -1.0f;
-				}
-				if (rotation > 360.0f)
-				{
-					rotation = rotation / 360.0f;
-				}
+					glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
+					DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
 
-				if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
-				{
-					static Block newBlock{
-						0, 0, 0, 0
-					};
-					newBlock.id = MainHud::hotbarBlockIds[MainHud::currentInventorySlot];
-
-					if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
+					// TODO: Clean this garbage up
+					Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
+					//Renderer::drawBox(res.point, glm::vec3(0.1f, 0.1f, 0.1f), Styles::defaultStyle);
+					static float rotation = 0.0f;
+					static glm::vec3 verticalOffset = glm::vec3(0.0f);
+					static float speedDir = 0.05f;
+					static int changeDirTick = 0;
+					verticalOffset.y += speedDir * dt;
+					//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
+					rotation = rotation + 30.0f * dt;
+					changeDirTick++;
+					if (changeDirTick > 30)
 					{
-						glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
-						ChunkManager::setBlock(worldPos, newBlock);
+						changeDirTick = 0;
+						speedDir *= -1.0f;
+					}
+					if (rotation > 360.0f)
+					{
+						rotation = rotation / 360.0f;
+					}
+
+					if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
+					{
+						static Block newBlock{
+							0, 0, 0, 0
+						};
+						newBlock.id = MainHud::hotbarBlockIds[MainHud::currentInventorySlot];
+
+						if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
+						{
+							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
+							ChunkManager::setBlock(worldPos, newBlock);
+							blockPlaceDebounce = blockPlaceDebounceTime;
+						}
+					}
+					else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
+					{
+						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
+						ChunkManager::removeBlock(worldPos);
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
 				}
-				else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
+				else
 				{
-					glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
-					ChunkManager::removeBlock(worldPos);
-					blockPlaceDebounce = blockPlaceDebounceTime;
+					DebugStats::blockLookingAt = BlockMap::NULL_BLOCK;
 				}
-			}
-			else
-			{
-				DebugStats::blockLookingAt = BlockMap::NULL_BLOCK;
-			}
 
-			controller.viewAxis.x = Input::deltaMouseX;
-			controller.viewAxis.y = Input::deltaMouseY;
-			controller.isRunning = Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+				controller.viewAxis.x = Input::deltaMouseX;
+				controller.viewAxis.y = Input::deltaMouseY;
+				controller.isRunning = Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL);
 
-			controller.movementAxis.x =
-				Input::isKeyPressed(GLFW_KEY_W)
-				? 1.0f
-				: Input::isKeyPressed(GLFW_KEY_S)
-				? -1.0f
-				: 0.0f;
-			controller.movementAxis.z =
-				Input::isKeyPressed(GLFW_KEY_D)
-				? 1.0f
-				: Input::isKeyPressed(GLFW_KEY_A)
-				? -1.0f
-				: 0.0f;
+				controller.movementAxis.x =
+					Input::isKeyPressed(GLFW_KEY_W)
+					? 1.0f
+					: Input::isKeyPressed(GLFW_KEY_S)
+					? -1.0f
+					: 0.0f;
+				controller.movementAxis.z =
+					Input::isKeyPressed(GLFW_KEY_D)
+					? 1.0f
+					: Input::isKeyPressed(GLFW_KEY_A)
+					? -1.0f
+					: 0.0f;
 
-			if (rb.onGround)
-			{
-				if (Input::keyBeginPress(GLFW_KEY_SPACE))
+				if (rb.onGround)
 				{
-					controller.applyJumpForce = true;
+					if (Input::keyBeginPress(GLFW_KEY_SPACE))
+					{
+						controller.applyJumpForce = true;
+					}
 				}
 			}
 
@@ -251,6 +254,15 @@ namespace Minecraft
 			{
 				gameMode = GameMode::Spectator;
 				rb.isSensor = true;
+			}
+
+			if (Input::keyBeginPress(GLFW_KEY_E))
+			{
+				MainHud::viewingCraftScreen = !MainHud::viewingCraftScreen;
+				CursorMode mode = MainHud::viewingCraftScreen
+					? CursorMode::Normal
+					: CursorMode::Locked;
+				Application::getWindow().setCursorMode(mode);
 			}
 
 			updateInventory(dt);

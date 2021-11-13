@@ -13,6 +13,7 @@ namespace Minecraft
 
 		extern int currentInventorySlot;
 		extern int hotbarBlockIds[9];
+		extern bool viewingCraftScreen;
 	}
 }
 

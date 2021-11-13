@@ -49,3 +49,10 @@ regularInventorySlot:
   uvSize:
     x: 32
     y: 32
+inventoryHud:
+  uvStart:
+    x: 276
+    y: 0
+  uvSize:
+    x: 216
+    y: 194
