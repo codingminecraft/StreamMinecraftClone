@@ -1225,7 +1225,6 @@ namespace Minecraft
 						{
 							chunk->data[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
 						}
-						g_logger_assert(chunk->data[arrayExpansion].id >= 0 && chunk->data[arrayExpansion].id < 21, "Invalid block id.");
 					}
 				}
 			}
@@ -1836,15 +1835,6 @@ namespace Minecraft
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)
 		{
-			if (chunkCoordinates == glm::ivec2(-22, 4))
-			{
-				_CrtDbgBreak();
-			}
-			g_logger_assert(blockData != nullptr, "Bad block data");
-			for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
-			{
-				g_logger_assert(blockData[i].id != -12585, "Bad block data");
-			}
 			std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
 			FILE* fp = fopen(filepath.c_str(), "wb");
 			fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
@@ -1869,8 +1859,6 @@ namespace Minecraft
 				{
 					for (int z = 0; z < World::ChunkWidth; z++)
 					{
-						int id = blockData[to1DArray(x, y, z)].id;
-						g_logger_assert(id >= 0 && id < 21, "Bad block data when deserializing.");
 						blockData[to1DArray(x, y, z)].setLightLevel(0);
 						blockData[to1DArray(x, y, z)].setSkyLightLevel(0);
 					}
