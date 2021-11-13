@@ -143,3 +143,10 @@ water:
   isSolid: false
   isTransparent: true
   isBlendable: true
+birch_planks:
+  id: 20
+  side: birch_planks
+  top: birch_planks
+  bottom: birch_planks
+  isSolid: true
+  isTransparent: false

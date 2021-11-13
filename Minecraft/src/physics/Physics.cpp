@@ -358,37 +358,37 @@ namespace Minecraft
 				// We are in the top-right-front quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::BACK);
 			}
-			else if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
+			else if (b1ToB2.x > 0 && b1ToB2.y > 0 && b1ToB2.z <= 0)
 			{
 				// We are in the top-right-back quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::BOTTOM, CollisionFace::FRONT);
 			}
-			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
+			else if (b1ToB2.x > 0 && b1ToB2.y <= 0 && b1ToB2.z > 0)
 			{
 				// We are in the bottom-right-front quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::BACK);
 			}
-			else if (b1ToB2.x > 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
+			else if (b1ToB2.x > 0 && b1ToB2.y <= 0 && b1ToB2.z <= 0)
 			{
 				// We are in the bottom-right-back quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::LEFT, CollisionFace::TOP, CollisionFace::FRONT);
 			}
-			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
+			else if (b1ToB2.x <= 0 && b1ToB2.y > 0 && b1ToB2.z > 0)
 			{
 				// We are in the top-left-front quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::BACK);
 			}
-			else if (b1ToB2.x < 0 && b1ToB2.y > 0 && b1ToB2.z < 0)
+			else if (b1ToB2.x <= 0 && b1ToB2.y > 0 && b1ToB2.z <= 0)
 			{
 				// We are in the top-left-back quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::BOTTOM, CollisionFace::FRONT);
 			}
-			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z > 0)
+			else if (b1ToB2.x <= 0 && b1ToB2.y <= 0 && b1ToB2.z > 0)
 			{
 				// We are in the bottom-left-front quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::BACK);
 			}
-			else if (b1ToB2.x < 0 && b1ToB2.y < 0 && b1ToB2.z < 0)
+			else if (b1ToB2.x <= 0 && b1ToB2.y <= 0 && b1ToB2.z <= 0)
 			{
 				// We are in the bottom-left-back quadrant
 				getQuadrantResult(t1, t2, b2Expanded, &res, CollisionFace::RIGHT, CollisionFace::TOP, CollisionFace::FRONT);
