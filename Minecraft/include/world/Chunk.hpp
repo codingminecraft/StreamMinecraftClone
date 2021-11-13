@@ -10,6 +10,7 @@ namespace Minecraft
 	{
 		None,
 		Unloaded,
+		Unloading,
 		Saving,
 		Loading,
 		Loaded

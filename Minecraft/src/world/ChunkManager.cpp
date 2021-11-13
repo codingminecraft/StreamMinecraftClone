@@ -221,7 +221,7 @@ namespace Minecraft
 							ChunkPrivate::serialize(World::chunkSavePath, command.chunk->data, command.chunk->chunkCoords);
 
 							// Tell the chunk manager we are done
-							ChunkManager::unloadChunk(command.chunk->chunkCoords);
+							command.chunk->state = ChunkState::Unloading;
 						}
 						break;
 						}
@@ -677,6 +677,7 @@ namespace Minecraft
 			{
 				if (chunk->state != ChunkState::Saving && chunk->data)
 				{
+					chunk->state = ChunkState::Saving;
 					FillChunkCommand cmd;
 					cmd.type = CommandType::SaveBlockData;
 					cmd.chunk = chunk;
@@ -945,22 +946,6 @@ namespace Minecraft
 			}
 		}
 
-		void unloadChunk(const glm::ivec2& chunkCoordinates)
-		{
-			// TODO: Ensure this is only ever called from the main thread
-			//std::lock_guard lock(chunkMtx);
-			auto& iter = chunks.find(chunkCoordinates);
-			// TODO: Investigate why sometimes iter->blockData is nullptr
-			// I think it might be because I wasn't locking the mutex, but double check just in case
-			if (iter != chunks.end() && iter->second.state != ChunkState::Saving)
-			{
-				DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool().poolSize() * sizeof(Block));
-
-				chunkFreeList.push_back(iter->second.data);
-				chunks.erase(iter);
-			}
-		}
-
 		void checkChunkRadius(const glm::vec3& playerPosition)
 		{
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
@@ -982,9 +967,28 @@ namespace Minecraft
 						auto& iter = chunks.find(chunkPos);
 						if (iter != chunks.end() && iter->second.state != ChunkState::Saving)
 						{
-							queueSaveChunk(subChunks()[i]->chunkCoordinates);
+							if (iter->second.state != ChunkState::Saving)
+							{
+								queueSaveChunk(subChunks()[i]->chunkCoordinates);
+							}
 						}
 					}
+				}
+			}
+
+			// Unload any chunks that have been deserialized
+			for (auto iter = chunks.begin(); iter != chunks.end();)
+			{
+				if (iter->second.state == ChunkState::Unloading)
+				{
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool().poolSize() * sizeof(Block));
+
+					chunkFreeList.push_back(iter->second.data);
+					iter = chunks.erase(iter);
+				}
+				else
+				{
+					iter++;
 				}
 			}
 
@@ -1221,6 +1225,7 @@ namespace Minecraft
 						{
 							chunk->data[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
 						}
+						g_logger_assert(chunk->data[arrayExpansion].id >= 0 && chunk->data[arrayExpansion].id < 21, "Invalid block id.");
 					}
 				}
 			}
@@ -1831,6 +1836,15 @@ namespace Minecraft
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)
 		{
+			if (chunkCoordinates == glm::ivec2(-22, 4))
+			{
+				_CrtDbgBreak();
+			}
+			g_logger_assert(blockData != nullptr, "Bad block data");
+			for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
+			{
+				g_logger_assert(blockData[i].id != -12585, "Bad block data");
+			}
 			std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
 			FILE* fp = fopen(filepath.c_str(), "wb");
 			fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
@@ -1855,6 +1869,8 @@ namespace Minecraft
 				{
 					for (int z = 0; z < World::ChunkWidth; z++)
 					{
+						int id = blockData[to1DArray(x, y, z)].id;
+						g_logger_assert(id >= 0 && id < 21, "Bad block data when deserializing.");
 						blockData[to1DArray(x, y, z)].setLightLevel(0);
 						blockData[to1DArray(x, y, z)].setSkyLightLevel(0);
 					}
@@ -2124,7 +2140,7 @@ namespace Minecraft
 			}
 
 			int arrayExpansion = to1DArray(blockToUpdateX, blockToUpdateY, blockToUpdateZ);
-			if (!ignoreThisSolidBlock && 
+			if (!ignoreThisSolidBlock &&
 				!blockToUpdateChunk->data[arrayExpansion].isTransparent() &&
 				!blockToUpdateChunk->data[arrayExpansion].isLightSource())
 			{
