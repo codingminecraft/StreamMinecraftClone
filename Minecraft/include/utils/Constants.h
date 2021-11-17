@@ -79,6 +79,15 @@ namespace Minecraft
 		void init();
 		void free();
 	}
+
+	namespace Player
+	{
+		const int numHotbarSlots = 9;
+		const int numMainInventoryRows = 3;
+		const int numMainInventoryColumns = 9;
+		const int numMainInventorySlots = numMainInventoryRows * numMainInventoryColumns;
+		const int numTotalSlots = numMainInventorySlots + numHotbarSlots;
+	}
 }
 
 #endif

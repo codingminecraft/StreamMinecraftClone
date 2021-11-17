@@ -3,16 +3,16 @@
 
 namespace Minecraft
 {
+	struct Inventory;
+
 	namespace MainHud
 	{
 		void init();
 
-		void update(float dt);
+		void update(float dt, Inventory& playerInventory);
 
 		void free();
 
-		extern int currentInventorySlot;
-		extern int hotbarBlockIds[9];
 		extern bool viewingCraftScreen;
 	}
 }

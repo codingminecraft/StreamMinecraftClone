@@ -11,6 +11,7 @@
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
 #include "gameplay/CharacterController.h"
+#include "gameplay/Inventory.h"
 #include "gameplay/CommandLine.h"
 #include "world/ChunkManager.h"
 #include "world/BlockMap.h"
@@ -58,9 +59,9 @@ namespace Minecraft
 		static const TextureFormat* bottomSprite;
 
 		// Internal functions
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
+		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
-		static void updateInventory(float dt);
+		static void updateInventory(float dt, Inventory& inventory);
 
 		void init()
 		{
@@ -77,26 +78,18 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
-			if (CommandLine::isActive)
-			{
-				if (gameMode == GameMode::Survival)
-				{
-					MainHud::update(dt);
-				}
-				return;
-			}
-
 			if (playerId == Ecs::nullEntity || registry.getComponent<Tag>(playerId).type != TagType::Player)
 			{
 				playerId = registry.find(TagType::Player);
 			}
 
 			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
-				&& registry.hasComponent<Rigidbody>(playerId))
+				&& registry.hasComponent<Rigidbody>(playerId) && registry.hasComponent<Inventory>(playerId))
 			{
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
+				Inventory& inventory = registry.getComponent<Inventory>(playerId);
 
 				if (generateCubemap)
 				{
@@ -151,7 +144,7 @@ namespace Minecraft
 				switch (gameMode)
 				{
 				case GameMode::Survival:
-					updateSurvival(dt, transform, controller, rb);
+					updateSurvival(dt, transform, controller, rb, inventory);
 					break;
 				case GameMode::Spectator:
 					updateSpectator(dt, transform, controller, rb);
@@ -165,11 +158,11 @@ namespace Minecraft
 			}
 		}
 
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
+		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
 		{
 			blockPlaceDebounce -= dt;
 
-			if (!MainHud::viewingCraftScreen)
+			if (!MainHud::viewingCraftScreen && !CommandLine::isActive)
 			{
 				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
 				if (res.hit)
@@ -203,7 +196,7 @@ namespace Minecraft
 						static Block newBlock{
 							0, 0, 0, 0
 						};
-						newBlock.id = MainHud::hotbarBlockIds[MainHud::currentInventorySlot];
+						newBlock.id = inventory.hotbar[inventory.currentHotbarSlot].blockId;
 
 						if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
 						{
@@ -265,8 +258,8 @@ namespace Minecraft
 				Application::getWindow().setCursorMode(mode);
 			}
 
-			updateInventory(dt);
-			MainHud::update(dt);
+			updateInventory(dt, inventory);
+			MainHud::update(dt, inventory);
 		}
 
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
@@ -301,26 +294,26 @@ namespace Minecraft
 			}
 		}
 
-		static void updateInventory(float dt)
+		static void updateInventory(float dt, Inventory& inventory)
 		{
-			for (int i = 0; i < 9; i++)
+			for (int i = 0; i < Player::numHotbarSlots; i++)
 			{
 				if (Input::keyBeginPress(GLFW_KEY_1 + i))
 				{
-					MainHud::currentInventorySlot = i;
+					inventory.currentHotbarSlot = i;
 				}
 			}
 
 			if (Input::mouseScrollY != 0)
 			{
-				MainHud::currentInventorySlot -= (int)Input::mouseScrollY;
-				if (MainHud::currentInventorySlot < 0)
+				inventory.currentHotbarSlot -= (int)Input::mouseScrollY;
+				if (inventory.currentHotbarSlot < 0)
 				{
-					MainHud::currentInventorySlot = CMath::negativeMod(MainHud::currentInventorySlot, 0, 8);
+					inventory.currentHotbarSlot = CMath::negativeMod(inventory.currentHotbarSlot, 0, Player::numHotbarSlots - 1);
 				}
-				else if (MainHud::currentInventorySlot > 8)
+				else if (inventory.currentHotbarSlot >= Player::numHotbarSlots)
 				{
-					MainHud::currentInventorySlot = MainHud::currentInventorySlot % 9;
+					inventory.currentHotbarSlot = inventory.currentHotbarSlot % 9;
 				}
 			}
 		}

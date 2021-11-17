@@ -25,6 +25,7 @@
 #include "gameplay/PlayerController.h"
 #include "gameplay/CharacterController.h"
 #include "gameplay/CharacterSystem.h"
+#include "gameplay/Inventory.h"
 #include "utils/TexturePacker.h"
 #include "utils/DebugStats.h"
 #include "utils/CMath.h"
@@ -106,6 +107,7 @@ namespace Minecraft
 			registry->addComponent<BoxCollider>(player);
 			registry->addComponent<Rigidbody>(player);
 			registry->addComponent<Tag>(player);
+			registry->addComponent<Inventory>(player);
 			BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
 			boxCollider.size.x = 0.55f;
 			boxCollider.size.y = 1.8f;
@@ -126,6 +128,8 @@ namespace Minecraft
 			controller.jumpForce = 4.7f;
 			controller.downJumpForce = -10.2f;
 			controller.cameraOffset = glm::vec3(0, 0.65f, 0);
+			Inventory& inventory = registry->getComponent<Inventory>(player);
+			g_memory_zeroMem(&inventory, sizeof(Inventory));
 			Tag& tag = registry->getComponent<Tag>(player);
 			tag.type = TagType::Player;
 
@@ -136,6 +140,7 @@ namespace Minecraft
 			registry->addComponent<Rigidbody>(randomEntity);
 			registry->addComponent<CharacterController>(randomEntity);
 			registry->addComponent<Tag>(randomEntity);
+			registry->addComponent<Inventory>(randomEntity);
 			BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
 			boxCollider2.size.x = 0.55f;
 			boxCollider2.size.y = 1.8f;
@@ -155,6 +160,8 @@ namespace Minecraft
 			controller2.applyJumpForce = false;
 			controller2.jumpForce = 16.0f;
 			controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
+			Inventory& inventory2 = registry->getComponent<Inventory>(randomEntity);
+			g_memory_zeroMem(&inventory2, sizeof(Inventory));
 			Tag& tag2 = registry->getComponent<Tag>(randomEntity);
 			tag2.type = TagType::None;
 
@@ -281,6 +288,18 @@ namespace Minecraft
 			{
 				lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
 				ChunkManager::checkChunkRadius(playerPosition);
+			}
+		}
+
+		void givePlayerBlock(int blockId)
+		{
+			Inventory& inventory = registry->getComponent<Inventory>(playerId);
+			for (int i = 0; i < Player::numHotbarSlots; i++)
+			{
+				if (!inventory.slots[i].blockId)
+				{
+					inventory.slots[i].blockId = blockId;
+				}
 			}
 		}
 

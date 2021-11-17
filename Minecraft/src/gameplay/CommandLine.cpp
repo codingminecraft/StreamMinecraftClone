@@ -195,7 +195,7 @@ namespace Minecraft
 			int blockId = BlockMap::getBlockId(blockName);
 			if (blockId)
 			{
-				MainHud::hotbarBlockIds[slot] = blockId;
+				World::givePlayerBlock(blockId);
 			}
 			else
 			{
