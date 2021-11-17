@@ -12,21 +12,14 @@ namespace Minecraft
 
 		extern EntityId nullEntity = Internal::createEntityId(UINT32_MAX, 0);
 
-		void ComponentPool::free()
-		{
-			if (data)
-			{
-				g_memory_free(data);
-			}
-		}
-
 		EntityId Registry::find(TagType type)
 		{
-			for (EntityDescription& description : entities)
+			auto& tagView = view<Tag>();
+			for (EntityId entity : tagView)
 			{
-				if (hasComponent<Tag>(description.id) && getComponent<Tag>(description.id).type == type)
+				if (getComponent<Tag>(entity).type == type)
 				{
-					return description.id;
+					return entity;
 				}
 			}
 

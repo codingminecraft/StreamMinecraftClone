@@ -19,8 +19,8 @@ namespace Minecraft
 		namespace Internal
 		{
 			extern int32 ComponentCounter;
-			const int MAX_COMPONENTS = 32;
-			const int MAX_ENTITIES = 4096;
+			const int sparseSetPoolSize = 8;
+			const int32 MaxNumComponents = 256;
 
 			inline EntityId createEntityId(EntityIndex index, EntityVersion version)
 			{
@@ -41,9 +41,223 @@ namespace Minecraft
 			{
 				return getEntityIndex(id) != getEntityIndex(nullEntity);
 			}
-		}
 
-		typedef std::bitset<Internal::MAX_COMPONENTS> ComponentMask;
+			struct SparseSetPool
+			{
+				EntityIndex startIndex;
+				EntityId entities[sparseSetPoolSize];
+
+				void init()
+				{
+					const EntityIndex nullIndex = getEntityIndex(nullEntity);
+					for (int i = 0; i < sparseSetPoolSize; i++)
+					{
+						entities[i] = nullIndex;
+					}
+				}
+			};
+
+			struct SparseSet
+			{
+				int componentId;
+				int maxNumComponents;
+				int numComponents;
+				int numPools;
+
+				SparseSetPool* pools;
+				// Number of entities is always equal to numComponents for a sparse set
+				EntityId* entities;
+				char* data;
+				size_t componentSize;
+
+				void free()
+				{
+					if (pools)
+					{
+						g_memory_free(pools);
+						pools = nullptr;
+					}
+
+					if (entities)
+					{
+						g_memory_free(entities);
+						entities = nullptr;
+					}
+
+					if (data)
+					{
+						g_memory_free(data);
+						data = nullptr;
+					}
+
+					maxNumComponents = 0;
+					numComponents = 0;
+					numPools = 0;
+				}
+
+				inline SparseSetPool* getPool(EntityIndex index)
+				{
+					// TODO: Change this to a hashmap or something for O(1) lookup time
+					// For now do a simple linear search through the pools
+					for (int i = 0; i < numPools; i++)
+					{
+						SparseSetPool& pool = pools[i];
+						if (pool.startIndex <= index && pool.startIndex + sparseSetPoolSize > index)
+						{
+							return &pool;
+						}
+					}
+
+					return nullptr;
+				}
+
+				template<typename T>
+				inline T* get(EntityIndex index)
+				{
+					SparseSetPool* pool = getPool(index);
+					if (!pool)
+					{
+						g_logger_error("Invalid entity '%d' for component '%d'", index, componentId);
+						return nullptr;
+					}
+
+					int denseArrayIndex = pool->entities[index - pool->startIndex];
+					g_logger_assert((denseArrayIndex < numComponents && denseArrayIndex >= 0), "Invalid dense array index.");
+					return (T*)(data + denseArrayIndex * componentSize);
+				}
+
+				template<typename T>
+				inline void add(EntityId entity, const T& component)
+				{
+					EntityIndex index = getEntityIndex(entity);
+					SparseSetPool* pool = getPool(index);
+					if (!pool)
+					{
+						const int newNumPools = numPools + 1;
+						SparseSetPool* newPools = (SparseSetPool*)g_memory_realloc(pools, numPools * sizeof(SparseSetPool));
+						if (!newPools)
+						{
+							g_logger_error("Failed to allocate memory for new sparse set pool for component '%d'", componentId);
+							return;
+						}
+						numPools = newNumPools;
+						pools = newPools;
+						pools[numPools - 1].init();
+						pools[numPools - 1].startIndex = index;
+						pool = &pools[numPools - 1];
+					}
+
+					int nextIndex = numComponents;
+					if (nextIndex >= maxNumComponents)
+					{
+						int newMaxNumComponents = maxNumComponents * 2;
+						char* newComponentMemory = (char*)g_memory_realloc(data, componentSize * newMaxNumComponents);
+						EntityId* newEntityMemory = (EntityId*)g_memory_realloc(entities, sizeof(EntityId) * newMaxNumComponents);
+						if (!newComponentMemory || !newEntityMemory)
+						{
+							// Just free both of the reallocs if it ever fails
+							g_memory_free(newComponentMemory);
+							g_memory_free(newEntityMemory);
+							g_logger_error("Failed to allocate new memory for component pool or entities for component '%d'", componentId);
+							return;
+						}
+						data = newComponentMemory;
+						entities = newEntityMemory;
+						maxNumComponents = newMaxNumComponents;
+					}
+
+					pool->entities[index - pool->startIndex] = nextIndex;
+					g_memory_copyMem(data + nextIndex * componentSize, (void*)&component, componentSize);
+					entities[nextIndex] = index;
+					numComponents++;
+				}
+
+				template<typename T>
+				inline T* addOrGet(EntityId entity)
+				{
+					if (!exists(entity))
+					{
+						add<T>(entity, T{});
+					}
+
+					return get<T>(entity);
+				}
+
+				inline bool exists(EntityId entity)
+				{
+					const EntityIndex index = getEntityIndex(entity);
+					SparseSetPool* pool = getPool(index);
+					if (!pool)
+					{
+						return false;
+					}
+
+					return pool->entities[index - pool->startIndex] != getEntityIndex(nullEntity);
+				}
+
+				inline void remove(EntityId entity)
+				{
+					const EntityIndex index = getEntityIndex(entity);
+					SparseSetPool* pool = getPool(index);
+					if (!pool || index >= numComponents)
+					{
+						g_logger_warning("Tried to remove an entity '%d' that did not exist for component '%d'", index, componentId);
+						return;
+					}
+
+					int denseArrayIndex = pool->entities[index - pool->startIndex];
+					if (denseArrayIndex < numComponents - 1 && numComponents > 2)
+					{
+						// If the component data is not already at the end of the component array
+						// Swap it with the component at the end of the array and update all indices accordingly
+						EntityIndex entityToSwapIndex = entities[numComponents - 1];
+						SparseSetPool* entityToSwapPool = pool;
+						if (entityToSwapIndex < entityToSwapPool->startIndex || entityToSwapIndex >= entityToSwapPool->startIndex + sparseSetPoolSize)
+						{
+							entityToSwapPool = getPool(entityToSwapIndex);
+							g_logger_assert(entityToSwapPool != nullptr, "Invalid entity was somehow stored in the dense array...");
+						}
+
+						// Swap this entity with the other entity
+						entityToSwapPool->entities[entityToSwapIndex - entityToSwapPool->startIndex] = denseArrayIndex;
+						entities[denseArrayIndex] = entities[numComponents - 1];
+						// Swap the components
+						data[denseArrayIndex] = data[numComponents - 1];
+					}
+
+					// Mark this entity as gone and decrease the numComponents
+					pool->entities[index - pool->startIndex] = getEntityIndex(nullEntity);
+					numComponents--;
+				}
+
+				template<typename T>
+				void init(EntityIndex startIndex)
+				{
+					g_logger_assert(std::is_pod<T>(), "Component must be POD. Component %s is not POD.", typeid(T).name());
+					componentSize = sizeof(T);
+
+					numPools = 1;
+					pools = (SparseSetPool*)g_memory_allocate(numPools * sizeof(SparseSetPool));
+					pools[0].init();
+					pools[0].startIndex = startIndex;
+
+					numComponents = 0;
+					maxNumComponents = 8;
+					data = (char*)g_memory_allocate(componentSize * maxNumComponents);
+					entities = (EntityId*)g_memory_allocate(sizeof(EntityId) * maxNumComponents);
+				}
+
+				template<typename T>
+				static SparseSet defaultSet(EntityIndex index)
+				{
+					SparseSet res;
+					res.componentId = Ecs::componentId<T>();
+					res.init<T>(index);
+
+					return res;
+				}
+			};
+		}
 
 		template<typename T>
 		int32 componentId()
@@ -57,46 +271,10 @@ namespace Minecraft
 			return Internal::getEntityIndex(entity) == Internal::getEntityIndex(nullEntity);
 		}
 
-		struct ComponentPool
-		{
-			char* data;
-			size_t componentSize;
-
-			void free();
-
-			template<typename T>
-			inline T* get(int index)
-			{
-				return (T*)(data + index * componentSize);
-			}
-
-			template<typename T>
-			void init()
-			{
-				g_logger_assert(std::is_pod<T>(), "Component must be POD. Component %s is not POD.", typeid(T).name());
-				componentSize = sizeof(T);
-				data = (char*)g_memory_allocate(componentSize * Internal::MAX_ENTITIES);
-			}
-
-			template<typename T>
-			static ComponentPool defaultPool()
-			{
-				ComponentPool res;
-				res.data = nullptr;
-				res.componentSize = 0;
-				return res;
-			}
-		};
-
 		struct Registry
 		{
-			struct EntityDescription
-			{
-				EntityId id;
-				ComponentMask mask;
-			};
-			std::vector<EntityDescription> entities;
-			std::vector<ComponentPool> componentPools;
+			std::vector<EntityId> entities;
+			std::vector<Internal::SparseSet> componentSets;
 			std::vector<EntityIndex> freeEntities;
 
 			EntityId createEntity()
@@ -105,19 +283,20 @@ namespace Minecraft
 				{
 					EntityIndex newIndex = freeEntities.back();
 					freeEntities.pop_back();
-					EntityId newId = Internal::createEntityId(newIndex, Internal::getEntityVersion(entities[newIndex].id));
-					entities[newIndex].id = newId;
-					return entities[newIndex].id;
+					// TODO: Versioning is broken, see if entity versioning is even necessary or not, it probably is...
+					EntityId newId = Internal::createEntityId(newIndex, Internal::getEntityVersion(entities[newIndex]));
+					entities[newIndex] = newId;
+					return entities[newIndex];
 				}
-				entities.emplace_back(EntityDescription{ Internal::createEntityId((uint32)entities.size(), 0), ComponentMask() });
-				return entities.back().id;
+				entities.emplace_back(Internal::createEntityId((uint32)entities.size(), 0));
+				return entities.back();
 			}
 
 			void free()
 			{
-				for (ComponentPool pool : componentPools)
+				for (Internal::SparseSet& set : componentSets)
 				{
-					pool.free();
+					set.free();
 				}
 			}
 
@@ -125,22 +304,17 @@ namespace Minecraft
 			T& addComponent(EntityId id)
 			{
 				int32 componentId = Ecs::componentId<T>();
+				const EntityIndex index = Internal::getEntityIndex(id);
 
-				if (componentPools.size() <= componentId)
+				if (componentSets.size() <= componentId)
 				{
-					componentPools.resize(componentId + 1, ComponentPool::defaultPool<T>());
-				}
-				if (!componentPools[componentId].data)
-				{
-					componentPools[componentId].init<T>();
+					componentSets.resize(componentId + 1, Internal::SparseSet::defaultSet<T>(index));
+					g_logger_assert(componentId < Internal::MaxNumComponents, "Exceeded the maximum number of components, you can increase this if needed.");
 				}
 
-				// Get the component at this id and initialize it to 0
-				T& component = *componentPools[componentId].get<T>(Internal::getEntityIndex(id));
-				g_memory_zeroMem(&component, sizeof(T));
+				// Get or add the component at this index
+				T& component = *componentSets[componentId].addOrGet<T>(index);
 
-				// Set the bitmask to indicate this entity has this component
-				entities[Internal::getEntityIndex(id)].mask.set(componentId, true);
 				return component;
 			}
 
@@ -152,25 +326,66 @@ namespace Minecraft
 			template<typename T>
 			bool hasComponent(EntityId id)
 			{
-				g_logger_assert(validEntity(id), "Cannot check if invalid entity %d has a component.", Internal::getEntityIndex(id));
-				int32 componentId = Ecs::componentId<T>();
-				return entities[Internal::getEntityIndex(id)].mask.test(componentId);
+				return hasComponentById(id, componentId<T>());
+			}
+
+			bool hasComponentById(EntityId id, int32 componentId)
+			{
+				if (!validEntity(id))
+				{
+					g_logger_error("Cannot check if invalid entity %d has a component.", Internal::getEntityIndex(id));
+					return false;
+				}
+
+				if (componentId >= componentSets.size() || componentId < 0)
+				{
+					g_logger_warning("Tried to check if an entity had component '%d', but a component of type '%d' does not exist in the registry.", componentId, componentId);
+					return false;
+				}
+
+				return componentSets[componentId].exists(id);
 			}
 
 			template<typename T>
 			T& getComponent(EntityId id)
 			{
-				g_logger_assert(hasComponent<T>(id), "Entity %d does not have component", Internal::getEntityIndex(id));
-				int32 componentId = Ecs::componentId<T>();
-				return *componentPools[componentId].get<T>(Internal::getEntityIndex(id));
+				const EntityIndex index = Internal::getEntityIndex(id);
+				int32 compId = Ecs::componentId<T>();
+				g_logger_assert(hasComponent<T>(id), "Entity '%d' does not have component '%d'", id, compId);
+
+				if (compId >= componentSets.size() || compId < 0)
+				{
+					g_logger_error("Tried to get invalid component '%d'", compId);
+				}
+				
+				// TODO: This will crash if the component is null, should we return a null component or something?
+				return *componentSets[compId].get<T>(id);
 			}
 
 			template<typename T>
-			void remove(EntityId id)
+			void removeComponent(EntityId id)
 			{
-				g_logger_assert(validEntity(id), "Cannot remove invalid entity %d.", Internal::getEntityIndex(id));
-				int32 componentId = Ecs::componentId<T>();
-				entities[Internal::getEntityIndex(id)].mask.set(componentId, false);
+				if (!validEntity(id))
+				{
+					g_logger_error("Tried to remove invalid entity %d.", Internal::getEntityIndex(id));
+					return;
+				}
+
+				int32 compId = Ecs::componentId<T>();
+				EntityIndex index = Internal::getEntityIndex(id);
+				if (index >= entities.size())
+				{
+					g_logger_error("Tried to remove component from invalid entity '%d'", id);
+					return;
+				}
+
+				if (compId < 0 || compId >= componentSets.size())
+				{
+					g_logger_error("Tried to remove component that does not exist '%d'", compId);
+					return;
+				}
+
+				componentSets[compId].remove(id);
 			}
 
 			template<typename... Components>
@@ -179,11 +394,29 @@ namespace Minecraft
 				return RegistryView<Components...>(*this);
 			}
 
+			void removeAllComponents(EntityId id)
+			{
+				EntityIndex index = Internal::getEntityIndex(id);
+				if (index >= entities.size())
+				{
+					g_logger_error("Tried to remove all components from invalid entity '%d'", id);
+					return;
+				}
+
+				for (int i = 0; i < componentSets.size(); i++)
+				{
+					if (componentSets[i].exists(id))
+					{
+						componentSets[i].remove(id);
+					}
+				}
+			}
+
 			void destroyEntity(EntityId id)
 			{
+				removeAllComponents(id);
 				EntityId newId = Internal::createEntityId(UINT32_MAX, Internal::getEntityVersion(id) + 1);
-				entities[Internal::getEntityIndex(id)].id = newId;
-				entities[Internal::getEntityIndex(id)].mask.reset();
+				entities[Internal::getEntityIndex(id)] = newId;
 				freeEntities.push_back(Internal::getEntityIndex(id));
 			}
 
@@ -211,19 +444,19 @@ namespace Minecraft
 			class Iterator
 			{
 			public:
-				Iterator(Registry& registry, EntityIndex index, ComponentMask mask, bool all) 
+				Iterator(Registry& registry, EntityIndex index, std::bitset<Internal::MaxNumComponents> mask, bool all)
 					: registry(registry), index(index), mask(mask), all(all)
 				{
 				}
 
 				EntityId operator*() const
 				{
-					return registry.entities[index].id;
+					return registry.entities[index];
 				}
 
 				bool operator==(const Iterator& other) const
 				{
-					return index == other.index || index == registry.entities.size();
+					return index == other.index;
 				}
 
 				bool operator!=(const Iterator& other) const
@@ -244,14 +477,17 @@ namespace Minecraft
 				bool validIndex()
 				{
 					// Is it a valid entity and has the correct component bitmask
-					return registry.validEntity(registry.entities[index].id) &&
-						(all || mask == (mask & registry.entities[index].mask));
+					return index >= 0 && registry.validEntity(registry.entities[index]) &&
+						(
+							all || 
+							RegistryView::hasRequiredComponents(registry, mask, registry.entities[index]
+						));
 				}
 
 			private:
 				EntityIndex index;
 				Registry& registry;
-				ComponentMask mask;
+				std::bitset<Internal::MaxNumComponents> mask;
 				bool all;
 			};
 
@@ -259,8 +495,10 @@ namespace Minecraft
 			{
 				int firstIndex = 0;
 				while (firstIndex < registry.entities.size() &&
-					(componentMask != (componentMask & registry.entities[firstIndex].mask)
-						|| !registry.validEntity(registry.entities[firstIndex].id)))
+					(
+						!hasRequiredComponents(registry, componentMask, registry.entities[firstIndex]) || 
+						!registry.validEntity(registry.entities[firstIndex])
+					))
 				{
 					firstIndex++;
 				}
@@ -273,9 +511,26 @@ namespace Minecraft
 			}
 
 		private:
+			static bool hasRequiredComponents(Registry& registry, const std::bitset<Internal::MaxNumComponents>& mask, EntityId entity)
+			{
+				bool hasRequiredComponents = true;
+				for (int i = 0; i < mask.size(); i++)
+				{
+					if (mask.test(i) && !registry.hasComponentById(entity, i))
+					{
+						hasRequiredComponents = false;
+						break;
+					}
+				}
+				return hasRequiredComponents;
+			}
+
+		private:
 			Registry& registry;
-			ComponentMask componentMask;
+			std::bitset<Internal::MaxNumComponents> componentMask;
 			bool all;
+
+			friend class Iterator;
 		};
 	}
 }
