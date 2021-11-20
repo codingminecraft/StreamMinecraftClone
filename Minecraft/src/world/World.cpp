@@ -339,7 +339,7 @@ namespace Minecraft
 			}
 		}
 
-		void givePlayerBlock(int blockId)
+		void givePlayerBlock(int blockId, int blockCount)
 		{
 			Inventory& inventory = registry->getComponent<Inventory>(playerId);
 			for (int i = 0; i < Player::numHotbarSlots; i++)
@@ -347,6 +347,7 @@ namespace Minecraft
 				if (!inventory.slots[i].blockId)
 				{
 					inventory.slots[i].blockId = blockId;
+					inventory.slots[i].count = blockCount;
 					break;
 				}
 			}

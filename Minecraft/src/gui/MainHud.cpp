@@ -3,6 +3,7 @@
 #include "renderer/Sprites.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
+#include "renderer/Font.h"
 #include "world/BlockMap.h"
 #include "input/Input.h"
 #include "gameplay/Inventory.h"
@@ -19,6 +20,7 @@ namespace Minecraft
 		static const Sprite* regularInventorySlot = nullptr;
 		static const Sprite* selectedInventorySlot = nullptr;
 		static const Sprite* inventoryHud = nullptr;
+		static const Font* defaultFont = nullptr;
 
 		static const glm::vec2 blockCursorSize = glm::vec2(0.1f, 0.1f);
 		static const glm::vec2 inventorySlotSize = glm::vec2(0.2f, 0.2f);
@@ -36,6 +38,8 @@ namespace Minecraft
 
 		// Internal functions
 		static void initSlotPositions();
+		static void updateCraftingScreen(Inventory& inventory);
+		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize);
 
 		void init()
 		{
@@ -44,6 +48,7 @@ namespace Minecraft
 			regularInventorySlot = &menuSprites.at(std::string("regularInventorySlot"));
 			selectedInventorySlot = &menuSprites.at(std::string("selectedInventorySlot"));
 			inventoryHud = &menuSprites.at(std::string("inventoryHud"));
+			defaultFont = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 
 			hoverStyle = Styles::defaultStyle;
 			hoverStyle.color = "#00000044"_hex;
@@ -68,6 +73,8 @@ namespace Minecraft
 			// Draw transparent overlay if needed
 			if (viewingCraftScreen)
 			{
+				// TODO: I shouldn't have to do this, it's changing somehow because fonts probably
+				hoverStyle.color = "#00000044"_hex;
 				Renderer::drawFilledSquare2D(glm::vec2(-3.0f, -1.5f), glm::vec2(6.0f, 3.0f), hoverStyle, -5);
 			}
 
@@ -88,19 +95,10 @@ namespace Minecraft
 					Renderer::drawTexture2D(*selectedInventorySlot, adjustedPosition, bigSize, Styles::defaultStyle);
 				}
 
-				int inventoryBlockId = inventory.hotbar[i].blockId;
-				if (inventoryBlockId != BlockMap::NULL_BLOCK.id && inventoryBlockId != BlockMap::AIR_BLOCK.id)
+				InventorySlot inventoryBlock = inventory.hotbar[i];
+				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id && inventoryBlock.blockId != BlockMap::AIR_BLOCK.id)
 				{
-					const BlockFormat& blockFormat = BlockMap::getBlock(inventoryBlockId);
-					const TextureFormat& format = BlockMap::getTextureFormat(blockFormat.itemPictureName);
-					static Sprite sprite;
-					sprite.texture = *format.texture;
-					sprite.uvStart = format.uvs[3];
-					sprite.uvSize = format.uvs[1] - sprite.uvStart;
-
-					const glm::vec2 smallSize = inventorySlotSize * 0.8f;
-					glm::vec2 adjustedPosition = currentSlotPosition + ((inventorySlotSize - smallSize) * 0.5f);
-					Renderer::drawTexture2D(sprite, adjustedPosition, smallSize, Styles::defaultStyle, 1);
+					drawItemInSlot(inventoryBlock, currentSlotPosition, inventorySlotSize, 0.8f);
 				}
 				currentSlotPosition.x += inventorySlotSize.x;
 			}
@@ -108,21 +106,7 @@ namespace Minecraft
 			// Draw the crafting screen
 			if (viewingCraftScreen)
 			{
-				Renderer::drawTexture2D(*inventoryHud, craftingInventoryPos, craftingInventorySize, Styles::defaultStyle, -2);
-				for (int i = 0; i < slotPositions.size(); i++)
-				{
-					glm::vec2 slotPosition = craftingInventoryPos + slotPositions[i];
-					if (Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
-						Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y)
-					{
-						//Renderer::drawTexture2D(*selectedInventorySlot, currentSlotPosition, slotSize2, Styles::defaultStyle, -1);
-						Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
-					}
-					else
-					{
-						//Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
-					}
-				}
+				updateCraftingScreen(inventory);
 			}
 		}
 
@@ -133,13 +117,110 @@ namespace Minecraft
 			selectedInventorySlot = nullptr;
 		}
 
+		static void updateCraftingScreen(Inventory& inventory)
+		{
+			static InventorySlot mouseItem = { BlockMap::NULL_BLOCK.id, 0 };
+			static bool isHoldingItem = false;
+
+			Renderer::drawTexture2D(*inventoryHud, craftingInventoryPos, craftingInventorySize, Styles::defaultStyle, -2);
+			for (int i = 0; i < slotPositions.size(); i++)
+			{
+				bool leftClickedInventorySlot = false;
+				bool rightClickedInventorySlot = false;
+				glm::vec2 slotPosition = craftingInventoryPos + slotPositions[i];
+				if (Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
+					Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y)
+				{
+					Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
+
+					leftClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT);
+					rightClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_RIGHT);
+				}
+
+				InventorySlot inventoryBlock = inventory.hotbar[i];
+				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id && inventoryBlock.blockId != BlockMap::AIR_BLOCK.id)
+				{
+					drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f);
+					if (leftClickedInventorySlot)
+					{
+						// Swap the block and mouse item if they are different
+						if (inventory.hotbar[i].blockId != mouseItem.blockId)
+						{
+							inventory.hotbar[i] = mouseItem;
+							mouseItem = inventoryBlock;
+							isHoldingItem = true;
+						}
+						// Otherwise add the count to the mouse block up to 64
+						else
+						{
+							mouseItem.count += inventory.hotbar[i].count;
+							inventory.hotbar[i].count = 0;
+							if (mouseItem.count > 64)
+							{
+								int leftover = mouseItem.count - 64;
+								mouseItem.count = 64;
+								inventory.hotbar[i].count += leftover;
+							}
+
+							if (inventory.hotbar[i].count == 0)
+							{
+								inventory.hotbar[i].blockId = BlockMap::NULL_BLOCK.id;
+							}
+						}
+					}
+					else if (rightClickedInventorySlot)
+					{
+						if (mouseItem.blockId == BlockMap::NULL_BLOCK.id)
+						{
+							int halfCount = inventory.hotbar[i].count / 2;
+							int mouseCount = inventory.hotbar[i].count - halfCount;
+							int inventoryCount = inventory.hotbar[i].count - mouseCount;
+							inventory.hotbar[i].count = inventoryCount;
+							mouseItem = inventoryBlock;
+							mouseItem.count = mouseCount;
+							if (inventory.hotbar[i].count == 0)
+							{
+								inventory.hotbar[i].blockId = BlockMap::NULL_BLOCK.id;
+							}
+							isHoldingItem = true;
+						}
+						else
+						{
+							inventory.hotbar[i].count++;
+							mouseItem.count--;
+							if (mouseItem.count == 0)
+							{
+								mouseItem.blockId = BlockMap::NULL_BLOCK.id;
+								isHoldingItem = false;
+							}
+						}
+					}
+				}
+				else if (leftClickedInventorySlot)
+				{
+					if (isHoldingItem)
+					{
+						InventorySlot tmp = mouseItem;
+						mouseItem = inventory.slots[i];
+						inventory.slots[i] = tmp;
+						isHoldingItem = false;
+					}
+				}
+			}
+
+			if (isHoldingItem)
+			{
+				glm::vec2 mousePos = glm::vec2(Input::mouseScreenX, Input::mouseScreenY);
+				drawItemInSlot(mouseItem, mousePos, craftingSlotSize, 1.0f);
+			}
+		}
+
 		static void initSlotPositions()
 		{
 			// Pixel coords are 10x10 for first inventory slot
 			glm::vec2 startPos = glm::vec2(10.0f, 10.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 			glm::vec2 currentSlotPosition = startPos;
 
-			
 			// The + 1 is because we have inventory slots and one extra row for the hotbar slots
 			for (int row = 0; row < Player::numMainInventoryColumns + 1; row++)
 			{
@@ -148,7 +229,7 @@ namespace Minecraft
 					slotPositions[column + (row * Player::numMainInventoryColumns)] = currentSlotPosition;
 					currentSlotPosition.x += craftingSlotSize.x;
 					// Add one pixel padding
-					currentSlotPosition.x += (1.0f)* (1.0f / craftingInventoryPixelSize.x)* craftingInventorySize.x;
+					currentSlotPosition.x += (1.0f) * (1.0f / craftingInventoryPixelSize.x) * craftingInventorySize.x;
 				}
 				currentSlotPosition.x = startPos.x;
 				currentSlotPosition.y += craftingSlotSize.y;
@@ -159,6 +240,32 @@ namespace Minecraft
 					// The hotbar slots are 9 pixels below the inventory slots
 					currentSlotPosition.y += (9.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 				}
+			}
+		}
+
+		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize)
+		{
+			g_logger_assert(block.blockId != BlockMap::NULL_BLOCK.id && block.blockId != BlockMap::AIR_BLOCK.id, "Invalid block id. Cannot draw null or air block.");
+			const BlockFormat& blockFormat = BlockMap::getBlock(block.blockId);
+			const TextureFormat& format = BlockMap::getTextureFormat(blockFormat.itemPictureName);
+			static Sprite sprite;
+			sprite.texture = *format.texture;
+			sprite.uvStart = format.uvs[3];
+			sprite.uvSize = format.uvs[1] - sprite.uvStart;
+
+			const glm::vec2 smallSize = slotSize * itemSize;
+			glm::vec2 adjustedPosition = slotPosition + ((slotSize - smallSize) * 0.5f);
+			Renderer::drawTexture2D(sprite, adjustedPosition, smallSize, Styles::defaultStyle, 1);
+
+			if (block.count > 1)
+			{
+				// Draw the count
+				const float fontScale = 0.0012f;
+				const float padding = 0.001f;
+				std::string blockCount = std::to_string(block.count);
+				glm::vec2 countSize = defaultFont->getSize(blockCount, fontScale);
+				glm::vec2 countPosition = (adjustedPosition + glm::vec2(smallSize.x, 0)) - glm::vec2((countSize).x + padding, 0);
+				Renderer::drawString(blockCount, *defaultFont, countPosition, fontScale, Styles::defaultStyle, 2);
 			}
 		}
 	}

@@ -64,7 +64,7 @@ namespace Minecraft
 				static std::array<char, 512> buffer;
 				if (!parseText)
 				{
-					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 3);
+					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 4);
 				}
 				else
 				{
@@ -173,17 +173,29 @@ namespace Minecraft
 
 		static void executeGivePlayer(CommandStringView* args, int argsLength)
 		{
-			if (argsLength != 1)
+			if (argsLength != 1 && argsLength != 2)
 			{
-				g_logger_warning("GivePlayer expects 1 arguments.");
+				g_logger_warning("GivePlayer expects 1 or 2 arguments.");
 				return;
 			}
 
 			const std::string blockName = std::string(args[0].string, args[0].string + args[0].length);
 			int blockId = BlockMap::getBlockId(blockName);
+
+			int blockCount = 1;
+			if (argsLength == 2)
+			{
+				if (!isInteger(args[1].string, args[1].length))
+				{
+					g_logger_warning("GivePlayer expects an integer as the second argument, the block count.");
+					return;
+				}
+				blockCount = atoi(args[1].string);
+			}
+
 			if (blockId)
 			{
-				World::givePlayerBlock(blockId);
+				World::givePlayerBlock(blockId, blockCount);
 			}
 			else
 			{
