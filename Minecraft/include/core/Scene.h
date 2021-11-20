@@ -23,6 +23,8 @@ namespace Minecraft
 
 		void free(bool freeGlobalResources=true);
 
+		bool isPlayingGame();
+
 		Camera& getCamera();
 	}
 }

@@ -120,6 +120,7 @@ uniform vec3 uSunDirection;
 uniform vec3 uPlayerPosition;
 uniform int uChunkRadius;
 uniform bool uIsDay;
+uniform vec3 uTint;
 
 vec3 lightColor = vec3(0.3, 0.3, 0.3);
 
@@ -165,7 +166,7 @@ void main()
 	float lightIntensity = pow(combinedLightLevel / 31.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(vec3(lightIntensity), 1.0) * vec4(fLightColor, 1.0);
 
-	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor;
+	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor * vec4(uTint, 1.0);
 	
 	// Weight function
 	float weight = clamp(pow(min(1.0, fragColor.a * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);

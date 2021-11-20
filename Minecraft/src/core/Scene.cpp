@@ -164,6 +164,11 @@ namespace Minecraft
 			currentScene = SceneType::None;
 		}
 
+		bool isPlayingGame()
+		{
+			return currentScene == SceneType::Game;
+		}
+
 		Camera& getCamera()
 		{
 			return camera;

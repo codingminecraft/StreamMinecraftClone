@@ -859,6 +859,11 @@ namespace Minecraft
 				}
 			}
 
+			glm::vec3 tint = glm::vec3(1.0f);
+			if (World::isPlayerUnderwater())
+			{
+				tint = glm::vec3(0.1f, 0.12f, 0.76f);
+			}
 			if (solidCommandBuffer().getNumCommands() > 0)
 			{
 				// Render opaque geometry
@@ -881,6 +886,7 @@ namespace Minecraft
 				opaqueShader.bind();
 				opaqueShader.uploadVec3("uPlayerPosition", playerPosition);
 				opaqueShader.uploadInt("uChunkRadius", World::ChunkRadius);
+				opaqueShader.uploadVec3("uTint", tint);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer().getNumCommands(), sizeof(DrawCommand));
 				solidCommandBuffer().softReset();
 			}
@@ -916,6 +922,7 @@ namespace Minecraft
 				transparentShader.bind();
 				transparentShader.uploadVec3("uPlayerPosition", playerPosition);
 				transparentShader.uploadInt("uChunkRadius", World::ChunkRadius);
+				transparentShader.uploadVec3("uTint", tint);
 
 				glBindVertexArray(globalVao);
 				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBuffer().getNumCommands(), sizeof(DrawCommand));

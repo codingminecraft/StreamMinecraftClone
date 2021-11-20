@@ -22,6 +22,7 @@ namespace Minecraft
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
 		void givePlayerBlock(int blockId, int blockCount);
+		bool isPlayerUnderwater();
 
 		const uint16 ChunkRadius = 12;
 		const uint16 ChunkCapacity = (ChunkRadius * 2) * (ChunkRadius * 2);

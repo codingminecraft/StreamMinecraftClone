@@ -119,6 +119,7 @@ uniform vec3 uSunDirection;
 uniform vec3 uPlayerPosition;
 uniform int uChunkRadius;
 uniform bool uIsDay;
+uniform vec3 uTint;
 
 void faceToNormal(in uint face, out vec3 normal)
 {
@@ -169,5 +170,5 @@ void main()
 	float lightIntensity = pow(combinedLightLevel / 31.0, 1.4) + baseLightColor;
 	vec4 lightColor = vec4(vec3(lightIntensity), 1.0) * vec4(fLightColor, 1.0);
 
-	FragColor = (lightColor * vec4(fColor, 1.0)) * objectColor;
+	FragColor = (lightColor * vec4(fColor, 1.0)) * objectColor * vec4(uTint, 1.0);
 }

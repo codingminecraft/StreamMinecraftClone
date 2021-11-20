@@ -353,6 +353,14 @@ namespace Minecraft
 			}
 		}
 
+		bool isPlayerUnderwater()
+		{
+			Transform& transform = registry->getComponent<Transform>(playerId);
+			CharacterController& characterController = registry->getComponent<CharacterController>(playerId);
+			Block blockAtEyeLevel = ChunkManager::getBlock(transform.position + characterController.cameraOffset);
+			return blockAtEyeLevel.id == 19;
+		}
+
 		void serialize()
 		{
 			std::string filepath = getWorldDataFilepath(savePath);
