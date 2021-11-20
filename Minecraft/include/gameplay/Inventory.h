@@ -9,6 +9,11 @@ namespace Minecraft
 	{
 		int16 blockId;
 		int8 count;
+
+		bool operator==(InventorySlot other) const
+		{
+			return other.blockId == blockId && other.count == count;
+		}
 	};
 
 	struct Inventory

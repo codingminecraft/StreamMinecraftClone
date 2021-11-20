@@ -33,6 +33,7 @@ namespace Minecraft
 		static const glm::vec2 craftingSlotSize = glm::vec2(21.0f, 21.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 
 		static std::array<glm::vec2, Player::numHotbarSlots + Player::numMainInventorySlots> slotPositions;
+		static InventorySlot draggedSlots[Player::numTotalSlots];
 
 		static Style hoverStyle;
 
@@ -122,6 +123,18 @@ namespace Minecraft
 		{
 			static InventorySlot mouseItem = { BlockMap::NULL_BLOCK.id, 0 };
 			static bool isHoldingItem = false;
+			static bool isDraggingRightClick = false;
+
+			if (isDraggingRightClick)
+			{
+				isDraggingRightClick = Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
+
+				if (!isDraggingRightClick)
+				{
+					// If they let go of the mouse button, clear the dragged slots
+					g_memory_zeroMem(draggedSlots, sizeof(draggedSlots));
+				}
+			}
 
 			Renderer::drawTexture2D(*inventoryHud, craftingInventoryPos, craftingInventorySize, Styles::defaultStyle, -2);
 			for (int i = 0; i < slotPositions.size(); i++)
@@ -129,17 +142,27 @@ namespace Minecraft
 				bool leftClickedInventorySlot = false;
 				bool rightClickedInventorySlot = false;
 				glm::vec2 slotPosition = craftingInventoryPos + slotPositions[i];
-				if (Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
-					Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y)
+
+				bool mouseOverSlot = Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
+					Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y;
+				bool draggedOver = isDraggingRightClick && draggedSlots[i] == inventory.slots[i] && 
+					draggedSlots[i].blockId != BlockMap::NULL_BLOCK.id;
+				if (mouseOverSlot || draggedOver)
 				{
 					Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
 
-					leftClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT);
-					rightClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_RIGHT);
+					if (mouseOverSlot)
+					{
+						if (!draggedOver)
+						{
+							leftClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT);
+							rightClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_RIGHT) || isDraggingRightClick;
+						}
+					}
 				}
 
 				InventorySlot inventoryBlock = inventory.hotbar[i];
-				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id && inventoryBlock.blockId != BlockMap::AIR_BLOCK.id)
+				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id)
 				{
 					drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f, false);
 					if (leftClickedInventorySlot)
@@ -153,7 +176,7 @@ namespace Minecraft
 						}
 						else
 						{
-							// Otherwise add the count to the mouse block up to 64
+							// Otherwise add the count to the inventory block up to 64
 							inventory.hotbar[i].count += mouseItem.count;
 							mouseItem.count = 0;
 							if (inventory.hotbar[i].count > 64)
@@ -172,7 +195,7 @@ namespace Minecraft
 					}
 					else if (rightClickedInventorySlot)
 					{
-						if (mouseItem.blockId == BlockMap::NULL_BLOCK.id)
+						if (mouseItem.blockId == BlockMap::NULL_BLOCK.id && !isDraggingRightClick)
 						{
 							int halfCount = inventory.hotbar[i].count / 2;
 							int mouseCount = inventory.hotbar[i].count - halfCount;
@@ -205,8 +228,10 @@ namespace Minecraft
 				else if (rightClickedInventorySlot)
 				{
 					isHoldingItem = decrementMouseItem(mouseItem, inventory.hotbar[i]);
+					draggedSlots[i] = inventory.hotbar[i];
 				}
 			}
+			isDraggingRightClick = Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
 
 			if (isHoldingItem)
 			{
@@ -217,6 +242,8 @@ namespace Minecraft
 
 		static void initSlotPositions()
 		{
+			g_memory_zeroMem(draggedSlots, sizeof(draggedSlots));
+
 			// Pixel coords are 10x10 for first inventory slot
 			glm::vec2 startPos = glm::vec2(10.0f, 10.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 			glm::vec2 currentSlotPosition = startPos;
@@ -252,7 +279,7 @@ namespace Minecraft
 		/// <returns>True if the mouse slot still contains items </returns>
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot)
 		{
-			if (mouseItem.blockId == inventorySlot.blockId || 
+			if (mouseItem.blockId == inventorySlot.blockId ||
 				(inventorySlot.blockId == BlockMap::NULL_BLOCK.id && mouseItem.blockId != BlockMap::NULL_BLOCK.id))
 			{
 				inventorySlot.count++;
