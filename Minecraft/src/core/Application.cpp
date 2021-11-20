@@ -8,6 +8,7 @@
 #include "renderer/Font.h"
 #include "renderer/Framebuffer.h"
 #include "renderer/Shader.h"
+#include "renderer/Sprites.h"
 #include "physics/Physics.h"
 #include "input/Input.h"
 #include "input/KeyBindings.h"
@@ -67,6 +68,7 @@ namespace Minecraft
 			opaqueTextureSpec.wrapS = WrapMode::None;
 			opaqueTextureSpec.wrapT = WrapMode::None;
 			opaqueTextureSpec.format = ByteFormat::RGBA_16F;
+			opaqueTextureSpec.path = "";
 
 			Texture accumulationTextureSpec;
 			accumulationTextureSpec.type = TextureType::_2D;
@@ -77,6 +79,7 @@ namespace Minecraft
 			accumulationTextureSpec.wrapS = WrapMode::None;
 			accumulationTextureSpec.wrapT = WrapMode::None;
 			accumulationTextureSpec.format = ByteFormat::RGBA_16F;
+			accumulationTextureSpec.path = "";
 
 			Texture revealTextureSpec;
 			revealTextureSpec.type = TextureType::_2D;
@@ -87,6 +90,7 @@ namespace Minecraft
 			revealTextureSpec.wrapS = WrapMode::None;
 			revealTextureSpec.wrapT = WrapMode::None;
 			revealTextureSpec.format = ByteFormat::R8_F;
+			revealTextureSpec.path = "";
 
 			mainFramebuffer = FramebufferBuilder(window.width, window.height)
 				.addColorAttachment(opaqueTextureSpec)
@@ -227,6 +231,12 @@ namespace Minecraft
 
 		void free()
 		{
+			// Free our assets
+			screenShader.destroy();
+			Sprites::freeAllSpritesheets();
+			Fonts::unloadAllFonts();
+			mainFramebuffer.destroy();
+
 			// Free all resources
 			Vertices::free();
 			GuiElements::free();
@@ -268,12 +278,14 @@ namespace Minecraft
 
 		static void freeWindow()
 		{
-			delete& getWindow();
+			delete &getWindow();
 		}
 
 		static void freeRegistry()
 		{
-			delete& getRegistry();
+			Ecs::Registry& registry = getRegistry();
+			registry.free();
+			delete &registry;
 		}
 	}
 }

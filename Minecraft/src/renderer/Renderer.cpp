@@ -100,6 +100,10 @@ namespace Minecraft
 				batch2D.free();
 			}
 			batch3DLines.free();
+
+			shader2D.destroy();
+			line3DShader.destroy();
+			regular3DShader.destroy();
 		}
 
 		void render()

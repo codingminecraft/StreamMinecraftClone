@@ -81,7 +81,7 @@ namespace Minecraft
 		ColorChannel swizzleFormat[4];
 		bool generateMipmap;
 
-		std::filesystem::path path;
+		char* path;
 
 		void bind() const;
 		void unbind() const;

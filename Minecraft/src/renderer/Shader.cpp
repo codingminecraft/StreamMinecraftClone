@@ -33,11 +33,19 @@ namespace Minecraft
 	static GLenum ShaderTypeFromString(const std::string& type);
 	static std::string ReadFile(const char* filepath);
 
-	void Shader::compile(const std::filesystem::path& shaderFilepath)
+	Shader::Shader()
 	{
-		filepath = shaderFilepath;
-		g_logger_info("Compiling shader: %s", filepath.string().c_str());
-		std::string fileSource = ReadFile(filepath.string().c_str());
+		filepath = nullptr;
+		programId = UINT32_MAX;
+		startIndex = UINT32_MAX;
+	}
+
+	void Shader::compile(const char* shaderFilepath)
+	{
+		filepath = (char*)g_memory_allocate(sizeof(char) * std::strlen(shaderFilepath));
+		std::strcpy(filepath, shaderFilepath);
+		g_logger_info("Compiling shader: %s", filepath);
+		std::string fileSource = ReadFile(filepath);
 
 		robin_hood::unordered_map<GLenum, std::string> shaderSources;
 
@@ -164,12 +172,21 @@ namespace Minecraft
 
 		programId = program;
 
-		g_logger_info("Shader compilation succeeded %s", filepath.string().c_str());
+		g_logger_info("Shader compilation succeeded %s", filepath);
 	}
 
 	void Shader::destroy()
 	{
-		glDeleteProgram(programId);
+		if (programId != UINT32_MAX)
+		{
+			glDeleteProgram(programId);
+		}
+
+		if (filepath != nullptr)
+		{
+			g_memory_free(filepath);
+			filepath = nullptr;
+		}
 	}
 
 	void Shader::bind() const
@@ -253,7 +270,7 @@ namespace Minecraft
 		int varLocation = GetVariableLocation(*this, varName);
 		glUniform1iv(varLocation, length, array);
 	}
-	
+
 	void Shader::uploadBool(const char* varName, bool value) const
 	{
 		int varLocation = GetVariableLocation(*this, varName);

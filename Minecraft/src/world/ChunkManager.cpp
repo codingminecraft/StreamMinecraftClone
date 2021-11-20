@@ -149,9 +149,13 @@ namespace Minecraft
 						std::lock_guard<std::mutex> queueLock(queueMtx);
 						if (!commands.empty())
 						{
-							command = commands.top();
-							commands.pop();
-							processCommand = true;
+							// Only process all commands if we're not stopping the thread worker.
+							// If we are stopping the thread worker, then only process save commands
+							do {
+								command = commands.top();
+								commands.pop();
+								processCommand = (!doWork && command.type == CommandType::SaveBlockData) || doWork;
+							} while (!doWork && command.type != CommandType::SaveBlockData && commands.size() > 0);
 						}
 					}
 
@@ -534,6 +538,8 @@ namespace Minecraft
 			chunkWorker().free();
 			solidCommandBuffer().free();
 			blendableCommandBuffer().free();
+
+			compositeShader.destroy();
 		}
 
 		void serialize()

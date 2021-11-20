@@ -102,6 +102,9 @@ namespace Minecraft
 		void free()
 		{
 			menuSkybox.destroy();
+			cubemapShader.destroy();
+
+			CreateWorldMenu::free();
 		}
 	}
 }

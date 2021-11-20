@@ -99,6 +99,49 @@ namespace Minecraft
 				"assets/images/sky/dayFront.png",
 				"assets/images/sky/dayBack.png");
 
+			// TODO: Remove me, just here for testing
+			// ~~ECS can handle large numbers of entities fine~~
+			// TODO: Test if it can handle removing and adding a bunch of components/entities?
+			//for (int i = 0; i < 400; i++)
+			//{
+			//	Ecs::EntityId e1 = registry->createEntity();
+			//	registry->addComponent<Transform>(e1);
+			//	Ecs::EntityId e2 = registry->createEntity();
+			//	registry->addComponent<BoxCollider>(e2);
+
+			//	registry->addComponent<Transform>(e2);
+			//	registry->addComponent<BoxCollider>(e1);
+			//}
+			//{
+			//	auto view = registry->view<Transform, BoxCollider>();
+			//	int index = 1;
+			//	for (Ecs::EntityId entity : view)
+			//	{
+			//		Transform& t = registry->getComponent<Transform>(entity);
+			//		t.position.x = index;
+			//		t.position.y = index;
+			//		t.position.z = index;
+
+			//		BoxCollider& b = registry->getComponent<BoxCollider>(entity);
+			//		b.size.x = index;
+			//		b.size.y = index;
+			//		b.size.z = index;
+			//		index++;
+			//	}
+			//}
+
+			//{
+			//	auto view = registry->view<BoxCollider, Transform>();
+			//	for (Ecs::EntityId entity : view)
+			//	{
+			//		Transform& t = registry->getComponent<Transform>(entity);
+			//		BoxCollider& b = registry->getComponent<BoxCollider>(entity);
+			//		g_logger_info("Entity: %d", Ecs::Internal::getEntityIndex(entity));
+			//		g_logger_info("Transform Pos: <%2.3f, %2.3f, %2.3f>", t.position.x, t.position.y, t.position.z);
+			//		g_logger_info("BoxCollider Size: <%2.3f, %2.3f, %2.3f>", b.size.x, b.size.y, b.size.z);
+			//	}
+			//}
+
 			// Setup player
 			Ecs::EntityId player = registry->createEntity();
 			playerId = player;
@@ -175,6 +218,11 @@ namespace Minecraft
 
 		void free()
 		{
+			opaqueShader.destroy();
+			transparentShader.destroy();
+			skybox.destroy();
+			cubemapShader.destroy();
+
 			serialize();
 			ChunkManager::serialize();
 			ChunkManager::free();
@@ -299,6 +347,7 @@ namespace Minecraft
 				if (!inventory.slots[i].blockId)
 				{
 					inventory.slots[i].blockId = blockId;
+					break;
 				}
 			}
 		}

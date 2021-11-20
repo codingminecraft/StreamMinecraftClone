@@ -70,29 +70,13 @@ namespace Minecraft
 				char* data;
 				size_t componentSize;
 
-				void free()
+				void free();
+
+				inline int getPoolAlignedIndex(EntityIndex index)
 				{
-					if (pools)
-					{
-						g_memory_free(pools);
-						pools = nullptr;
-					}
-
-					if (entities)
-					{
-						g_memory_free(entities);
-						entities = nullptr;
-					}
-
-					if (data)
-					{
-						g_memory_free(data);
-						data = nullptr;
-					}
-
-					maxNumComponents = 0;
-					numComponents = 0;
-					numPools = 0;
+					// We need to make sure pools always start on a multiple of the pool size
+					// to ensure no pools intersect
+					return (index / sparseSetPoolSize) * sparseSetPoolSize;
 				}
 
 				inline SparseSetPool* getPool(EntityIndex index)
@@ -134,7 +118,7 @@ namespace Minecraft
 					if (!pool)
 					{
 						const int newNumPools = numPools + 1;
-						SparseSetPool* newPools = (SparseSetPool*)g_memory_realloc(pools, numPools * sizeof(SparseSetPool));
+						SparseSetPool* newPools = (SparseSetPool*)g_memory_realloc(pools, newNumPools * sizeof(SparseSetPool));
 						if (!newPools)
 						{
 							g_logger_error("Failed to allocate memory for new sparse set pool for component '%d'", componentId);
@@ -143,7 +127,7 @@ namespace Minecraft
 						numPools = newNumPools;
 						pools = newPools;
 						pools[numPools - 1].init();
-						pools[numPools - 1].startIndex = index;
+						pools[numPools - 1].startIndex = getPoolAlignedIndex(index);
 						pool = &pools[numPools - 1];
 					}
 
@@ -239,10 +223,10 @@ namespace Minecraft
 					numPools = 1;
 					pools = (SparseSetPool*)g_memory_allocate(numPools * sizeof(SparseSetPool));
 					pools[0].init();
-					pools[0].startIndex = startIndex;
+					pools[0].startIndex = getPoolAlignedIndex(startIndex);
 
 					numComponents = 0;
-					maxNumComponents = 8;
+					maxNumComponents = Internal::sparseSetPoolSize;
 					data = (char*)g_memory_allocate(componentSize * maxNumComponents);
 					entities = (EntityId*)g_memory_allocate(sizeof(EntityId) * maxNumComponents);
 				}
@@ -292,13 +276,7 @@ namespace Minecraft
 				return entities.back();
 			}
 
-			void free()
-			{
-				for (Internal::SparseSet& set : componentSets)
-				{
-					set.free();
-				}
-			}
+			void free();
 
 			template<typename T>
 			T& addComponent(EntityId id)

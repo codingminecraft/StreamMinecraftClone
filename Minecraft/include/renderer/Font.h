@@ -47,6 +47,7 @@ namespace Minecraft
 		Font* loadFont(const char* filepath, FontSize fontSize, CharRange defaultCharset = CharRange::Ascii);
 		void unloadFont(Font* font);
 		void unloadFont(const char* filepath, FontSize fontSize);
+		void unloadAllFonts();
 
 		Font* getFont(const char* filepath, FontSize fontSize);
 	}

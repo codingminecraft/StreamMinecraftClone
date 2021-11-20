@@ -138,8 +138,15 @@ namespace Minecraft
 			nextSceneType = type;
 		}
 
-		void free()
+		void free(bool freeGlobalResources)
 		{
+			if (freeGlobalResources)
+			{
+				worldTexture.destroy();
+				itemTexture.destroy();
+				blockItemTexture.destroy();
+			}
+
 			switch (currentScene)
 			{
 			case SceneType::Game:
@@ -164,7 +171,7 @@ namespace Minecraft
 
 		static void changeSceneInternal()
 		{
-			free();
+			free(false);
 
 			switch (nextSceneType)
 			{

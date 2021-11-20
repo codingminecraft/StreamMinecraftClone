@@ -58,6 +58,7 @@ namespace Minecraft
 				Renderer::drawTexture2D(*blockCursorSprite, -blockCursorSize * 0.5f, blockCursorSize, Styles::defaultStyle);
 			}
 
+			// Check if sprites loaded properly
 			if (!regularInventorySlot || !selectedInventorySlot || !inventoryHud)
 			{
 				g_logger_warning("Inventory slot textures not loaded properly.");
@@ -87,14 +88,10 @@ namespace Minecraft
 					Renderer::drawTexture2D(*selectedInventorySlot, adjustedPosition, bigSize, Styles::defaultStyle);
 				}
 
-				static Block inventoryBlock{
-					0, 0, 0, 0
-				};
-				inventoryBlock.id = inventory.hotbar[i].blockId;
-
-				if (inventoryBlock != BlockMap::NULL_BLOCK && inventoryBlock != BlockMap::AIR_BLOCK)
+				int inventoryBlockId = inventory.hotbar[i].blockId;
+				if (inventoryBlockId != BlockMap::NULL_BLOCK.id && inventoryBlockId != BlockMap::AIR_BLOCK.id)
 				{
-					const BlockFormat& blockFormat = BlockMap::getBlock(inventoryBlock.id);
+					const BlockFormat& blockFormat = BlockMap::getBlock(inventoryBlockId);
 					const TextureFormat& format = BlockMap::getTextureFormat(blockFormat.itemPictureName);
 					static Sprite sprite;
 					sprite.texture = *format.texture;

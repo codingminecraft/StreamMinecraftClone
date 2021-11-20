@@ -8,9 +8,11 @@ namespace Minecraft
 	{
 		uint32 programId;
 		uint32 startIndex;
-		std::filesystem::path filepath;
+		char* filepath;
 
-		void compile(const std::filesystem::path& shaderFilepath);
+		Shader();
+
+		void compile(const char* shaderFilepath);
 		void bind() const;
 		void unbind() const;
 		void destroy();

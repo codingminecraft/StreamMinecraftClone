@@ -71,6 +71,13 @@ namespace Minecraft
 		graphicsId = UINT32_MAX;
 		vbo = UINT32_MAX;
 		vao = UINT32_MAX;
+
+		top.destroy();
+		bottom.destroy();
+		left.destroy();
+		right.destroy();
+		front.destroy();
+		back.destroy();
 	}
 
 	Cubemap Cubemap::generateCubemap(

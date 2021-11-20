@@ -175,7 +175,7 @@ namespace Minecraft
 				return;
 			}
 
-			std::string formattedPath = getFormattedFilepath(font->texture.path.string().c_str(), font->fontSize);
+			std::string formattedPath = getFormattedFilepath(font->texture.path, font->fontSize);
 			if (font->texture.graphicsId != UINT32_MAX)
 			{
 				font->texture.destroy();
@@ -191,6 +191,15 @@ namespace Minecraft
 			{
 				unloadFont(font);
 			}
+		}
+
+		void unloadAllFonts()
+		{
+			for (auto& pair : loadedFonts)
+			{
+				pair.second.texture.destroy();
+			}
+			loadedFonts.clear();
 		}
 
 		Font* getFont(const char* filepath, FontSize fontSize)

@@ -21,7 +21,7 @@ namespace Minecraft
 
 		void changeScene(SceneType type);
 
-		void free();
+		void free(bool freeGlobalResources=true);
 
 		Camera& getCamera();
 	}

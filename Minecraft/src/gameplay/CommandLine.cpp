@@ -22,7 +22,7 @@ namespace Minecraft
 	enum CommandLineType : uint8
 	{
 		None,
-		SetInventorySlot,
+		GivePlayer,
 		Screenshot,
 		GenerateCubemap,
 		DebugLight,
@@ -37,7 +37,7 @@ namespace Minecraft
 
 		static void parseCommand(const char* command, int length);
 		static void executeCommand(CommandLineType type, CommandStringView* args, int argsLength);
-		static void executeSetInventorySlot(CommandStringView* args, int argsLength);
+		static void executeGivePlayer(CommandStringView* args, int argsLength);
 		static void executeDebugLight(CommandStringView* args, int argsLength);
 		static void executeDoDaylightCycle(CommandStringView* args, int argsLength);
 		static void executeSetTime(CommandStringView* args, int argsLength);
@@ -146,8 +146,8 @@ namespace Minecraft
 		{
 			switch (type)
 			{
-			case CommandLineType::SetInventorySlot:
-				executeSetInventorySlot(args, argsLength);
+			case CommandLineType::GivePlayer:
+				executeGivePlayer(args, argsLength);
 				break;
 			case CommandLineType::Screenshot:
 				Application::takeScreenshot();
@@ -171,27 +171,15 @@ namespace Minecraft
 			}
 		}
 
-		static void executeSetInventorySlot(CommandStringView* args, int argsLength)
+		static void executeGivePlayer(CommandStringView* args, int argsLength)
 		{
-			if (argsLength != 2)
+			if (argsLength != 1)
 			{
-				g_logger_warning("SetInventorySlot expects 2 arguments.");
+				g_logger_warning("GivePlayer expects 1 arguments.");
 				return;
 			}
 
-			if (!isInteger(args[0].string, args[0].length))
-			{
-				g_logger_warning("SetInventorySlot expects an integer for the first argument.");
-				return;
-			}
-			int slot = atoi(args[0].string) - 1;
-			if (slot < 0 || slot > 9)
-			{
-				g_logger_warning("Invalid inventory slot '%d' passed to SetInventorySlot.", slot);
-				return;
-			}
-
-			const std::string blockName = std::string(args[1].string, args[1].string + args[1].length);
+			const std::string blockName = std::string(args[0].string, args[0].string + args[0].length);
 			int blockId = BlockMap::getBlockId(blockName);
 			if (blockId)
 			{

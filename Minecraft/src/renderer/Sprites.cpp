@@ -31,6 +31,15 @@ namespace Minecraft
 			return iter->second.sprites;
 		}
 
+		const void freeAllSpritesheets()
+		{
+			for (auto& pair : spritesheets)
+			{
+				pair.second.texture.destroy();
+			}
+			spritesheets.clear();
+		}
+
 		static void load(const char* filepath)
 		{
 			YAML::Node spritesheetConfig = YamlExtended::readFile(filepath);

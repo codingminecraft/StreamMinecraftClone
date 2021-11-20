@@ -249,7 +249,7 @@ namespace Minecraft
 				rb.isSensor = true;
 			}
 
-			if (Input::keyBeginPress(GLFW_KEY_E))
+			if (!CommandLine::isActive && Input::keyBeginPress(GLFW_KEY_E))
 			{
 				MainHud::viewingCraftScreen = !MainHud::viewingCraftScreen;
 				CursorMode mode = MainHud::viewingCraftScreen

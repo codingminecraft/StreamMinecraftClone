@@ -21,7 +21,7 @@ namespace Minecraft
 		texture.width = 0;
 		texture.height = 0;
 		texture.format = ByteFormat::None;
-		texture.path = std::filesystem::path();
+		texture.path = "";
 		texture.swizzleFormat[0] = ColorChannel::Red;
 		texture.swizzleFormat[1] = ColorChannel::Green;
 		texture.swizzleFormat[2] = ColorChannel::Blue;
@@ -66,7 +66,8 @@ namespace Minecraft
 
 	TextureBuilder& TextureBuilder::setFilepath(const char* filepath)
 	{
-		texture.path = filepath;
+		texture.path = (char*)g_memory_allocate(sizeof(char) * std::strlen(filepath));
+		std::strcpy(texture.path, filepath);
 		return *this;
 	}
 
@@ -118,7 +119,7 @@ namespace Minecraft
 
 	TextureBuilder& TextureBuilder::bindTextureObject()
 	{
-		glBindTexture(TextureUtil::toGlType(texture.type) , texture.graphicsId);
+		glBindTexture(TextureUtil::toGlType(texture.type), texture.graphicsId);
 		return *this;
 	}
 
@@ -156,8 +157,17 @@ namespace Minecraft
 
 	void Texture::destroy()
 	{
-		glDeleteTextures(1, &graphicsId);
-		graphicsId = NULL_TEXTURE_ID;
+		if (graphicsId != NULL_TEXTURE_ID)
+		{
+			glDeleteTextures(1, &graphicsId);
+			graphicsId = NULL_TEXTURE_ID;
+		}
+
+		if (path != nullptr && std::strlen(path) > 0)
+		{
+			g_memory_free(path);
+			path = nullptr;
+		}
 	}
 
 	void Texture::uploadSubImage(int offsetX, int offsetY, int width, int height, uint8* buffer) const
@@ -420,8 +430,8 @@ namespace Minecraft
 			g_logger_assert(texture.path != "", "Cannot generate texture from file without a filepath provided.");
 			int channels;
 
-			unsigned char* pixels = stbi_load(texture.path.string().c_str(), &texture.width, &texture.height, &channels, 0);
-			g_logger_assert((pixels != nullptr), "STB failed to load image: %s\n-> STB Failure Reason: %s", texture.path.string().c_str(), stbi_failure_reason());
+			unsigned char* pixels = stbi_load(texture.path, &texture.width, &texture.height, &channels, 0);
+			g_logger_assert((pixels != nullptr), "STB failed to load image: %s\n-> STB Failure Reason: %s", texture.path, stbi_failure_reason());
 
 			int bytesPerPixel = channels;
 			if (bytesPerPixel == 4)
@@ -434,7 +444,7 @@ namespace Minecraft
 			}
 			else
 			{
-				g_logger_warning("Unknown number of channels '%d' in image '%s'.", texture.path.string().c_str(), channels);
+				g_logger_warning("Unknown number of channels '%d' in image '%s'.", texture.path, channels);
 				return;
 			}
 
@@ -442,7 +452,7 @@ namespace Minecraft
 
 			uint32 internalFormat = TextureUtil::toGlSizedInternalFormat(texture.format);
 			uint32 externalFormat = TextureUtil::toGlExternalFormat(texture.format);
-			g_logger_assert(internalFormat != GL_NONE && externalFormat != GL_NONE, "Tried to load image from file, but failed to identify internal format for image '%s'", texture.path.string().c_str());
+			g_logger_assert(internalFormat != GL_NONE && externalFormat != GL_NONE, "Tried to load image from file, but failed to identify internal format for image '%s'", texture.path);
 			uint32 textureType = TextureUtil::toGlType(texture.type);
 			switch (texture.type)
 			{

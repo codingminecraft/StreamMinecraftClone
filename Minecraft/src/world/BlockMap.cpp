@@ -331,6 +331,7 @@ namespace Minecraft
 			texture.format = ByteFormat::RGBA8_UI;
 			texture.wrapS = WrapMode::None;
 			texture.wrapT = WrapMode::None;
+			texture.path = "";
 			Framebuffer framebuffer = FramebufferBuilder(64, 64)
 				.addColorAttachment(texture)
 				.generate();
@@ -365,7 +366,7 @@ namespace Minecraft
 			}
 
 			framebuffer.unbind();
-			framebuffer.destroy(true);
+			framebuffer.destroy();
 
 			glViewport(0, 0, Application::getWindow().width, Application::getWindow().height);
 		}
