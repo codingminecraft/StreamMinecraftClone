@@ -118,6 +118,7 @@ namespace Minecraft
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+			std::sort(batches2D.begin(), batches2D.end());
 			shader2D.bind();
 			shader2D.uploadMat4("uProjection", camera->calculateHUDProjectionMatrix());
 			shader2D.uploadMat4("uView", camera->calculateHUDViewMatrix());
@@ -659,12 +660,12 @@ namespace Minecraft
 
 		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture, bool isFont)
 		{
-			for (Batch<RenderVertex2D>& batch3DLines : batches2D)
+			for (Batch<RenderVertex2D>& batch2D : batches2D)
 			{
-				if (batch3DLines.hasRoom() && batch3DLines.zIndex == zIndex &&
-					(!useTexture || batch3DLines.hasTexture(texture.graphicsId) || batch3DLines.hasTextureRoom(isFont)))
+				if (batch2D.hasRoom() && batch2D.zIndex == zIndex &&
+					(!useTexture || batch2D.hasTexture(texture.graphicsId) || batch2D.hasTextureRoom(isFont)))
 				{
-					return batch3DLines;
+					return batch2D;
 				}
 			}
 

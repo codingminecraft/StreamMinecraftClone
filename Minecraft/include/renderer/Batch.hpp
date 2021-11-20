@@ -265,6 +265,11 @@ namespace Minecraft
 			return numVertices < _Batch::maxBatchSize;
 		}
 
+		bool operator<(const Batch& batch) const
+		{
+			return (zIndex < batch.zIndex);
+		}
+
 	private:
 		void clearTexSlots()
 		{

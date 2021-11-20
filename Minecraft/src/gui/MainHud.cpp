@@ -39,7 +39,8 @@ namespace Minecraft
 		// Internal functions
 		static void initSlotPositions();
 		static void updateCraftingScreen(Inventory& inventory);
-		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize);
+		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
+		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot);
 
 		void init()
 		{
@@ -98,7 +99,7 @@ namespace Minecraft
 				InventorySlot inventoryBlock = inventory.hotbar[i];
 				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id && inventoryBlock.blockId != BlockMap::AIR_BLOCK.id)
 				{
-					drawItemInSlot(inventoryBlock, currentSlotPosition, inventorySlotSize, 0.8f);
+					drawItemInSlot(inventoryBlock, currentSlotPosition, inventorySlotSize, 0.8f, false);
 				}
 				currentSlotPosition.x += inventorySlotSize.x;
 			}
@@ -140,31 +141,32 @@ namespace Minecraft
 				InventorySlot inventoryBlock = inventory.hotbar[i];
 				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id && inventoryBlock.blockId != BlockMap::AIR_BLOCK.id)
 				{
-					drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f);
+					drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f, false);
 					if (leftClickedInventorySlot)
 					{
-						// Swap the block and mouse item if they are different
 						if (inventory.hotbar[i].blockId != mouseItem.blockId)
 						{
+							// Swap the block and mouse item if they are different
 							inventory.hotbar[i] = mouseItem;
 							mouseItem = inventoryBlock;
 							isHoldingItem = true;
 						}
-						// Otherwise add the count to the mouse block up to 64
 						else
 						{
-							mouseItem.count += inventory.hotbar[i].count;
-							inventory.hotbar[i].count = 0;
-							if (mouseItem.count > 64)
+							// Otherwise add the count to the mouse block up to 64
+							inventory.hotbar[i].count += mouseItem.count;
+							mouseItem.count = 0;
+							if (inventory.hotbar[i].count > 64)
 							{
-								int leftover = mouseItem.count - 64;
-								mouseItem.count = 64;
-								inventory.hotbar[i].count += leftover;
+								int leftover = inventory.hotbar[i].count - 64;
+								inventory.hotbar[i].count = 64;
+								mouseItem.count += leftover;
 							}
 
-							if (inventory.hotbar[i].count == 0)
+							if (mouseItem.count == 0)
 							{
-								inventory.hotbar[i].blockId = BlockMap::NULL_BLOCK.id;
+								mouseItem.blockId = BlockMap::NULL_BLOCK.id;
+								isHoldingItem = false;
 							}
 						}
 					}
@@ -186,13 +188,7 @@ namespace Minecraft
 						}
 						else
 						{
-							inventory.hotbar[i].count++;
-							mouseItem.count--;
-							if (mouseItem.count == 0)
-							{
-								mouseItem.blockId = BlockMap::NULL_BLOCK.id;
-								isHoldingItem = false;
-							}
+							isHoldingItem = decrementMouseItem(mouseItem, inventory.hotbar[i]);
 						}
 					}
 				}
@@ -206,12 +202,16 @@ namespace Minecraft
 						isHoldingItem = false;
 					}
 				}
+				else if (rightClickedInventorySlot)
+				{
+					isHoldingItem = decrementMouseItem(mouseItem, inventory.hotbar[i]);
+				}
 			}
 
 			if (isHoldingItem)
 			{
 				glm::vec2 mousePos = glm::vec2(Input::mouseScreenX, Input::mouseScreenY);
-				drawItemInSlot(mouseItem, mousePos, craftingSlotSize, 1.0f);
+				drawItemInSlot(mouseItem, mousePos, craftingSlotSize, 1.0f, true);
 			}
 		}
 
@@ -243,7 +243,35 @@ namespace Minecraft
 			}
 		}
 
-		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize)
+		/// <summary>
+		/// Decrements the mouse slot by one and increments the current slot position by one if the ids are the same
+		/// or the inventory slot is empty
+		/// </summary>
+		/// <param name="mouseItem"></param>
+		/// <param name="inventorySlot"></param>
+		/// <returns>True if the mouse slot still contains items </returns>
+		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot)
+		{
+			if (mouseItem.blockId == inventorySlot.blockId || 
+				(inventorySlot.blockId == BlockMap::NULL_BLOCK.id && mouseItem.blockId != BlockMap::NULL_BLOCK.id))
+			{
+				inventorySlot.count++;
+				mouseItem.count--;
+				if (mouseItem.count == 0)
+				{
+					mouseItem.blockId = BlockMap::NULL_BLOCK.id;
+				}
+
+				if (inventorySlot.blockId == BlockMap::NULL_BLOCK.id && inventorySlot.count > 0)
+				{
+					inventorySlot.blockId = mouseItem.blockId;
+				}
+			}
+
+			return mouseItem.count != 0;
+		}
+
+		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem)
 		{
 			g_logger_assert(block.blockId != BlockMap::NULL_BLOCK.id && block.blockId != BlockMap::AIR_BLOCK.id, "Invalid block id. Cannot draw null or air block.");
 			const BlockFormat& blockFormat = BlockMap::getBlock(block.blockId);
@@ -255,7 +283,12 @@ namespace Minecraft
 
 			const glm::vec2 smallSize = slotSize * itemSize;
 			glm::vec2 adjustedPosition = slotPosition + ((slotSize - smallSize) * 0.5f);
-			Renderer::drawTexture2D(sprite, adjustedPosition, smallSize, Styles::defaultStyle, 1);
+			if (isMouseItem)
+			{
+				adjustedPosition = slotPosition - (slotSize * 0.5f);
+			}
+			int zIndex = isMouseItem ? 3 : 1;
+			Renderer::drawTexture2D(sprite, adjustedPosition, smallSize, Styles::defaultStyle, zIndex);
 
 			if (block.count > 1)
 			{
@@ -265,7 +298,7 @@ namespace Minecraft
 				std::string blockCount = std::to_string(block.count);
 				glm::vec2 countSize = defaultFont->getSize(blockCount, fontScale);
 				glm::vec2 countPosition = (adjustedPosition + glm::vec2(smallSize.x, 0)) - glm::vec2((countSize).x + padding, 0);
-				Renderer::drawString(blockCount, *defaultFont, countPosition, fontScale, Styles::defaultStyle, 2);
+				Renderer::drawString(blockCount, *defaultFont, countPosition, fontScale, Styles::defaultStyle, zIndex + 1);
 			}
 		}
 	}
