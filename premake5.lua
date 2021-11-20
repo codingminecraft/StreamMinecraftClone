@@ -80,6 +80,10 @@ project "Minecraft"
         "freetype.lib"
     }
 
+    defines {
+        "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS"
+    }
+
     filter "system:windows"
         buildoptions { "-lgdi32" }
         systemversion "latest"

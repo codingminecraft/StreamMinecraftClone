@@ -226,6 +226,9 @@ namespace Minecraft
 					return i;
 				}
 			}
+
+			g_logger_warning("Could not find texture id");
+			return 0;
 		}
 
 		uint32 getTextureSlot(uint32 textureGraphicsId, bool isFont)

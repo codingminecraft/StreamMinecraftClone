@@ -45,7 +45,7 @@ namespace Minecraft
 			struct SparseSetPool
 			{
 				EntityIndex startIndex;
-				EntityId entities[sparseSetPoolSize];
+				EntityIndex entities[sparseSetPoolSize];
 
 				void init()
 				{
@@ -60,13 +60,13 @@ namespace Minecraft
 			struct SparseSet
 			{
 				int componentId;
-				int maxNumComponents;
-				int numComponents;
+				uint32 maxNumComponents;
+				uint32 numComponents;
 				int numPools;
 
 				SparseSetPool* pools;
 				// Number of entities is always equal to numComponents for a sparse set
-				EntityId* entities;
+				EntityIndex* entities;
 				char* data;
 				size_t componentSize;
 
@@ -105,7 +105,7 @@ namespace Minecraft
 						return nullptr;
 					}
 
-					int denseArrayIndex = pool->entities[index - pool->startIndex];
+					EntityIndex denseArrayIndex = pool->entities[index - pool->startIndex];
 					g_logger_assert((denseArrayIndex < numComponents && denseArrayIndex >= 0), "Invalid dense array index.");
 					return (T*)(data + denseArrayIndex * componentSize);
 				}
@@ -131,12 +131,12 @@ namespace Minecraft
 						pool = &pools[numPools - 1];
 					}
 
-					int nextIndex = numComponents;
+					uint32 nextIndex = numComponents;
 					if (nextIndex >= maxNumComponents)
 					{
 						int newMaxNumComponents = maxNumComponents * 2;
 						char* newComponentMemory = (char*)g_memory_realloc(data, componentSize * newMaxNumComponents);
-						EntityId* newEntityMemory = (EntityId*)g_memory_realloc(entities, sizeof(EntityId) * newMaxNumComponents);
+						EntityIndex* newEntityMemory = (EntityIndex*)g_memory_realloc(entities, sizeof(EntityIndex) * newMaxNumComponents);
 						if (!newComponentMemory || !newEntityMemory)
 						{
 							// Just free both of the reallocs if it ever fails
@@ -164,7 +164,7 @@ namespace Minecraft
 						add<T>(entity, T{});
 					}
 
-					return get<T>(entity);
+					return get<T>(Internal::getEntityIndex(entity));
 				}
 
 				inline bool exists(EntityId entity)
@@ -189,7 +189,7 @@ namespace Minecraft
 						return;
 					}
 
-					int denseArrayIndex = pool->entities[index - pool->startIndex];
+					EntityIndex denseArrayIndex = Internal::getEntityIndex(pool->entities[index - pool->startIndex]);
 					if (denseArrayIndex < numComponents - 1 && numComponents > 2)
 					{
 						// If the component data is not already at the end of the component array
@@ -228,7 +228,7 @@ namespace Minecraft
 					numComponents = 0;
 					maxNumComponents = Internal::sparseSetPoolSize;
 					data = (char*)g_memory_allocate(componentSize * maxNumComponents);
-					entities = (EntityId*)g_memory_allocate(sizeof(EntityId) * maxNumComponents);
+					entities = (EntityIndex*)g_memory_allocate(sizeof(EntityIndex) * maxNumComponents);
 				}
 
 				template<typename T>
@@ -337,7 +337,7 @@ namespace Minecraft
 				}
 				
 				// TODO: This will crash if the component is null, should we return a null component or something?
-				return *componentSets[compId].get<T>(id);
+				return *componentSets[compId].get<T>(index);
 			}
 
 			template<typename T>

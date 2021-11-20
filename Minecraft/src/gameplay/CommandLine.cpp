@@ -64,13 +64,13 @@ namespace Minecraft
 				static std::array<char, 512> buffer;
 				if (!parseText)
 				{
-					Gui::input("", 0.0015f, buffer.data(), buffer.size(), false, true, 3);
+					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 3);
 				}
 				else
 				{
 					if (buffer[0] == '/')
 					{
-						parseCommand(&buffer[1], buffer.size() - 1);
+						parseCommand(&buffer[1], (int)buffer.size() - 1);
 					}
 					else
 					{
@@ -122,7 +122,7 @@ namespace Minecraft
 						{
 							if (command[i] == ' ' || command[i] == '\0')
 							{
-								arg.length = &command[i] - arg.string;
+								arg.length = (int)(&command[i] - arg.string);
 								args[argsLength++] = arg;
 								if (i < length - 1)
 								{
@@ -153,7 +153,7 @@ namespace Minecraft
 				Application::takeScreenshot();
 				break;
 			case CommandLineType::GenerateCubemap:
-				Application::getWindow().setSize(2160.0f, 2160.0f);
+				Application::getWindow().setSize(2160, 2160);
 				PlayerController::generateCubemap = true;
 				break;
 			case CommandLineType::DebugLight:
