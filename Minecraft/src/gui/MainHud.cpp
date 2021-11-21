@@ -160,6 +160,26 @@ namespace Minecraft
 				checkIfItemIsCrafted();
 			}
 
+			if (!isHoldingItem && !isDraggingRightClick)
+			{
+				static InventorySlot fakeDraggedSlot = { 0, 0 };
+				const glm::vec2 slotPosition = craftingInventoryPos + craftingSlotPositions[9];
+				bool grabbedCraftingOutput = updateSlot(craftingSlots[9], false, isHoldingItem, mouseItem, slotPosition, fakeDraggedSlot);
+				if (grabbedCraftingOutput)
+				{
+					g_memory_zeroMem(craftingSlots, sizeof(craftingSlots));
+					g_memory_zeroMem(draggedSlots, sizeof(draggedSlots));
+				}
+			}
+			else
+			{
+				static InventorySlot fakeDraggedSlot = { 0, 0 };
+				static bool fakeIsHoldingItem = false;
+				static InventorySlot fakeMouseItem = { 0, 0 };
+				const glm::vec2 slotPosition = craftingInventoryPos + craftingSlotPositions[9];
+				updateSlot(craftingSlots[9], false, fakeIsHoldingItem, fakeMouseItem, slotPosition, fakeDraggedSlot);
+			}
+
 			if (isHoldingItem)
 			{
 				glm::vec2 mousePos = glm::vec2(Input::mouseScreenX, Input::mouseScreenY);
@@ -174,20 +194,22 @@ namespace Minecraft
 			for (auto& recipe : allRecipes)
 			{
 				int firstBlockIdInRecipe = recipe.blockIds[0];
-				for (int row = 0; row < 3 - recipe.maxHeight; row++)
+				for (int row = 0; row < 3; row++)
 				{
-					for (int column = 0; column < 3 - recipe.maxWidth; column++)
+					for (int column = 0; column < 3; column++)
 					{
-						int blockId = craftingSlots[column + (row * 3)].blockId;
+						// The crafting slots are stored bottom -> up in the array
+						// so flip the y axis here
+						int blockId = craftingSlots[column + ((2 - row) * 3)].blockId;
 						if (blockId == firstBlockIdInRecipe)
 						{
 							bool isMatch = true;
-							for (int recipeRow = 0; recipeRow < recipe.maxHeight + 1; recipeRow++)
+							for (int recipeRow = 0; recipeRow < 3; recipeRow++)
 							{
-								for (int recipeColumn = 0; recipeColumn < recipe.maxWidth + 1; recipeColumn++)
+								for (int recipeColumn = 0; recipeColumn < 3; recipeColumn++)
 								{
-									int recipeBlockId = recipe.blockIds[recipeColumn + (recipeRow * 3)];
-									int currentBlockId = craftingSlots[(recipeColumn + column) + ((recipeRow + row) * 3)].blockId;
+									int recipeBlockId = recipeBlockId = recipe.blockIds[recipeColumn + (recipeRow * 3)];
+									int currentBlockId = craftingSlots[((recipeColumn + column) % 3) + (((2 - recipeRow + row) % 3) * 3)].blockId;
 									if (recipeBlockId != currentBlockId)
 									{
 										isMatch = false;
@@ -198,13 +220,18 @@ namespace Minecraft
 
 							if (isMatch)
 							{
-								g_logger_info("YOU CRAFTED %d:%d", recipe.output, recipe.outputCount);
+								craftingSlots[9].blockId = recipe.output;
+								craftingSlots[9].count = recipe.outputCount;
 								return;
 							}
 						}
 					}
 				}
 			}
+
+			// If we found no match, set the output to null
+			craftingSlots[9].blockId = BlockMap::NULL_BLOCK.id;
+			craftingSlots[9].count = 0;
 		}
 
 		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot)
@@ -342,6 +369,8 @@ namespace Minecraft
 			startPos.y = highestRowTopY + (13.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 			currentSlotPosition = startPos;
 			g_logger_assert(highestRowTopY != FLT_MIN, "Did not find any rows for some reason...");
+			float middleRightY = FLT_MIN;
+			float middleRightX = FLT_MIN;
 			// The + 1 is because we have inventory slots and one extra row for the hotbar slots
 			for (int row = 0; row < 3; row++)
 			{
@@ -351,11 +380,23 @@ namespace Minecraft
 					currentSlotPosition.x += craftingSlotSize.x;
 					// Add one pixel padding
 					currentSlotPosition.x += (1.0f) * (1.0f / craftingInventoryPixelSize.x) * craftingInventorySize.x;
+
+					if (row == 1 && column == 2)
+					{
+						middleRightX = currentSlotPosition.x;
+						middleRightY = currentSlotPosition.y;
+					}
 				}
 				currentSlotPosition.x = startPos.x;
 				currentSlotPosition.y += craftingSlotSize.y;
 				currentSlotPosition.y += (1.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 			}
+
+			g_logger_assert(middleRightX != FLT_MIN, "Failed to find the middle right x.");
+			g_logger_assert(middleRightY != FLT_MIN, "Failed to find the middle right y.");
+			glm::vec2 craftingOutputSlotPosition = glm::vec2(middleRightX, middleRightY);
+			craftingOutputSlotPosition.x += (88.0f) * (1.0f / craftingInventoryPixelSize.x) * craftingInventorySize.x;
+			craftingSlotPositions[9] = craftingOutputSlotPosition;
 		}
 
 		/// <summary>
@@ -367,7 +408,7 @@ namespace Minecraft
 		/// <returns>True if the mouse slot still contains items </returns>
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot)
 		{
-			if (mouseItem.blockId == inventorySlot.blockId ||
+			if ((mouseItem.blockId == inventorySlot.blockId && mouseItem.blockId != BlockMap::NULL_BLOCK.id) ||
 				(inventorySlot.blockId == BlockMap::NULL_BLOCK.id && mouseItem.blockId != BlockMap::NULL_BLOCK.id))
 			{
 				inventorySlot.count++;
