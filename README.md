@@ -57,20 +57,20 @@ This is a list of tasks that still need to be done.
 ---
 
 - [x] ~~Save chunks when they unload from the chunk radius~~
-- [ ] Make GUI stuff look pretty
-- [ ] Clean up the code in `ChunkManager.cpp`
+- [x] ~~Make GUI stuff look pretty~~
+- [x] ~~Clean up the code in `ChunkManager.cpp`~~
 - [ ] Make the application handle out of memory errors gracefully (Sort of done...)
     * Either make it allocate more memory, or just de-prioritize the furthest chunks
 - [x] ~~Add block level lighting~~
-    * Add light sources
+    * ~~Add light sources~~
     * Add multi-color lighting
-- [ ] Add proper transparency support
-- [ ] Add inventory management
+- [x] ~~Add proper transparency support~~
+- [x] ~~Add inventory management~~
     * ~~Add icons for blocks in the inventory~~
-    * Add indicators for number of blocks in a slot
-- [ ] Add crafting support
+    * ~~Add indicators for number of blocks in a slot~~
+- [x] ~~Add crafting support~~
 - [x] ~~Cubemaps~~
-- [ ] Day/Night cycle
+- [x] ~~Day/Night cycle~~
 - [ ] Biome generation
     * Ore generation
     * Structure generation
@@ -78,7 +78,8 @@ This is a list of tasks that still need to be done.
 - [ ] Water/Lava
 - [x] ~~Fullscreen support~~
 - [ ] Add sounds
-- [ ] Add Command Line Parsing
+- [x] ~~Add Command Line Parsing~~
+- [ ] Add Multiplayer Support
 
 ### Less Important
 ---
