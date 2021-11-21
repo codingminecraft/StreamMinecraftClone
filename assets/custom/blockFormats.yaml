@@ -169,3 +169,23 @@ wooden_axe:
   isItem: true
   itemPicture: wooden_axe
   isStackable: false
+wooden_hoe:
+  id: 32003
+  isItem: true
+  itemPicture: wooden_hoe
+  isStackable: false
+stone_pickaxe:
+  id: 32004
+  isItem: true
+  itemPicture: stone_pickaxe
+  isStackable: false
+stone_axe:
+  id: 32005
+  isItem: true
+  itemPicture: stone_axe
+  isStackable: false
+stone_hoe:
+  id: 32006
+  isItem: true
+  itemPicture: stone_hoe
+  isStackable: false

@@ -1,23 +1,71 @@
-Recipes:
-  stick:
-    outputCount: 4
-    recipe0:
-      - [oak_planks]
-      - [oak_planks]
-  wooden_pickaxe:
-    outputCount: 1
-    recipe0:
-      - [oak_planks, oak_planks, oak_planks]
-      - [null,       stick,      null]
-      - [null,       stick,      null]
-  wooden_axe:
-    outputCount: 1
-    recipe0:
-      - [oak_planks, oak_planks]
-      - [oak_planks, stick]
-      - [null,       stick]
-    recipe1:
-      - [oak_planks, oak_planks]
-      - [stick,      oak_planks]
-      - [stick,      null]
+# Wooden tools
+stick:
+  outputCount: 4
+  recipe0:
+    - [oak_planks]
+    - [oak_planks]
+wooden_pickaxe:
+  outputCount: 1
+  recipe0:
+    - [oak_planks, oak_planks, oak_planks]
+    - [null,       stick,      null]
+    - [null,       stick,      null]
+wooden_hoe:
+  outputCount: 1
+  recipe0:
+    - [oak_planks, oak_planks]
+    - [stick,      null]
+    - [stick,      null]
+  recipe1:
+    - [oak_planks, oak_planks]
+    - [null,       stick]
+    - [null,       stick]
+wooden_axe:
+  outputCount: 1
+  # TODO: Add a field flippedHorizontally and flippedVertically so we don't have to do this manually something like:
+  # flippedHorizontally: true
+  recipe0:
+    - [oak_planks, oak_planks]
+    - [oak_planks, stick]
+    - [null,       stick]
+  recipe1:
+    - [oak_planks, oak_planks]
+    - [stick,      oak_planks]
+    - [stick,      null]
+# Stone tools
+stone_pickaxe:
+  outputCount: 1
+  recipe0:
+    - [cobblestone, cobblestone, cobblestone]
+    - [null,        stick,       null]
+    - [null,        stick,       null]
+stone_axe:
+  outputCount: 1
+  recipe0:
+    - [cobblestone, cobblestone]
+    - [cobblestone, stick]
+    - [null,        stick]
+  recipe1:
+    - [cobblestone, cobblestone]
+    - [stick,       cobblestone]
+    - [stick,       null]
+stone_hoe:
+  outputCount: 1
+  recipe0:
+    - [cobblestone, cobblestone]
+    - [stick,       null]
+    - [stick,       null]
+  recipe1:
+    - [cobblestone, cobblestone]
+    - [null,        stick]
+    - [null,        stick]
+# Logs to planks
+oak_planks:
+  outputCount: 4
+  recipe0:
+    - [oak_log]
+spruce_planks:
+  outputCount: 4
+  recipe0:
+    - [spruce_log]
       

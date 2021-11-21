@@ -267,60 +267,56 @@ namespace Minecraft
 
 		void loadCraftingRecipes(const char* craftingRecipesConfig)
 		{
-			YAML::Node itemFormat = YamlExtended::readFile(craftingRecipesConfig);
+			YAML::Node recipes = YamlExtended::readFile(craftingRecipesConfig);
 
-			if (itemFormat["Recipes"])
+			for (auto& largeRecipe : recipes)
 			{
-				const YAML::Node& recipes = itemFormat["Recipes"];
-				for (auto& largeRecipe : recipes)
+				if (largeRecipe.second["outputCount"])
 				{
-					if (largeRecipe.second["outputCount"])
+					int16 outputCount = largeRecipe.second["outputCount"].as<int16>();
+					std::string outputName = largeRecipe.first.as<std::string>();
+					int outputId = getBlockId(outputName);
+					g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
+
+					for (auto& subRecipe : largeRecipe.second)
 					{
-						int16 outputCount = largeRecipe.second["outputCount"].as<int16>();
-						std::string outputName = largeRecipe.first.as<std::string>();
-						int outputId = getBlockId(outputName);
-						g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
-
-						for (auto& subRecipe : largeRecipe.second)
+						if (subRecipe.first.as<std::string>() != "outputCount")
 						{
-							if (subRecipe.first.as<std::string>() != "outputCount")
+							int maxWidth = subRecipe.second[0].size();
+							int rowIndex = 0;
+
+							CraftingRecipe resultRecipe;
+							g_memory_zeroMem(resultRecipe.blockIds, sizeof(resultRecipe.blockIds));
+							resultRecipe.output = outputId;
+							resultRecipe.outputCount = outputCount;
+
+							for (auto& row : subRecipe.second)
 							{
-								int maxWidth = subRecipe.second[0].size();
-								int rowIndex = 0;
+								g_logger_assert(row.IsSequence(), "Crafting recipe '%s:%s' must contain arrays only. E.g - [stick, stick]", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+								g_logger_assert(row.size() == maxWidth, "Crafting recipe '%s:%s', must contain arrays of the same size.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 
-								CraftingRecipe resultRecipe;
-								g_memory_zeroMem(resultRecipe.blockIds, sizeof(resultRecipe.blockIds));
-								resultRecipe.output = outputId;
-								resultRecipe.outputCount = outputCount;
-
-								for (auto& row : subRecipe.second)
+								int columnIndex = 0;
+								for (auto& item : row)
 								{
-									g_logger_assert(row.IsSequence(), "Crafting recipe '%s:%s' must contain arrays only. E.g - [stick, stick]", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
-									g_logger_assert(row.size() == maxWidth, "Crafting recipe '%s:%s', must contain arrays of the same size.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
-
-									int columnIndex = 0;
-									for (auto& item : row)
+									if (!item.IsNull())
 									{
-										if (!item.IsNull())
-										{
-											std::string itemName = item.as<std::string>();
-											int blockId = getBlockId(itemName);
-											g_logger_assert(blockId != NULL_BLOCK.id, "Invalid block '%s' in recipe '%s:%s'", itemName.c_str(), outputName.c_str(), subRecipe.first.as<std::string>().c_str());
-											resultRecipe.blockIds[columnIndex + rowIndex * 3] = blockId;
-										}
-										columnIndex++;
-										g_logger_assert(columnIndex <= 3, "Recipes can only contain 3 columns max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+										std::string itemName = item.as<std::string>();
+										int blockId = getBlockId(itemName);
+										g_logger_assert(blockId != NULL_BLOCK.id, "Invalid block '%s' in recipe '%s:%s'", itemName.c_str(), outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+										resultRecipe.blockIds[columnIndex + rowIndex * 3] = blockId;
 									}
-									rowIndex++;
-									g_logger_assert(rowIndex <= 3, "Recipes can only contain 3 rows max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+									columnIndex++;
+									g_logger_assert(columnIndex <= 3, "Recipes can only contain 3 columns max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 								}
-
-								int maxHeight = rowIndex;
-								resultRecipe.maxHeight = maxHeight - 1;
-								resultRecipe.maxWidth = maxWidth - 1;
-								craftingRecipes.push_back(resultRecipe);
-								g_logger_assert(maxWidth > 0 && maxHeight > 0, "Crafting recipe '%s:%s' must contain at least one row and column.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+								rowIndex++;
+								g_logger_assert(rowIndex <= 3, "Recipes can only contain 3 rows max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 							}
+
+							int maxHeight = rowIndex;
+							resultRecipe.maxHeight = maxHeight - 1;
+							resultRecipe.maxWidth = maxWidth - 1;
+							craftingRecipes.push_back(resultRecipe);
+							g_logger_assert(maxWidth > 0 && maxHeight > 0, "Crafting recipe '%s:%s' must contain at least one row and column.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 						}
 					}
 				}

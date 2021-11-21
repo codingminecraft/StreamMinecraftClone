@@ -7,6 +7,7 @@
 #include "world/BlockMap.h"
 #include "input/Input.h"
 #include "gameplay/Inventory.h"
+#include "utils/CMath.h"
 
 namespace Minecraft
 {
@@ -45,7 +46,7 @@ namespace Minecraft
 		static void updateCraftingScreen(Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot);
-		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot);
+		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot, bool isCraftingOutput = false);
 		static void checkIfItemIsCrafted();
 
 		void init()
@@ -164,20 +165,30 @@ namespace Minecraft
 			{
 				static InventorySlot fakeDraggedSlot = { 0, 0 };
 				const glm::vec2 slotPosition = craftingInventoryPos + craftingSlotPositions[9];
-				bool grabbedCraftingOutput = updateSlot(craftingSlots[9], false, isHoldingItem, mouseItem, slotPosition, fakeDraggedSlot);
+				bool grabbedCraftingOutput = updateSlot(craftingSlots[9], false, isHoldingItem, mouseItem, slotPosition, fakeDraggedSlot, true);
 				if (grabbedCraftingOutput)
 				{
-					g_memory_zeroMem(craftingSlots, sizeof(craftingSlots));
-					g_memory_zeroMem(draggedSlots, sizeof(draggedSlots));
+					for (int i = 0; i < 9; i++)
+					{
+						if (craftingSlots[i].blockId != BlockMap::NULL_BLOCK.id)
+						{
+							craftingSlots[i].count--;
+							if (craftingSlots[i].count <= 0)
+							{
+								craftingSlots[i].count = 0;
+								craftingSlots[i].blockId = BlockMap::NULL_BLOCK.id;
+								draggedSlots[Player::numTotalSlots + i] = craftingSlots[i];
+							}
+						}
+					}
+					checkIfItemIsCrafted();
 				}
 			}
 			else
 			{
 				static InventorySlot fakeDraggedSlot = { 0, 0 };
-				static bool fakeIsHoldingItem = false;
-				static InventorySlot fakeMouseItem = { 0, 0 };
 				const glm::vec2 slotPosition = craftingInventoryPos + craftingSlotPositions[9];
-				updateSlot(craftingSlots[9], false, fakeIsHoldingItem, fakeMouseItem, slotPosition, fakeDraggedSlot);
+				updateSlot(craftingSlots[9], false, isHoldingItem, mouseItem, slotPosition, fakeDraggedSlot, true);
 			}
 
 			if (isHoldingItem)
@@ -204,12 +215,12 @@ namespace Minecraft
 						if (blockId == firstBlockIdInRecipe)
 						{
 							bool isMatch = true;
-							for (int recipeRow = 0; recipeRow < 3; recipeRow++)
+							for (int recipeRow = 0; recipeRow < 3 && isMatch; recipeRow++)
 							{
 								for (int recipeColumn = 0; recipeColumn < 3; recipeColumn++)
 								{
 									int recipeBlockId = recipeBlockId = recipe.blockIds[recipeColumn + (recipeRow * 3)];
-									int currentBlockId = craftingSlots[((recipeColumn + column) % 3) + (((2 - recipeRow + row) % 3) * 3)].blockId;
+									int currentBlockId = craftingSlots[((recipeColumn + column) % 3) + (CMath::negativeMod((2 - (recipeRow + row)), 0, 2) * 3)].blockId;
 									if (recipeBlockId != currentBlockId)
 									{
 										isMatch = false;
@@ -234,7 +245,7 @@ namespace Minecraft
 			craftingSlots[9].count = 0;
 		}
 
-		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot)
+		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot, bool isCraftingOutput)
 		{
 			bool leftClickedInventorySlot = false;
 			bool rightClickedInventorySlot = false;
@@ -262,14 +273,14 @@ namespace Minecraft
 				if (leftClickedInventorySlot)
 				{
 					slotWasChanged = true;
-					if (inventorySlot.blockId != mouseItem.blockId)
+					if (inventorySlot.blockId != mouseItem.blockId && (!isCraftingOutput || mouseItem.blockId == BlockMap::NULL_BLOCK.id))
 					{
 						// Swap the block and mouse item if they are different
 						inventorySlot = mouseItem;
 						mouseItem = inventoryBlock;
 						isHoldingItem = true;
 					}
-					else
+					else if (!isCraftingOutput)
 					{
 						// Otherwise add the count to the inventory block up to 64
 						inventorySlot.count += mouseItem.count;
@@ -288,7 +299,7 @@ namespace Minecraft
 						}
 					}
 				}
-				else if (rightClickedInventorySlot)
+				else if (rightClickedInventorySlot && !isCraftingOutput)
 				{
 					slotWasChanged = true;
 					if (mouseItem.blockId == BlockMap::NULL_BLOCK.id && !isDraggingRightClick)
@@ -313,7 +324,7 @@ namespace Minecraft
 					}
 				}
 			}
-			else if (leftClickedInventorySlot)
+			else if (leftClickedInventorySlot && !isCraftingOutput)
 			{
 				slotWasChanged = true;
 				if (isHoldingItem)
@@ -324,7 +335,7 @@ namespace Minecraft
 					isHoldingItem = false;
 				}
 			}
-			else if (rightClickedInventorySlot)
+			else if (rightClickedInventorySlot && !isCraftingOutput)
 			{
 				slotWasChanged = true;
 				isHoldingItem = decrementMouseItem(mouseItem, inventorySlot);
@@ -366,7 +377,7 @@ namespace Minecraft
 				}
 			}
 
-			startPos.y = highestRowTopY + (13.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
+			startPos.y = highestRowTopY + (12.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 			currentSlotPosition = startPos;
 			g_logger_assert(highestRowTopY != FLT_MIN, "Did not find any rows for some reason...");
 			float middleRightY = FLT_MIN;
