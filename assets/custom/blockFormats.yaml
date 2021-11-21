@@ -150,3 +150,22 @@ birch_planks:
   bottom: birch_planks
   isSolid: true
   isTransparent: false
+
+# Items start at 32,000
+stick:
+  id: 32000
+  isItem: true
+  itemPicture: stick
+  # maxStackCount gets implicitly set to 64 if the item is stackable, no need to actually define it here
+  maxStackCount: 64
+wooden_pickaxe:
+  id: 32001
+  isItem: true
+  itemPicture: wooden_pickaxe
+  # isStackable gets implicitly set to true
+  isStackable: false
+wooden_axe:
+  id: 32002
+  isItem: true
+  itemPicture: wooden_axe
+  isStackable: false

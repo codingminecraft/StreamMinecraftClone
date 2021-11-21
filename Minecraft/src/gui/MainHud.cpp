@@ -32,8 +32,11 @@ namespace Minecraft
 		// Inventory Slot Sizes are 24x24 pixels
 		static const glm::vec2 craftingSlotSize = glm::vec2(21.0f, 21.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 
-		static std::array<glm::vec2, Player::numHotbarSlots + Player::numMainInventorySlots> slotPositions;
-		static InventorySlot draggedSlots[Player::numTotalSlots];
+		static std::array<glm::vec2, Player::numTotalSlots> slotPositions;
+		static std::array<glm::vec2, 10> craftingSlotPositions;
+		// We do +9 for the crafting slots
+		static InventorySlot draggedSlots[Player::numTotalSlots + 9];
+		static InventorySlot craftingSlots[10];
 
 		static Style hoverStyle;
 
@@ -42,6 +45,8 @@ namespace Minecraft
 		static void updateCraftingScreen(Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot);
+		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot);
+		static void checkIfItemIsCrafted();
 
 		void init()
 		{
@@ -139,99 +144,21 @@ namespace Minecraft
 			Renderer::drawTexture2D(*inventoryHud, craftingInventoryPos, craftingInventorySize, Styles::defaultStyle, -2);
 			for (int i = 0; i < slotPositions.size(); i++)
 			{
-				bool leftClickedInventorySlot = false;
-				bool rightClickedInventorySlot = false;
 				glm::vec2 slotPosition = craftingInventoryPos + slotPositions[i];
-
-				bool mouseOverSlot = Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
-					Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y;
-				bool draggedOver = isDraggingRightClick && draggedSlots[i] == inventory.slots[i] && 
-					draggedSlots[i].blockId != BlockMap::NULL_BLOCK.id;
-				if (mouseOverSlot || draggedOver)
-				{
-					Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
-
-					if (mouseOverSlot)
-					{
-						if (!draggedOver)
-						{
-							leftClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT);
-							rightClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_RIGHT) || isDraggingRightClick;
-						}
-					}
-				}
-
-				InventorySlot inventoryBlock = inventory.hotbar[i];
-				if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id)
-				{
-					drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f, false);
-					if (leftClickedInventorySlot)
-					{
-						if (inventory.hotbar[i].blockId != mouseItem.blockId)
-						{
-							// Swap the block and mouse item if they are different
-							inventory.hotbar[i] = mouseItem;
-							mouseItem = inventoryBlock;
-							isHoldingItem = true;
-						}
-						else
-						{
-							// Otherwise add the count to the inventory block up to 64
-							inventory.hotbar[i].count += mouseItem.count;
-							mouseItem.count = 0;
-							if (inventory.hotbar[i].count > 64)
-							{
-								int leftover = inventory.hotbar[i].count - 64;
-								inventory.hotbar[i].count = 64;
-								mouseItem.count += leftover;
-							}
-
-							if (mouseItem.count == 0)
-							{
-								mouseItem.blockId = BlockMap::NULL_BLOCK.id;
-								isHoldingItem = false;
-							}
-						}
-					}
-					else if (rightClickedInventorySlot)
-					{
-						if (mouseItem.blockId == BlockMap::NULL_BLOCK.id && !isDraggingRightClick)
-						{
-							int halfCount = inventory.hotbar[i].count / 2;
-							int mouseCount = inventory.hotbar[i].count - halfCount;
-							int inventoryCount = inventory.hotbar[i].count - mouseCount;
-							inventory.hotbar[i].count = inventoryCount;
-							mouseItem = inventoryBlock;
-							mouseItem.count = mouseCount;
-							if (inventory.hotbar[i].count == 0)
-							{
-								inventory.hotbar[i].blockId = BlockMap::NULL_BLOCK.id;
-							}
-							isHoldingItem = true;
-						}
-						else
-						{
-							isHoldingItem = decrementMouseItem(mouseItem, inventory.hotbar[i]);
-						}
-					}
-				}
-				else if (leftClickedInventorySlot)
-				{
-					if (isHoldingItem)
-					{
-						InventorySlot tmp = mouseItem;
-						mouseItem = inventory.slots[i];
-						inventory.slots[i] = tmp;
-						isHoldingItem = false;
-					}
-				}
-				else if (rightClickedInventorySlot)
-				{
-					isHoldingItem = decrementMouseItem(mouseItem, inventory.hotbar[i]);
-					draggedSlots[i] = inventory.hotbar[i];
-				}
+				updateSlot(inventory.slots[i], isDraggingRightClick, isHoldingItem, mouseItem, slotPosition, draggedSlots[i]);
+			}
+			bool craftingSlotWasChanged = false;
+			for (int i = 0; i < craftingSlotPositions.size() - 1; i++)
+			{
+				glm::vec2 slotPosition = craftingInventoryPos + craftingSlotPositions[i];
+				craftingSlotWasChanged |= updateSlot(craftingSlots[i], isDraggingRightClick, isHoldingItem, mouseItem, slotPosition, draggedSlots[i + Player::numTotalSlots]);
 			}
 			isDraggingRightClick = Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
+
+			if (craftingSlotWasChanged)
+			{
+				checkIfItemIsCrafted();
+			}
 
 			if (isHoldingItem)
 			{
@@ -240,16 +167,158 @@ namespace Minecraft
 			}
 		}
 
+		static void checkIfItemIsCrafted()
+		{
+			const std::vector<CraftingRecipe>& allRecipes = BlockMap::getAllCraftingRecipes();
+
+			for (auto& recipe : allRecipes)
+			{
+				int firstBlockIdInRecipe = recipe.blockIds[0];
+				for (int row = 0; row < 3 - recipe.maxHeight; row++)
+				{
+					for (int column = 0; column < 3 - recipe.maxWidth; column++)
+					{
+						int blockId = craftingSlots[column + (row * 3)].blockId;
+						if (blockId == firstBlockIdInRecipe)
+						{
+							bool isMatch = true;
+							for (int recipeRow = 0; recipeRow < recipe.maxHeight + 1; recipeRow++)
+							{
+								for (int recipeColumn = 0; recipeColumn < recipe.maxWidth + 1; recipeColumn++)
+								{
+									int recipeBlockId = recipe.blockIds[recipeColumn + (recipeRow * 3)];
+									int currentBlockId = craftingSlots[(recipeColumn + column) + ((recipeRow + row) * 3)].blockId;
+									if (recipeBlockId != currentBlockId)
+									{
+										isMatch = false;
+										break;
+									}
+								}
+							}
+
+							if (isMatch)
+							{
+								g_logger_info("YOU CRAFTED %d:%d", recipe.output, recipe.outputCount);
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot)
+		{
+			bool leftClickedInventorySlot = false;
+			bool rightClickedInventorySlot = false;
+			bool slotWasChanged = false;
+
+			bool mouseOverSlot = Input::mouseScreenX >= slotPosition.x && Input::mouseScreenX <= slotPosition.x + craftingSlotSize.x &&
+				Input::mouseScreenY >= slotPosition.y && Input::mouseScreenY <= slotPosition.y + craftingSlotSize.y;
+			bool draggedOver = isDraggingRightClick && draggedSlot == inventorySlot &&
+				draggedSlot.blockId != BlockMap::NULL_BLOCK.id;
+			if (mouseOverSlot || draggedOver)
+			{
+				Renderer::drawFilledSquare2D(slotPosition, craftingSlotSize, hoverStyle, -1);
+
+				if (mouseOverSlot && !draggedOver)
+				{
+					leftClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_LEFT);
+					rightClickedInventorySlot = Input::mouseBeginPress(GLFW_MOUSE_BUTTON_RIGHT) || isDraggingRightClick;
+				}
+			}
+
+			InventorySlot inventoryBlock = inventorySlot;
+			if (inventoryBlock.blockId != BlockMap::NULL_BLOCK.id)
+			{
+				drawItemInSlot(inventoryBlock, slotPosition, craftingSlotSize, 0.95f, false);
+				if (leftClickedInventorySlot)
+				{
+					slotWasChanged = true;
+					if (inventorySlot.blockId != mouseItem.blockId)
+					{
+						// Swap the block and mouse item if they are different
+						inventorySlot = mouseItem;
+						mouseItem = inventoryBlock;
+						isHoldingItem = true;
+					}
+					else
+					{
+						// Otherwise add the count to the inventory block up to 64
+						inventorySlot.count += mouseItem.count;
+						mouseItem.count = 0;
+						if (inventorySlot.count > 64)
+						{
+							int leftover = inventorySlot.count - 64;
+							inventorySlot.count = 64;
+							mouseItem.count += leftover;
+						}
+
+						if (mouseItem.count == 0)
+						{
+							mouseItem.blockId = BlockMap::NULL_BLOCK.id;
+							isHoldingItem = false;
+						}
+					}
+				}
+				else if (rightClickedInventorySlot)
+				{
+					slotWasChanged = true;
+					if (mouseItem.blockId == BlockMap::NULL_BLOCK.id && !isDraggingRightClick)
+					{
+						int halfCount = inventorySlot.count / 2;
+						int mouseCount = inventorySlot.count - halfCount;
+						int inventoryCount = inventorySlot.count - mouseCount;
+						inventorySlot.count = inventoryCount;
+						mouseItem = inventoryBlock;
+						mouseItem.count = mouseCount;
+						if (inventorySlot.count == 0)
+						{
+							inventorySlot.blockId = BlockMap::NULL_BLOCK.id;
+						}
+						isHoldingItem = true;
+						draggedSlot = inventorySlot;
+					}
+					else
+					{
+						isHoldingItem = decrementMouseItem(mouseItem, inventorySlot);
+						draggedSlot = inventorySlot;
+					}
+				}
+			}
+			else if (leftClickedInventorySlot)
+			{
+				slotWasChanged = true;
+				if (isHoldingItem)
+				{
+					InventorySlot tmp = mouseItem;
+					mouseItem = inventorySlot;
+					inventorySlot = tmp;
+					isHoldingItem = false;
+				}
+			}
+			else if (rightClickedInventorySlot)
+			{
+				slotWasChanged = true;
+				isHoldingItem = decrementMouseItem(mouseItem, inventorySlot);
+				draggedSlot = inventorySlot;
+			}
+
+			return slotWasChanged;
+		}
+
 		static void initSlotPositions()
 		{
 			g_memory_zeroMem(draggedSlots, sizeof(draggedSlots));
+			g_memory_zeroMem(craftingSlots, sizeof(craftingSlots));
 
 			// Pixel coords are 10x10 for first inventory slot
 			glm::vec2 startPos = glm::vec2(10.0f, 10.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 			glm::vec2 currentSlotPosition = startPos;
+			float highestRowTopY = FLT_MIN;
 
 			// The + 1 is because we have inventory slots and one extra row for the hotbar slots
-			for (int row = 0; row < Player::numMainInventoryColumns + 1; row++)
+			for (int row = 0; row < Player::numMainInventoryRows + 1; row++)
 			{
 				for (int column = 0; column < Player::numMainInventoryColumns; column++)
 				{
@@ -261,12 +330,31 @@ namespace Minecraft
 				currentSlotPosition.x = startPos.x;
 				currentSlotPosition.y += craftingSlotSize.y;
 				currentSlotPosition.y += (1.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
+				highestRowTopY = glm::max(highestRowTopY, currentSlotPosition.y + (1.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y);
 
 				if (row == 0)
 				{
 					// The hotbar slots are 9 pixels below the inventory slots
 					currentSlotPosition.y += (9.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 				}
+			}
+
+			startPos.y = highestRowTopY + (13.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
+			currentSlotPosition = startPos;
+			g_logger_assert(highestRowTopY != FLT_MIN, "Did not find any rows for some reason...");
+			// The + 1 is because we have inventory slots and one extra row for the hotbar slots
+			for (int row = 0; row < 3; row++)
+			{
+				for (int column = 0; column < 3; column++)
+				{
+					craftingSlotPositions[column + (row * 3)] = currentSlotPosition;
+					currentSlotPosition.x += craftingSlotSize.x;
+					// Add one pixel padding
+					currentSlotPosition.x += (1.0f) * (1.0f / craftingInventoryPixelSize.x) * craftingInventorySize.x;
+				}
+				currentSlotPosition.x = startPos.x;
+				currentSlotPosition.y += craftingSlotSize.y;
+				currentSlotPosition.y += (1.0f) * (1.0f / craftingInventoryPixelSize.y) * craftingInventorySize.y;
 			}
 		}
 
@@ -284,14 +372,17 @@ namespace Minecraft
 			{
 				inventorySlot.count++;
 				mouseItem.count--;
-				if (mouseItem.count == 0)
-				{
-					mouseItem.blockId = BlockMap::NULL_BLOCK.id;
-				}
 
+				// If we placed a block in an empty slot, set the slot to the mouse's block id
 				if (inventorySlot.blockId == BlockMap::NULL_BLOCK.id && inventorySlot.count > 0)
 				{
 					inventorySlot.blockId = mouseItem.blockId;
+				}
+
+				// If we placed our last item, set the mouse's block id to null
+				if (mouseItem.count == 0)
+				{
+					mouseItem.blockId = BlockMap::NULL_BLOCK.id;
 				}
 			}
 

@@ -1,0 +1,23 @@
+Recipes:
+  stick:
+    outputCount: 4
+    recipe0:
+      - [oak_planks]
+      - [oak_planks]
+  wooden_pickaxe:
+    outputCount: 1
+    recipe0:
+      - [oak_planks, oak_planks, oak_planks]
+      - [null,       stick,      null]
+      - [null,       stick,      null]
+  wooden_axe:
+    outputCount: 1
+    recipe0:
+      - [oak_planks, oak_planks]
+      - [oak_planks, stick]
+      - [null,       stick]
+    recipe1:
+      - [oak_planks, oak_planks]
+      - [stick,      oak_planks]
+      - [stick,      null]
+      

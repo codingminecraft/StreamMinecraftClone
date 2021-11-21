@@ -15,7 +15,7 @@ namespace Minecraft
 	// 32 bits extra stuff
 	struct Block
 	{
-		int16 id;
+		uint16 id;
 		uint16 lightLevel;
 		int16 lightColor;
 		int16 padding;
@@ -73,7 +73,20 @@ namespace Minecraft
 		bool isBlendable;
 		bool isLightSource;
 		int lightLevel;
+		bool isItemOnly;
+		bool isStackable;
+		int maxStackCount;
 		// TODO: Add bounding box definition here. That way we can add custom bounding boxes for different blocks
+	};
+
+	struct CraftingRecipe
+	{
+		int maxWidth;
+		int maxHeight;
+		// 9 is the max crafting size
+		uint16 blockIds[9];
+		int16 output;
+		int16 outputCount;
 	};
 
 	struct TextureFormat
@@ -95,12 +108,15 @@ namespace Minecraft
 		const BlockFormat& getBlock(int blockId);
 		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig);
 		void loadBlockItemTextures(const char* blockFormatConfig);
+		void loadCraftingRecipes(const char* craftingRecipesConfig);
 		void uploadTextureCoordinateMapToGpu();
 		void patchTextureMaps(const Texture* blockTexture, const Texture* itemTexture);
 		void patchBlockItemTextureMaps(const Texture* blockItemTexture);
 		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath);
 
 		uint32 getTextureCoordinatesTextureId();
+
+		const std::vector<CraftingRecipe>& getAllCraftingRecipes();
 	}
 }
 

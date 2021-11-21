@@ -79,6 +79,7 @@ namespace Minecraft
 				.bindTextureObject()
 				.generate(true);
 			BlockMap::patchBlockItemTextureMaps(&blockItemTexture);
+			BlockMap::loadCraftingRecipes("assets/custom/craftingRecipes.yaml");
 
 			registry = &inRegistry;
 

@@ -14,6 +14,11 @@ namespace Minecraft
 		{
 			return other.blockId == blockId && other.count == count;
 		}
+
+		bool operator!=(InventorySlot other) const
+		{
+			return !(other == *this);
+		}
 	};
 
 	struct Inventory

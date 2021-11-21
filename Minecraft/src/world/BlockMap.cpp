@@ -27,7 +27,8 @@ namespace Minecraft
 		};
 
 		static robin_hood::unordered_map<std::string, int> nameToIdMap;
-		static std::vector<BlockFormat> blockFormats;
+		static robin_hood::unordered_node_map<int16, BlockFormat> blockFormats;
+		static std::vector<CraftingRecipe> craftingRecipes;
 		// TODO: Ensure that these maps never change throughout a gameplay cycle
 		// unless a resource pack is loaded
 		static robin_hood::unordered_map<std::string, TextureFormat> textureFormatMap;
@@ -79,11 +80,11 @@ namespace Minecraft
 
 		const BlockFormat& getBlock(int blockId)
 		{
-			if (blockId <= 0 || blockId > blockFormats.size())
+			if (blockFormats.contains(blockId))
 			{
-				return blockFormats[0];
+				return blockFormats[blockId];
 			}
-			return blockFormats[blockId];
+			return blockFormats[0];
 		}
 
 		void loadBlocks(const char* textureFormatConfig, const char* itemFormatConfig, const char* blockFormatConfig)
@@ -92,7 +93,7 @@ namespace Minecraft
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
 			YAML::Node itemFormat = YamlExtended::readFile(itemFormatConfig);
 
-			blockFormats.push_back({
+			blockFormats[0] = {
 				nullptr,
 				nullptr,
 				nullptr,
@@ -104,8 +105,11 @@ namespace Minecraft
 				false,
 				false,
 				false,
+				0,
+				true,
+				false,
 				0
-				});
+			};
 
 			if (textureFormat["Blocks"])
 			{
@@ -155,50 +159,73 @@ namespace Minecraft
 
 			for (auto block : blockFormat)
 			{
+				g_logger_assert(block.second["id"].IsDefined(), "All blocks must have a block id defined. Block '%s' does not have an id.", block.first.as<std::string>().c_str());
 				int id = block.second["id"].as<int>();
-				std::string side = block.second["side"].as<std::string>();
-				std::string top = block.second["top"].as<std::string>();
-				std::string bottom = block.second["bottom"].as<std::string>();
-				std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "";
-				bool isTransparent = block.second["isTransparent"].as<bool>();
-				bool isSolid = block.second["isSolid"].as<bool>();
-				bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
-				bool colorSideByBiome = block.second["colorSideByBiome"].IsDefined() ? block.second["colorSideByBiome"].as<bool>() : false;
-				bool colorBottomByBiome = block.second["colorBottomByBiome"].IsDefined() ? block.second["colorBottomByBiome"].as<bool>() : false;
-				bool isBlendable = block.second["isBlendable"].IsDefined() ? block.second["isBlendable"].as<bool>() : false;
-				bool isLightSource = block.second["isLightSource"].IsDefined() ? block.second["isLightSource"].as<bool>() : false;
-				int lightLevel = block.second["lightLevel"].IsDefined() ? block.second["lightLevel"].as<int>() : 0;
-
-				g_logger_info("Loading Block Id: %d", id);
-				g_logger_info("Side: %s", side.c_str());
-				g_logger_info("Top: %s", top.c_str());
-				g_logger_info("Bottom: %s", bottom.c_str());
-
 				nameToIdMap[block.first.as<std::string>()] = id;
+				if (!block.second["isItem"].IsDefined() || !block.second["isItem"].as<bool>())
+				{
+					std::string side = block.second["side"].as<std::string>();
+					std::string top = block.second["top"].as<std::string>();
+					std::string bottom = block.second["bottom"].as<std::string>();
+					std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "";
+					bool isTransparent = block.second["isTransparent"].as<bool>();
+					bool isSolid = block.second["isSolid"].as<bool>();
+					bool colorTopByBiome = block.second["colorTopByBiome"].IsDefined() ? block.second["colorTopByBiome"].as<bool>() : false;
+					bool colorSideByBiome = block.second["colorSideByBiome"].IsDefined() ? block.second["colorSideByBiome"].as<bool>() : false;
+					bool colorBottomByBiome = block.second["colorBottomByBiome"].IsDefined() ? block.second["colorBottomByBiome"].as<bool>() : false;
+					bool isBlendable = block.second["isBlendable"].IsDefined() ? block.second["isBlendable"].as<bool>() : false;
+					bool isLightSource = block.second["isLightSource"].IsDefined() ? block.second["isLightSource"].as<bool>() : false;
+					int lightLevel = block.second["lightLevel"].IsDefined() ? block.second["lightLevel"].as<int>() : 0;
 
-				const auto& sideTextureIter = textureFormatMap.find(side);
-				TextureFormat* sideTexture = nullptr;
-				if (sideTextureIter != textureFormatMap.end())
-				{
-					sideTexture = &sideTextureIter->second;
-				}
-				const auto& topTextureIter = textureFormatMap.find(top);
-				TextureFormat* topTexture = nullptr;
-				if (topTextureIter != textureFormatMap.end())
-				{
-					topTexture = &topTextureIter->second;
-				}
-				const auto& bottomTextureIter = textureFormatMap.find(bottom);
-				TextureFormat* bottomTexture = nullptr;
-				if (bottomTextureIter != textureFormatMap.end())
-				{
-					bottomTexture = &bottomTextureIter->second;
-				}
+					const auto& sideTextureIter = textureFormatMap.find(side);
+					TextureFormat* sideTexture = nullptr;
+					if (sideTextureIter != textureFormatMap.end())
+					{
+						sideTexture = &sideTextureIter->second;
+					}
+					const auto& topTextureIter = textureFormatMap.find(top);
+					TextureFormat* topTexture = nullptr;
+					if (topTextureIter != textureFormatMap.end())
+					{
+						topTexture = &topTextureIter->second;
+					}
+					const auto& bottomTextureIter = textureFormatMap.find(bottom);
+					TextureFormat* bottomTexture = nullptr;
+					if (bottomTextureIter != textureFormatMap.end())
+					{
+						bottomTexture = &bottomTextureIter->second;
+					}
 
-				blockFormats.emplace_back(BlockFormat{
-					sideTexture, topTexture, bottomTexture, itemPictureName, isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
-					isBlendable, isLightSource, lightLevel
-					});
+					if (blockFormats.contains(id))
+					{
+						g_logger_warning("Block format detected a duplicate block id '%d'. Do you have two blocks with id '%d'?", id, id);
+					}
+
+					blockFormats[id] = BlockFormat{
+						sideTexture, topTexture, bottomTexture, itemPictureName,
+						isTransparent, isSolid, colorTopByBiome, colorSideByBiome, colorBottomByBiome,
+						isBlendable, isLightSource, lightLevel, false, true, 64
+					};
+				}
+				else
+				{
+					// It's an item only, not a block...
+					bool isItem = block.second["isItem"].IsDefined() ? block.second["isItem"].as<bool>() : false;
+					bool isStackable = block.second["isStackable"].IsDefined() ? block.second["isStackable"].as<bool>() : true;
+					std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "null";
+					int maxStackCount = block.second["maxStackCount"].IsDefined() ? block.second["maxStackCount"].as<int>() : 64;
+
+					if (blockFormats.contains(id))
+					{
+						g_logger_warning("Block format detected a duplicate block id '%d'. Do you have two blocks with id '%d'?", id, id);
+					}
+
+					blockFormats[id] = BlockFormat{
+						nullptr, nullptr, nullptr, itemPictureName,
+						false, false, false, false, false,
+						false, false, 0, isItem, isStackable, maxStackCount
+					};
+				}
 			}
 		}
 
@@ -236,6 +263,70 @@ namespace Minecraft
 				}
 			}
 
+		}
+
+		void loadCraftingRecipes(const char* craftingRecipesConfig)
+		{
+			YAML::Node itemFormat = YamlExtended::readFile(craftingRecipesConfig);
+
+			if (itemFormat["Recipes"])
+			{
+				const YAML::Node& recipes = itemFormat["Recipes"];
+				for (auto& largeRecipe : recipes)
+				{
+					if (largeRecipe.second["outputCount"])
+					{
+						int16 outputCount = largeRecipe.second["outputCount"].as<int16>();
+						std::string outputName = largeRecipe.first.as<std::string>();
+						int outputId = getBlockId(outputName);
+						g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
+
+						for (auto& subRecipe : largeRecipe.second)
+						{
+							if (subRecipe.first.as<std::string>() != "outputCount")
+							{
+								int maxWidth = subRecipe.second[0].size();
+								int rowIndex = 0;
+
+								CraftingRecipe resultRecipe;
+								g_memory_zeroMem(resultRecipe.blockIds, sizeof(resultRecipe.blockIds));
+								resultRecipe.output = outputId;
+								resultRecipe.outputCount = outputCount;
+
+								for (auto& row : subRecipe.second)
+								{
+									g_logger_assert(row.IsSequence(), "Crafting recipe '%s:%s' must contain arrays only. E.g - [stick, stick]", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+									g_logger_assert(row.size() == maxWidth, "Crafting recipe '%s:%s', must contain arrays of the same size.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+
+									int columnIndex = 0;
+									for (auto& item : row)
+									{
+										if (!item.IsNull())
+										{
+											std::string itemName = item.as<std::string>();
+											int blockId = getBlockId(itemName);
+											g_logger_assert(blockId != NULL_BLOCK.id, "Invalid block '%s' in recipe '%s:%s'", itemName.c_str(), outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+											resultRecipe.blockIds[columnIndex + rowIndex * 3] = blockId;
+										}
+										columnIndex++;
+										g_logger_assert(columnIndex <= 3, "Recipes can only contain 3 columns max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+									}
+									rowIndex++;
+									g_logger_assert(rowIndex <= 3, "Recipes can only contain 3 rows max. Recipe '%s:%s' is invalid.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+								}
+
+								int maxHeight = rowIndex;
+								resultRecipe.maxHeight = maxHeight - 1;
+								resultRecipe.maxWidth = maxWidth - 1;
+								craftingRecipes.push_back(resultRecipe);
+								g_logger_assert(maxWidth > 0 && maxHeight > 0, "Crafting recipe '%s:%s' must contain at least one row and column.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
+							}
+						}
+					}
+				}
+			}
+
+			g_logger_info("Loaded crafting recipes.");
 		}
 
 		void uploadTextureCoordinateMapToGpu()
@@ -302,6 +393,11 @@ namespace Minecraft
 			return texCoordsTextureId;
 		}
 
+		const std::vector<CraftingRecipe>& getAllCraftingRecipes()
+		{
+			return craftingRecipes;
+		}
+
 		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath)
 		{
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
@@ -341,27 +437,30 @@ namespace Minecraft
 			for (auto block : blockFormat)
 			{
 				std::string fileOutputPath = outputPath + block.first.as<std::string>() + ".png";
-				std::string side = block.second["side"].as<std::string>();
-				std::string top = block.second["top"].as<std::string>();
-				std::string bottom = block.second["bottom"].as<std::string>();
-				std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "";
-				if (itemPictureName == "" && side != "none")
+				std::string itemPictureName = block.second["itemPicture"].IsDefined() ? block.second["itemPicture"].as<std::string>() : "null";
+				if (itemPictureName == "null")
 				{
-					framebuffer.bind();
-					const TextureFormat& sideSprite = getTextureFormat(side);
-					const TextureFormat& topSprite = getTextureFormat(top);
-					const TextureFormat& bottomSprite = getTextureFormat(bottom);
-					Renderer::clearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-					Renderer::drawTexturedCube(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), sideSprite, topSprite, bottomSprite);
-					
-					Renderer::flushBatches3D(projectionMatrix, viewMatrix);
-
-					uint8* pixels = framebuffer.readAllPixelsRgb8(0);
-					if (!stbi_write_png(fileOutputPath.c_str(), framebuffer.width, framebuffer.height, 4, pixels, sizeof(uint8) * 4 * framebuffer.width))
+					std::string side = block.second["side"].as<std::string>();
+					std::string top = block.second["top"].as<std::string>();
+					std::string bottom = block.second["bottom"].as<std::string>();
+					if (itemPictureName == "" && side != "none")
 					{
-						g_logger_info("Image write failed because %s", stbi_failure_reason());
+						framebuffer.bind();
+						const TextureFormat& sideSprite = getTextureFormat(side);
+						const TextureFormat& topSprite = getTextureFormat(top);
+						const TextureFormat& bottomSprite = getTextureFormat(bottom);
+						Renderer::clearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+						Renderer::drawTexturedCube(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), sideSprite, topSprite, bottomSprite);
+
+						Renderer::flushBatches3D(projectionMatrix, viewMatrix);
+
+						uint8* pixels = framebuffer.readAllPixelsRgb8(0);
+						if (!stbi_write_png(fileOutputPath.c_str(), framebuffer.width, framebuffer.height, 4, pixels, sizeof(uint8) * 4 * framebuffer.width))
+						{
+							g_logger_info("Image write failed because %s", stbi_failure_reason());
+						}
+						framebuffer.freePixelsRgb8(pixels);
 					}
-					framebuffer.freePixelsRgb8(pixels);
 				}
 			}
 
