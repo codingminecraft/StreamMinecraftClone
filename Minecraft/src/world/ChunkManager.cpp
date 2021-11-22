@@ -862,7 +862,7 @@ namespace Minecraft
 			glm::vec3 tint = glm::vec3(1.0f);
 			if (World::isPlayerUnderwater())
 			{
-				tint = glm::vec3(0.1f, 0.12f, 0.76f);
+				tint = "#497dd1"_hex;
 			}
 			if (solidCommandBuffer().getNumCommands() > 0)
 			{

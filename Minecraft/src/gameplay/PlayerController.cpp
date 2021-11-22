@@ -198,7 +198,7 @@ namespace Minecraft
 						};
 						newBlock.id = inventory.hotbar[inventory.currentHotbarSlot].blockId;
 
-						if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK)
+						if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK && !newBlock.isItemOnly())
 						{
 							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 							ChunkManager::setBlock(worldPos, newBlock);

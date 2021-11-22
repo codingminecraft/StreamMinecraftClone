@@ -486,4 +486,9 @@ namespace Minecraft
 	{
 		return BlockMap::getBlock(id).isTransparent;
 	}
+
+	bool Block::isItemOnly() const
+	{
+		return BlockMap::getBlock(id).isItemOnly;
+	}
 }

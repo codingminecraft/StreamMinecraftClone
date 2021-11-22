@@ -22,6 +22,7 @@ namespace Minecraft
 
 		bool isLightSource() const;
 		bool isTransparent() const;
+		bool isItemOnly() const;
 
 		inline bool isLightPassable() const 
 		{
