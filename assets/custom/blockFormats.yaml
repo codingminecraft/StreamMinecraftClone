@@ -158,6 +158,7 @@ stick:
   itemPicture: stick
   # maxStackCount gets implicitly set to 64 if the item is stackable, no need to actually define it here
   maxStackCount: 64
+# Wooden tools
 wooden_pickaxe:
   id: 32001
   isItem: true
@@ -174,18 +175,39 @@ wooden_hoe:
   isItem: true
   itemPicture: wooden_hoe
   isStackable: false
-stone_pickaxe:
+wooden_sword:
   id: 32004
+  isItem: true
+  itemPicture: wooden_sword
+  isStackable: false
+wooden_shovel:
+  id: 32005
+  isItem: true
+  itemPicture: wooden_shovel
+  isStackable: false
+# Stone tools
+stone_pickaxe:
+  id: 32006
   isItem: true
   itemPicture: stone_pickaxe
   isStackable: false
 stone_axe:
-  id: 32005
+  id: 32007
   isItem: true
   itemPicture: stone_axe
   isStackable: false
 stone_hoe:
-  id: 32006
+  id: 32008
   isItem: true
   itemPicture: stone_hoe
+  isStackable: false
+stone_sword:
+  id: 32009
+  isItem: true
+  itemPicture: stone_sword
+  isStackable: false
+stone_shovel:
+  id: 32010
+  isItem: true
+  itemPicture: stone_shovel
   isStackable: false

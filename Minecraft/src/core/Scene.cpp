@@ -56,8 +56,8 @@ namespace Minecraft
 
 			itemTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Linear)
-				.setMinFilter(FilterMode::Linear)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
 				.setFilepath(packedItemTexturesFilepath)
 				.generateTextureObject()
 				.bindTextureObject()
@@ -72,8 +72,8 @@ namespace Minecraft
 			BlockMap::loadBlockItemTextures("assets/generated/blockItemTextureFormat.yaml");
 			blockItemTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
-				.setMagFilter(FilterMode::Linear)
-				.setMinFilter(FilterMode::Linear)
+				.setMagFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::Nearest)
 				.setFilepath("assets/generated/packedBlockItemsTextures.png")
 				.generateTextureObject()
 				.bindTextureObject()

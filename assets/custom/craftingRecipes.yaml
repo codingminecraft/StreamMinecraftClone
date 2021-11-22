@@ -32,6 +32,18 @@ wooden_axe:
     - [oak_planks, oak_planks]
     - [stick,      oak_planks]
     - [stick,      null]
+wooden_sword:
+  outputCount: 1
+  recipe0:
+    - [oak_planks]
+    - [oak_planks]
+    - [stick]
+wooden_shovel:
+  outputCount: 1
+  recipe0:
+    - [oak_planks]
+    - [stick]
+    - [stick]
 # Stone tools
 stone_pickaxe:
   outputCount: 1
@@ -59,6 +71,18 @@ stone_hoe:
     - [cobblestone, cobblestone]
     - [null,        stick]
     - [null,        stick]
+stone_sword:
+  outputCount: 1
+  r0:
+    - [cobblestone]
+    - [cobblestone]
+    - [stick]
+stone_shovel:
+  outputCount: 1
+  r0:
+    - [cobblestone]
+    - [stick]
+    - [stick]
 # Logs to planks
 oak_planks:
   outputCount: 4
