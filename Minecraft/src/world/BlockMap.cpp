@@ -7,6 +7,7 @@
 #include "renderer/Renderer.h"
 #include "core/Application.h"
 #include "core/Window.h"
+#include "core/File.h"
 
 namespace Minecraft
 {
@@ -397,6 +398,20 @@ namespace Minecraft
 		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath)
 		{
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
+			if (File::isDir(outputPath))
+			{
+				// Only regenerate the block item pictures if the file is out of date
+				FileTime configMetrics = File::getFileTimes(blockFormatConfig);
+				FileTime outputMetrics = File::getFileTimes(outputPath);
+				if (outputMetrics.lastWrite >= configMetrics.lastWrite)
+				{
+					return;
+				}
+				else 
+				{
+					g_logger_info("Config '%s' was edited since the last time we generated block item textures. Regenerating block item textures.", blockFormatConfig);
+				}
+			}
 
 			glm::vec3 cameraPos = glm::vec3(-1.0f, 1.0f, 1.0f);
 			glm::vec3 cameraOrientation = glm::vec3(-35.0f, -45.0f, 0.0f);
