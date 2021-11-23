@@ -22,3 +22,6 @@
 [submodule "Minecraft/vendor/robinHoodHashing"]
 	path = Minecraft/vendor/robinHoodHashing
 	url = https://github.com/martinus/robin-hood-hashing
+[submodule "Minecraft/vendor/enet"]
+	path = Minecraft/vendor/enet
+	url = https://github.com/lsalzman/enet

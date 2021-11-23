@@ -16,6 +16,7 @@
 #include "utils/Settings.h"
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
@@ -54,6 +55,7 @@ namespace Minecraft
 			KeyBindings::init();
 			Gui::init();
 			GuiElements::init();
+			Network::init();
 
 			// Allocate some GPU memory for basic geometry VAOs
 			Vertices::init();
@@ -236,6 +238,7 @@ namespace Minecraft
 			Sprites::freeAllSpritesheets();
 			Fonts::unloadAllFonts();
 			mainFramebuffer.destroy();
+			Network::free();
 
 			// Free all resources
 			Vertices::free();

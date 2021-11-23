@@ -26,6 +26,7 @@ project "Minecraft"
         "Minecraft/include/**.h",
         "Minecraft/include/**.hpp",
         "Minecraft/src/**.hpp",
+        -- GLFW stuff
         "Minecraft/vendor/GLFW/include/GLFW/glfw3.h",
         "Minecraft/vendor/GLFW/include/GLFW/glfw3native.h",
         "Minecraft/vendor/GLFW/src/glfw_config.h",
@@ -35,20 +36,30 @@ project "Minecraft"
         "Minecraft/vendor/GLFW/src/monitor.c",
         "Minecraft/vendor/GLFW/src/vulkan.c",
         "Minecraft/vendor/GLFW/src/window.c",
+        -- Glad stuff
         "Minecraft/vendor/glad/include/glad/glad.h",
         "Minecraft/vendor/glad/include/glad/KHR/khrplatform.h",
 		"Minecraft/vendor/glad/src/glad.c",
+        -- CppUtils stuff
         "Minecraft/vendor/cppUtils/SingleInclude/CppUtils/CppUtils.h",
+        -- Glm stuff
         "Minecraft/vendor/glm/glm/**.hpp",
 		"Minecraft/vendor/glm/glm/**.inl",
+        -- Stb stuff
         "Minecraft/vendor/stb/stb_image.h",
+        -- YAML stuff
         "Minecraft/vendor/yamlCpp/src/**.h",
 		"Minecraft/vendor/yamlCpp/src/**.cpp",
 		"Minecraft/vendor/yamlCpp/include/**.h",
+        -- SimpleX stuff
         "Minecraft/vendor/simplex/src/**.h",
         "Minecraft/vendor/simplex/src/**.cpp",
+        -- Optick stuff
         "Minecraft/vendor/optick/src/**.cpp",
         "Minecraft/vendor/optick/src/**.h",
+        -- Enet stuff
+        "Minecraft/vendor/enet/**.c",
+        "Minecraft/vendor/enet/**.h"
     }
 
     removefiles {
@@ -69,7 +80,8 @@ project "Minecraft"
         "Minecraft/vendor/freetype/include",
         "Minecraft/vendor/magicEnum/include",
         "Minecraft/vendor/optick/src",
-        "Minecraft/vendor/robinHoodHashing/src/include"
+        "Minecraft/vendor/robinHoodHashing/src/include",
+        "Minecraft/vendor/enet/include"
     }
 
     libdirs {
@@ -87,6 +99,10 @@ project "Minecraft"
     filter "system:windows"
         buildoptions { "-lgdi32" }
         systemversion "latest"
+
+        links {
+            "Winmm.lib"
+        }
 
         files {
             "Minecraft/vendor/GLFW/src/win32_init.c",
