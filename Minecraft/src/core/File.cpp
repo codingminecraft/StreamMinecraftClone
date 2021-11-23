@@ -91,6 +91,36 @@ namespace Minecraft
 
 			return specialAppFolder;
 		}
+
+		FileTime getFileTimes(const char* fileOrDirName)
+		{
+			int dwFlagsAndAttributes = 0;
+			if (isDir(fileOrDirName))
+			{
+				dwFlagsAndAttributes = FILE_FLAG_BACKUP_SEMANTICS;
+			}
+			HANDLE fileHandle = CreateFileA(fileOrDirName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, dwFlagsAndAttributes, NULL);
+
+			if (fileHandle == INVALID_HANDLE_VALUE)
+			{
+				g_logger_error("Could not get file times for file '%s'. Failed to open file.", fileOrDirName);
+				return { UINT64_MAX, UINT64_MAX, UINT64_MAX };
+			}
+
+			FILETIME create, lastAccess, lastWrite;
+			if (!GetFileTime(fileHandle, &create, &lastAccess, &lastWrite))
+			{
+				g_logger_error("Could not get file times for file '%s'. Failed to get file time metrics.", fileOrDirName);
+				return { UINT64_MAX, UINT64_MAX, UINT64_MAX };
+			}
+
+			FileTime res;
+			res.creation = ULARGE_INTEGER{ create.dwLowDateTime, create.dwHighDateTime }.QuadPart;
+			res.lastAccess = ULARGE_INTEGER{ lastAccess.dwLowDateTime, lastAccess.dwHighDateTime }.QuadPart;
+			res.lastWrite = ULARGE_INTEGER{ lastWrite.dwLowDateTime, lastWrite.dwHighDateTime }.QuadPart;
+			CloseHandle(fileHandle);
+			return res;
+		}
 	}
 }
 

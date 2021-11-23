@@ -439,7 +439,7 @@ namespace Minecraft
 					std::string side = block.second["side"].as<std::string>();
 					std::string top = block.second["top"].as<std::string>();
 					std::string bottom = block.second["bottom"].as<std::string>();
-					if (itemPictureName == "" && side != "none")
+					if (side != "none")
 					{
 						framebuffer.bind();
 						const TextureFormat& sideSprite = getTextureFormat(side);

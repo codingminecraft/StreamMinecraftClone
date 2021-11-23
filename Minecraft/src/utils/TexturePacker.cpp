@@ -1,5 +1,6 @@
 #include "utils/TexturePacker.h"
 #include "utils/YamlExtended.h"
+#include "core/File.h"
 
 namespace Minecraft
 {
@@ -13,10 +14,23 @@ namespace Minecraft
 	{
 		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName, int texWidth, int texHeight)
 		{
-			// Return early if the texture packer has already packed the textures.
+			// Return early if the texture packer has already packed the textures and we haven't edited the folder with all the images
+			// since then
 			if (std::filesystem::exists(configFilepath) && std::filesystem::exists(outputFilepath))
 			{
-				return;
+				FileTime directoryWithImagesMetrics = File::getFileTimes(filepath);
+				FileTime outputTextureMetrics = File::getFileTimes(outputFilepath);
+
+				// Only return early if the texture was written *after* the last time we
+				// edited the images
+				if (outputTextureMetrics.lastWrite > directoryWithImagesMetrics.lastWrite)
+				{
+					return;
+				}
+				else
+				{
+					g_logger_info("Texture path '%s' was edited since the last time we cached the textures. Repacking textures.", filepath);
+				}
 			}
 
 			std::vector<Location> textureLocations;

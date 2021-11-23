@@ -150,6 +150,41 @@ birch_planks:
   bottom: birch_planks
   isSolid: true
   isTransparent: false
+diamond_block:
+  id: 21
+  side: diamond_block
+  top: diamond_block
+  bottom: diamond_block
+  isSolid: true
+  isTransparent: false
+obsidian:
+  id: 22
+  side: obsidian
+  top: obsidian
+  bottom: obsidian
+  isSolid: true
+  isTransparent: false
+crying_obsidian:
+  id: 23
+  side: crying_obsidian
+  top: crying_obsidian
+  bottom: crying_obsidian
+  isSolid: true
+  isTransparent: false
+dark_oak_log:
+  id: 24
+  side: dark_oak_log
+  top: dark_oak_log_top
+  bottom: dark_oak_log
+  isSolid: true
+  isTransparent: false
+dark_oak_planks:
+  id: 25
+  side: dark_oak_planks
+  top: dark_oak_planks
+  bottom: dark_oak_planks
+  isSolid: true
+  isTransparent: false
 
 # Items start at 32,000
 stick:
@@ -211,3 +246,15 @@ stone_shovel:
   isItem: true
   itemPicture: stone_shovel
   isStackable: false
+ender_pearl:
+  id: 32011
+  isItem: true
+  itemPicture: ender_pearl
+ghast_tear:
+  id: 32012
+  isItem: true
+  itemPicture: ghast_tear
+ruby_pickaxe:
+  id: 32013
+  isItem: true
+  itemPicture: ruby_pickaxe

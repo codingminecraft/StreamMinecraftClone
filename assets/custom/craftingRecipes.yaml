@@ -92,4 +92,8 @@ spruce_planks:
   outputCount: 4
   recipe0:
     - [spruce_log]
-      
+
+dark_oak_log:
+  outputCount: 4
+  recipe0:
+    - [ghast_tear, ghast_tear]
