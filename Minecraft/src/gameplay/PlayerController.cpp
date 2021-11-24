@@ -241,6 +241,8 @@ namespace Minecraft
 						controller.applyJumpForce = true;
 					}
 				}
+
+				updateInventory(dt, inventory);
 			}
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
@@ -258,7 +260,6 @@ namespace Minecraft
 				Application::getWindow().setCursorMode(mode);
 			}
 
-			updateInventory(dt, inventory);
 			MainHud::update(dt, inventory);
 		}
 

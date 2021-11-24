@@ -14,6 +14,7 @@ namespace Minecraft
 		void free();
 
 		extern bool viewingCraftScreen;
+		extern bool isPaused;
 	}
 }
 

@@ -15,6 +15,7 @@ namespace Minecraft
 	{
 		// External variables
 		extern bool viewingCraftScreen = false;
+		extern bool isPaused = false;
 
 		// Internal variables
 		static const Sprite* blockCursorSprite = nullptr;
