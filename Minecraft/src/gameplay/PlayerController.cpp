@@ -1,5 +1,6 @@
 #include "gameplay/PlayerController.h"
 #include "input/Input.h"
+#include "input/KeyBindings.h"
 #include "core/Ecs.h"
 #include "core/Components.h"
 #include "renderer/Camera.h"
@@ -153,6 +154,29 @@ namespace Minecraft
 					break;
 				}
 
+				// Common key bindings across all game modes
+				if (KeyBindings::keyBeginPress(KeyBind::Escape))
+				{
+					if (CommandLine::isActive)
+					{
+						CommandLine::isActive = false;
+					}
+					else if (MainHud::viewingCraftScreen)
+					{
+						MainHud::viewingCraftScreen = false;
+					}
+					else if (!MainHud::isPaused)
+					{
+						Application::getWindow().setCursorMode(CursorMode::Normal);
+						MainHud::isPaused = true;
+					}
+					else if (MainHud::isPaused)
+					{
+						Application::getWindow().setCursorMode(CursorMode::Locked);
+						MainHud::isPaused = false;
+					}
+				}
+
 				DebugStats::playerPos = transform.position;
 				DebugStats::playerOrientation = transform.orientation;
 			}
@@ -162,7 +186,7 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
-			if (!MainHud::viewingCraftScreen && !CommandLine::isActive)
+			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
 				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
 				if (res.hit)

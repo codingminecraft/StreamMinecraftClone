@@ -278,6 +278,17 @@ namespace Minecraft
 
 			void free();
 
+			void clear()
+			{
+				entities.clear();
+				for (Internal::SparseSet& set : componentSets)
+				{
+					set.free();
+				}
+				componentSets.clear();
+				freeEntities.clear();
+			}
+
 			template<typename T>
 			T& addComponent(EntityId id)
 			{

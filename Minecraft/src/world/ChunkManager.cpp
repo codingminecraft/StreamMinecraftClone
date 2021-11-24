@@ -94,7 +94,7 @@ namespace Minecraft
 		class ChunkWorker
 		{
 		public:
-			ChunkWorker(int numThreads)
+			ChunkWorker()
 				: cv(), mtx(), queueMtx(), doWork(true)
 			{
 				noiseGenerators[0] = SimplexNoise();// World::seedAsFloat.load());
@@ -103,10 +103,7 @@ namespace Minecraft
 				noiseGenerators[3] = SimplexNoise(World::seedAsFloat.load());
 				noiseGenerators[4] = SimplexNoise(World::seedAsFloat.load());
 
-				for (int i = 0; i < numThreads; i++)
-				{
-					workerThreads.push_back(std::thread(&ChunkWorker::threadWorker, this));
-				}
+				workerThread = std::thread(&ChunkWorker::threadWorker, this);
 			}
 
 			void free()
@@ -117,10 +114,7 @@ namespace Minecraft
 				}
 				cv.notify_all();
 
-				for (int i = 0; i < workerThreads.size(); i++)
-				{
-					workerThreads[i].join();
-				}
+				workerThread.join();
 			}
 
 			void threadWorker()
@@ -151,7 +145,8 @@ namespace Minecraft
 						{
 							// Only process all commands if we're not stopping the thread worker.
 							// If we are stopping the thread worker, then only process save commands
-							do {
+							do
+							{
 								command = commands.top();
 								commands.pop();
 								processCommand = (!doWork && command.type == CommandType::SaveBlockData) || doWork;
@@ -261,7 +256,7 @@ namespace Minecraft
 
 		private:
 			std::priority_queue<FillChunkCommand, std::vector<FillChunkCommand>, CompareFillChunkCommand> commands;
-			std::vector<std::thread> workerThreads;
+			std::thread workerThread;
 			std::atomic<glm::ivec2> playerPosChunkCoords;
 			std::condition_variable cv;
 			std::mutex mtx;
@@ -406,42 +401,17 @@ namespace Minecraft
 		static uint32 chunkPosInstancedBuffer;
 		static uint32 biomeInstancedVbo;
 		static uint32 globalVao;
+		static uint32 globalRenderVbo;
 		// TODO: Make this better
 		static uint32 solidDrawCommandVbo;
 		static uint32 blendableDrawCommandVbo;
 		static Shader compositeShader;
 
-		// Singletons
-		static ChunkWorker& chunkWorker()
-		{
-			static ChunkWorker instance(processorCount);
-			return instance;
-		}
-
-		static Pool<SubChunk, World::ChunkCapacity * 16>& subChunks()
-		{
-			static Pool<SubChunk, World::ChunkCapacity * 16> instance{ 1 };
-			return instance;
-		}
-
-		static Pool<Block, World::ChunkCapacity>& blockPool()
-		{
-			static Pool<Block, World::ChunkCapacity> instance(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight);
-			return instance;
-		}
-
-		static CommandBufferContainer& solidCommandBuffer()
-		{
-			static CommandBufferContainer instance(subChunks().size(), false);
-			return instance;
-		}
-
-		// TODO: Combine these two buffers into one, since we're wasting RAM
-		static CommandBufferContainer& blendableCommandBuffer()
-		{
-			static CommandBufferContainer instance(subChunks().size(), true);
-			return instance;
-		}
+		static ChunkWorker* chunkWorker = nullptr;
+		static Pool<SubChunk, World::ChunkCapacity * 16>* subChunks = nullptr;
+		static Pool<Block, World::ChunkCapacity>* blockPool = nullptr;
+		static CommandBufferContainer* solidCommandBuffer = nullptr;
+		static CommandBufferContainer* blendableCommandBuffer = nullptr;
 
 		void init()
 		{
@@ -450,40 +420,42 @@ namespace Minecraft
 			processorCount = 1;// std::thread::hardware_concurrency();
 
 			// Initialize the singletons
-			chunkWorker();
-			blockPool();
+			chunkWorker = new ChunkWorker();
+			subChunks = new Pool<SubChunk, World::ChunkCapacity * 16>(1);
+			blockPool = new Pool<Block, World::ChunkCapacity>(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight);
+			solidCommandBuffer = new CommandBufferContainer(subChunks->size(), false);
+			blendableCommandBuffer = new CommandBufferContainer(subChunks->size(), true);
 
 			compositeShader.compile("assets/shaders/CompositeShader.glsl");
 
 			// Initialize the free list
-			for (int i = 0; i < (int)blockPool().size(); i++)
+			chunks.clear();
+			chunkFreeList.clear();
+			for (int i = 0; i < (int)blockPool->size(); i++)
 			{
-				chunkFreeList.push_back(blockPool()[i]);
+				chunkFreeList.push_back((*blockPool)[i]);
 			}
 
 			// Set up draw commands to relate to our sub chunks
-			solidCommandBuffer().init();
+			solidCommandBuffer->init();
 			glCreateBuffers(1, &solidDrawCommandVbo);
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
-			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
-			blendableCommandBuffer().init();
+			blendableCommandBuffer->init();
 			glCreateBuffers(1, &blendableDrawCommandVbo);
 			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
-			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
-			chunks.clear();
-
 			// Generate a bunch of empty vertex buckets for GPU use
 			glCreateVertexArrays(1, &globalVao);
 			glBindVertexArray(globalVao);
 
-			uint32 renderVbo;
-			glGenBuffers(1, &renderVbo);
+			glGenBuffers(1, &globalRenderVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, globalRenderVbo);
 
-			size_t totalSizeOfSubChunkVertices = subChunks().size() * World::MaxVertsPerSubChunk * sizeof(Vertex);
-			glBindBuffer(GL_ARRAY_BUFFER, renderVbo);
+			size_t totalSizeOfSubChunkVertices = subChunks->size() * World::MaxVertsPerSubChunk * sizeof(Vertex);
 
 			// Set our vertex attribute pointers
 			glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(Vertex), (void*)offsetof(Vertex, data1));
@@ -497,21 +469,21 @@ namespace Minecraft
 			// Set up our global immutable buffer
 			GLbitfield flags = GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT;
 			glBufferStorage(GL_ARRAY_BUFFER, totalSizeOfSubChunkVertices, NULL, flags);
-			Vertex* basePointer = (Vertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, subChunks().size() * World::MaxVertsPerSubChunk, flags);
-			for (uint32 i = 0; i < subChunks().size(); i++)
+			Vertex* basePointer = (Vertex*)glMapBufferRange(GL_ARRAY_BUFFER, 0, subChunks->size() * World::MaxVertsPerSubChunk, flags);
+			for (uint32 i = 0; i < subChunks->size(); i++)
 			{
 				// Assign the pointers for the data on the CPU
-				subChunks()[i]->first = (i * World::MaxVertsPerSubChunk);
-				subChunks()[i]->data = basePointer + subChunks()[i]->first;
-				subChunks()[i]->numVertsUsed = 0;
-				subChunks()[i]->drawCommandIndex = i;
-				subChunks()[i]->state = SubChunkState::Unloaded;
+				(*subChunks)[i]->first = (i * World::MaxVertsPerSubChunk);
+				(*subChunks)[i]->data = basePointer + (*subChunks)[i]->first;
+				(*subChunks)[i]->numVertsUsed = 0;
+				(*subChunks)[i]->drawCommandIndex = i;
+				(*subChunks)[i]->state = SubChunkState::Unloaded;
 			}
 
 			// Set up the instanced chunk pos vertex buffer
 			glCreateBuffers(1, &chunkPosInstancedBuffer);
 			glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * 2 * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * 2 * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			glVertexAttribIPointer(10, 2, GL_INT, sizeof(int32) * 2, 0);
 			glVertexAttribDivisor(10, 1);
@@ -520,7 +492,7 @@ namespace Minecraft
 			// Set up biome buffer
 			glCreateBuffers(1, &biomeInstancedVbo);
 			glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * subChunks().size(), NULL, GL_DYNAMIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			glVertexAttribIPointer(11, 1, GL_INT, sizeof(int32), 0);
 			glVertexAttribDivisor(11, 1);
@@ -529,33 +501,71 @@ namespace Minecraft
 			// Subchunk = 16x16x16  Blocks
 			// BigChunk = 16x256x16 Blocks
 			g_logger_info("Vertex Pool Total Size: %2.3f Gb", (float)(totalSizeOfSubChunkVertices / (1024.0f * 1024 * 1024)));
-			g_logger_info("Block Pool Total Size: %2.3f Gb", (float)(blockPool().totalSize() / (1024.0f * 1024 * 1024)));
-			DebugStats::totalChunkRamAvailable = totalSizeOfSubChunkVertices + (float)blockPool().totalSize();
+			g_logger_info("Block Pool Total Size: %2.3f Gb", (float)(blockPool->totalSize() / (1024.0f * 1024 * 1024)));
+			DebugStats::totalChunkRamAvailable = totalSizeOfSubChunkVertices + (float)blockPool->totalSize();
 		}
 
 		void free()
 		{
-			chunkWorker().free();
-			solidCommandBuffer().free();
-			blendableCommandBuffer().free();
+			// Delete GPU memory
+			// TODO: Do error checking on these VBOs to ensure they are valid
+			glDeleteBuffers(1, &solidDrawCommandVbo);
+			glDeleteBuffers(1, &blendableDrawCommandVbo);
+
+			chunks.clear();
+			chunkFreeList.clear();
+
+			glDeleteBuffers(1, &globalRenderVbo);
+			glDeleteBuffers(1, &chunkPosInstancedBuffer);
+			glDeleteBuffers(1, &biomeInstancedVbo);
+			glDeleteVertexArrays(1, &globalVao);
+
+			// Delete CPU memory
+			if (chunkWorker)
+			{
+				chunkWorker->free();
+				delete chunkWorker;
+				chunkWorker = nullptr;
+			}
+
+			if (subChunks)
+			{
+				delete subChunks;
+				subChunks = nullptr;
+			}
+
+			if (blockPool)
+			{
+				delete blockPool;
+				blockPool = nullptr;
+			}
+
+			if (solidCommandBuffer)
+			{
+				solidCommandBuffer->free();
+				delete solidCommandBuffer;
+				solidCommandBuffer = nullptr;
+			}
+
+			if (blendableCommandBuffer)
+			{
+				blendableCommandBuffer->free();
+				delete blendableCommandBuffer;
+				blendableCommandBuffer = nullptr;
+			}
 
 			compositeShader.destroy();
 		}
 
 		void serialize()
 		{
-			FillChunkCommand cmd;
-			cmd.type = CommandType::SaveBlockData;
-			cmd.subChunks = &(subChunks());
-
 			for (robin_hood::pair<const glm::ivec2, Chunk>& chunkIter : chunks)
 			{
 				Chunk& chunk = chunkIter.second;
 				Block* blockData = chunk.data;
 				if (chunk.state != ChunkState::Saving && blockData)
 				{
-					cmd.chunk = &chunk;
-					chunkWorker().queueCommand(cmd);
+					queueSaveChunk(chunkIter.first);
 				}
 			}
 		}
@@ -588,18 +598,18 @@ namespace Minecraft
 					FillChunkCommand cmd;
 					cmd.type = CommandType::GenerateTerrain;
 					cmd.chunk = &chunks[newChunk.chunkCoords];
-					cmd.subChunks = &(subChunks());
+					cmd.subChunks = subChunks;
 
 					// Queue the fill command
-					chunkWorker().queueCommand(cmd);
+					chunkWorker->queueCommand(cmd);
 					// Queue the calculate lighting command
 					cmd.type = CommandType::CalculateLighting;
-					chunkWorker().queueCommand(cmd);
+					chunkWorker->queueCommand(cmd);
 					// Queue the tesselate command
 					cmd.type = CommandType::TesselateVertices;
-					chunkWorker().queueCommand(cmd);
+					chunkWorker->queueCommand(cmd);
 
-					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + blockPool().poolSize() * sizeof(Block);
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + blockPool->poolSize() * sizeof(Block);
 				}
 				else
 				{
@@ -614,7 +624,7 @@ namespace Minecraft
 			FillChunkCommand cmd;
 			cmd.type = CommandType::CalculateLighting;
 			cmd.playerPosChunkCoords = lastPlayerPosInChunkCoords;
-			chunkWorker().queueCommand(cmd);
+			chunkWorker->queueCommand(cmd);
 		}
 
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource)
@@ -625,12 +635,12 @@ namespace Minecraft
 			{
 				FillChunkCommand cmd;
 				cmd.type = CommandType::RecalculateLighting;
-				cmd.subChunks = &subChunks();
+				cmd.subChunks = subChunks;
 				cmd.chunk = chunk;
 				cmd.blockThatUpdated = blockPositionThatUpdated;
 				cmd.removedLightSource = removedLightSource;
 
-				chunkWorker().queueCommand(cmd);
+				chunkWorker->queueCommand(cmd);
 				// TODO: this probably isn't necessary, find all the unneccessary retesselations and remove them
 				queueRetesselateChunk(chunkCoordinates, chunk);
 			}
@@ -647,27 +657,27 @@ namespace Minecraft
 			{
 				FillChunkCommand cmd;
 				cmd.type = CommandType::TesselateVertices;
-				cmd.subChunks = &subChunks();
+				cmd.subChunks = subChunks;
 				cmd.chunk = chunk;
 
 				// Update the sub-chunks that are about to be deleted
-				for (int i = 0; i < (int)subChunks().size(); i++)
+				for (int i = 0; i < (int)subChunks->size(); i++)
 				{
-					if (subChunks()[i]->chunkCoordinates == chunkCoordinates && subChunks()[i]->state == SubChunkState::Uploaded)
+					if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::Uploaded)
 					{
-						subChunks()[i]->state = SubChunkState::RetesselateVertices;
+						(*subChunks)[i]->state = SubChunkState::RetesselateVertices;
 					}
 				}
 
 				// TODO: Remove this flag, this is mostly for debugging
 				if (!doImmediately)
 				{
-					chunkWorker().queueCommand(cmd);
-					chunkWorker().beginWork();
+					chunkWorker->queueCommand(cmd);
+					chunkWorker->beginWork();
 				}
 				else
 				{
-					ChunkPrivate::generateRenderData(&subChunks(), chunk, chunk->chunkCoords);
+					ChunkPrivate::generateRenderData(subChunks, chunk, chunk->chunkCoords);
 				}
 			}
 		}
@@ -687,8 +697,8 @@ namespace Minecraft
 					FillChunkCommand cmd;
 					cmd.type = CommandType::SaveBlockData;
 					cmd.chunk = chunk;
-					cmd.subChunks = &(subChunks());
-					chunkWorker().queueCommand(cmd);
+					cmd.subChunks = subChunks;
+					chunkWorker->queueCommand(cmd);
 				}
 			}
 		}
@@ -698,7 +708,7 @@ namespace Minecraft
 			FillChunkCommand cmd;
 			cmd.type = CommandType::GenerateDecorations;
 			cmd.playerPosChunkCoords = lastPlayerLoadChunkPos;
-			chunkWorker().queueCommand(cmd);
+			chunkWorker->queueCommand(cmd);
 		}
 
 		Block getBlock(const glm::vec3& worldPosition)
@@ -735,7 +745,7 @@ namespace Minecraft
 			{
 				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk);
 				queueRecalculateLighting(chunkCoords, worldPosition, false);
-				chunkWorker().beginWork();
+				chunkWorker->beginWork();
 			}
 		}
 
@@ -759,7 +769,7 @@ namespace Minecraft
 			{
 				retesselateChunkBlockUpdate(chunkCoords, worldPosition, chunk);
 				queueRecalculateLighting(chunkCoords, worldPosition, isLightSourceBlock);
-				chunkWorker().beginWork();
+				chunkWorker->beginWork();
 			}
 		}
 
@@ -801,58 +811,58 @@ namespace Minecraft
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum)
 		{
-			chunkWorker().setPlayerPosChunkCoords(playerPositionInChunkCoords);
+			chunkWorker->setPlayerPosChunkCoords(playerPositionInChunkCoords);
 
-			for (int i = 0; i < (int)subChunks().size(); i++)
+			for (int i = 0; i < (int)subChunks->size(); i++)
 			{
-				if (subChunks()[i]->state != SubChunkState::Unloaded)
+				if ((*subChunks)[i]->state != SubChunkState::Unloaded)
 				{
-					glm::ivec2 chunkPos = subChunks()[i]->chunkCoordinates;
+					glm::ivec2 chunkPos = (*subChunks)[i]->chunkCoordinates;
 					const auto& iter = chunks.find(chunkPos);
-					if (iter == chunks.end() && subChunks()[i]->state != SubChunkState::TesselatingVertices)
+					if (iter == chunks.end() && (*subChunks)[i]->state != SubChunkState::TesselatingVertices)
 					{
 						// If the chunk coords are no longer loaded, set this chunk as not in use anymore
-						subChunks()[i]->state = SubChunkState::Unloaded;
-						subChunks()[i]->numVertsUsed = 0;
-						subChunks().freePool(i);
+						(*subChunks)[i]->state = SubChunkState::Unloaded;
+						(*subChunks)[i]->numVertsUsed = 0;
+						subChunks->freePool(i);
 					}
 					else if (iter != chunks.end() && iter->second.state == ChunkState::Loaded)
 					{
-						if (subChunks()[i]->state == SubChunkState::UploadVerticesToGpu)
+						if ((*subChunks)[i]->state == SubChunkState::UploadVerticesToGpu)
 						{
-							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							subChunks()[i]->state = SubChunkState::Uploaded;
+							g_logger_assert((*subChunks)[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
+							(*subChunks)[i]->state = SubChunkState::Uploaded;
 						}
 
-						if (subChunks()[i]->state == SubChunkState::Uploaded || subChunks()[i]->state == SubChunkState::RetesselateVertices ||
-							subChunks()[i]->state == SubChunkState::DoneRetesselating)
+						if ((*subChunks)[i]->state == SubChunkState::Uploaded || (*subChunks)[i]->state == SubChunkState::RetesselateVertices ||
+							(*subChunks)[i]->state == SubChunkState::DoneRetesselating)
 						{
-							g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
-							float yCenter = (float)subChunks()[i]->subChunkLevel * 16.0f;
-							glm::vec3 chunkPos = glm::vec3(subChunks()[i]->chunkCoordinates.x * World::ChunkDepth, yCenter, subChunks()[i]->chunkCoordinates.y * World::ChunkWidth);
+							g_logger_assert((*subChunks)[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
+							float yCenter = (float)(*subChunks)[i]->subChunkLevel * 16.0f;
+							glm::vec3 chunkPos = glm::vec3((*subChunks)[i]->chunkCoordinates.x * World::ChunkDepth, yCenter, (*subChunks)[i]->chunkCoordinates.y * World::ChunkWidth);
 							if (cameraFrustum.isBoxVisible(chunkPos, chunkPos + glm::vec3(16, 16, 16)))
 							{
 								DrawArraysIndirectCommand drawCommand;
-								g_logger_assert(subChunks()[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
+								g_logger_assert((*subChunks)[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 								drawCommand.baseInstance = 0;
 								drawCommand.instanceCount = 1;
-								drawCommand.count = subChunks()[i]->numVertsUsed;
-								drawCommand.first = subChunks()[i]->first;
-								if (subChunks()[i]->isBlendable)
+								drawCommand.count = (*subChunks)[i]->numVertsUsed;
+								drawCommand.first = (*subChunks)[i]->first;
+								if ((*subChunks)[i]->isBlendable)
 								{
-									blendableCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+									blendableCommandBuffer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 								}
 								else
 								{
-									solidCommandBuffer().add(drawCommand, subChunks()[i]->chunkCoordinates, subChunks()[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+									solidCommandBuffer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 								}
 							}
 
-							if (subChunks()[i]->state == SubChunkState::DoneRetesselating)
+							if ((*subChunks)[i]->state == SubChunkState::DoneRetesselating)
 							{
-								subChunks()[i]->numVertsUsed = 0;
-								subChunks()[i]->state = SubChunkState::Unloaded;
-								subChunks().freePool(i);
+								(*subChunks)[i]->numVertsUsed = 0;
+								(*subChunks)[i]->state = SubChunkState::Unloaded;
+								subChunks->freePool(i);
 							}
 						}
 					}
@@ -864,7 +874,7 @@ namespace Minecraft
 			{
 				tint = "#497dd1"_hex;
 			}
-			if (solidCommandBuffer().getNumCommands() > 0)
+			if (solidCommandBuffer->getNumCommands() > 0)
 			{
 				// Render opaque geometry
 				glEnable(GL_CULL_FACE);
@@ -873,25 +883,25 @@ namespace Minecraft
 				glDepthMask(GL_TRUE);
 				glDisable(GL_BLEND);
 
-				solidCommandBuffer().sort(playerPositionInChunkCoords);
+				solidCommandBuffer->sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getChunkPosBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getChunkPosBuffer());
 				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getBiomeBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getBiomeBuffer());
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
-				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * solidCommandBuffer().getNumCommands(), solidCommandBuffer().getCommandBuffer());
-				DebugStats::numDrawCalls += solidCommandBuffer().getNumCommands();
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getCommandBuffer());
+				DebugStats::numDrawCalls += solidCommandBuffer->getNumCommands();
 
 				glBindVertexArray(globalVao);
 				opaqueShader.bind();
 				opaqueShader.uploadVec3("uPlayerPosition", playerPosition);
 				opaqueShader.uploadInt("uChunkRadius", World::ChunkRadius);
 				opaqueShader.uploadVec3("uTint", tint);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer().getNumCommands(), sizeof(DrawCommand));
-				solidCommandBuffer().softReset();
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer->getNumCommands(), sizeof(DrawCommand));
+				solidCommandBuffer->softReset();
 			}
 
-			if (blendableCommandBuffer().getNumCommands() > 0)
+			if (blendableCommandBuffer->getNumCommands() > 0)
 			{
 				const GLenum blendableDrawBuffer[3] = { GL_NONE, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 				glDrawBuffers(3, blendableDrawBuffer);
@@ -912,12 +922,12 @@ namespace Minecraft
 				// We shouldn't need to even sort this...
 				//transparentCommandBuffer().sort(playerPositionInChunkCoords);
 				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getChunkPosBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getChunkPosBuffer());
 				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
-				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getBiomeBuffer());
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getBiomeBuffer());
 				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
-				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * blendableCommandBuffer().getNumCommands(), blendableCommandBuffer().getCommandBuffer());
-				DebugStats::numDrawCalls += blendableCommandBuffer().getNumCommands();
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getCommandBuffer());
+				DebugStats::numDrawCalls += blendableCommandBuffer->getNumCommands();
 
 				transparentShader.bind();
 				transparentShader.uploadVec3("uPlayerPosition", playerPosition);
@@ -925,8 +935,8 @@ namespace Minecraft
 				transparentShader.uploadVec3("uTint", tint);
 
 				glBindVertexArray(globalVao);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBuffer().getNumCommands(), sizeof(DrawCommand));
-				blendableCommandBuffer().softReset();
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBuffer->getNumCommands(), sizeof(DrawCommand));
+				blendableCommandBuffer->softReset();
 
 				// Reset render state
 				glEnable(GL_CULL_FACE);
@@ -962,15 +972,15 @@ namespace Minecraft
 		void checkChunkRadius(const glm::vec3& playerPosition)
 		{
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
-			chunkWorker().setPlayerPosChunkCoords(playerPosChunkCoords);
+			chunkWorker->setPlayerPosChunkCoords(playerPosChunkCoords);
 			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
 
 			// Remove out of range chunks
-			for (int i = 0; i < (int)subChunks().size(); i++)
+			for (int i = 0; i < (int)subChunks->size(); i++)
 			{
-				if (subChunks()[i]->state != SubChunkState::Unloaded)
+				if ((*subChunks)[i]->state != SubChunkState::Unloaded)
 				{
-					glm::ivec2 chunkPos = subChunks()[i]->chunkCoordinates;
+					glm::ivec2 chunkPos = (*subChunks)[i]->chunkCoordinates;
 					const glm::ivec2 localChunkPos = chunkPos - playerPosChunkCoords;
 					bool inRangeOfPlayer =
 						(localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
@@ -982,7 +992,7 @@ namespace Minecraft
 						{
 							if (iter->second.state != ChunkState::Saving)
 							{
-								queueSaveChunk(subChunks()[i]->chunkCoordinates);
+								queueSaveChunk((*subChunks)[i]->chunkCoordinates);
 							}
 						}
 					}
@@ -994,7 +1004,7 @@ namespace Minecraft
 			{
 				if (iter->second.state == ChunkState::Unloading)
 				{
-					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool().poolSize() * sizeof(Block));
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool->poolSize() * sizeof(Block));
 
 					chunkFreeList.push_back(iter->second.data);
 					iter = chunks.erase(iter);
@@ -1051,7 +1061,7 @@ namespace Minecraft
 			ChunkManager::patchChunkPointers();
 			if (needsWork)
 			{
-				chunkWorker().beginWork();
+				chunkWorker->beginWork();
 			}
 		}
 
@@ -1060,7 +1070,7 @@ namespace Minecraft
 		{
 			FillChunkCommand cmd;
 			cmd.type = CommandType::TesselateVertices;
-			cmd.subChunks = &subChunks();
+			cmd.subChunks = subChunks;
 			cmd.chunk = chunk;
 
 			// Get any neighboring chunks that need to be updated
@@ -1098,28 +1108,28 @@ namespace Minecraft
 			}
 
 			// Update the sub-chunks that are about to be deleted
-			for (int i = 0; i < (int)subChunks().size(); i++)
+			for (int i = 0; i < (int)subChunks->size(); i++)
 			{
-				if (subChunks()[i]->state == SubChunkState::Uploaded)
+				if ((*subChunks)[i]->state == SubChunkState::Uploaded)
 				{
 					for (int j = 0; j < numChunksToUpdate; j++)
 					{
-						if (subChunks()[i]->chunkCoordinates == chunksToUpdate[j]->chunkCoords)
+						if ((*subChunks)[i]->chunkCoordinates == chunksToUpdate[j]->chunkCoords)
 						{
-							subChunks()[i]->state = SubChunkState::RetesselateVertices;
+							(*subChunks)[i]->state = SubChunkState::RetesselateVertices;
 						}
 					}
 				}
 			}
 
 			// Queue up all the chunks
-			chunkWorker().queueCommand(cmd);
+			chunkWorker->queueCommand(cmd);
 			for (int i = 1; i < numChunksToUpdate; i++)
 			{
 				cmd.chunk = chunksToUpdate[i];
-				chunkWorker().queueCommand(cmd);
+				chunkWorker->queueCommand(cmd);
 			}
-			chunkWorker().beginWork();
+			chunkWorker->beginWork();
 		}
 	}
 

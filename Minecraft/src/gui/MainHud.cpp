@@ -1,5 +1,8 @@
 #include "core.h"
+#include "core/Scene.h"
 #include "gui/MainHud.h"
+#include "gui/Gui.h"
+#include "gui/GuiElements.h"
 #include "renderer/Sprites.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
@@ -23,6 +26,7 @@ namespace Minecraft
 		static const Sprite* selectedInventorySlot = nullptr;
 		static const Sprite* inventoryHud = nullptr;
 		static const Font* defaultFont = nullptr;
+		static TexturedButton defaultButton;
 
 		static const glm::vec2 blockCursorSize = glm::vec2(0.1f, 0.1f);
 		static const glm::vec2 inventorySlotSize = glm::vec2(0.2f, 0.2f);
@@ -44,6 +48,7 @@ namespace Minecraft
 
 		// Internal functions
 		static void initSlotPositions();
+		static void updatePauseScreen();
 		static void updateCraftingScreen(Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot);
@@ -61,6 +66,7 @@ namespace Minecraft
 
 			hoverStyle = Styles::defaultStyle;
 			hoverStyle.color = "#00000044"_hex;
+			defaultButton = *GuiElements::defaultButton;
 
 			initSlotPositions();
 		}
@@ -80,7 +86,7 @@ namespace Minecraft
 			}
 
 			// Draw transparent overlay if needed
-			if (viewingCraftScreen)
+			if (viewingCraftScreen || isPaused)
 			{
 				// TODO: I shouldn't have to do this, it's changing somehow because fonts probably
 				hoverStyle.color = "#00000044"_hex;
@@ -117,6 +123,11 @@ namespace Minecraft
 			{
 				updateCraftingScreen(inventory);
 			}
+
+			if (isPaused)
+			{
+				updatePauseScreen();
+			}
 		}
 
 		void free()
@@ -124,6 +135,37 @@ namespace Minecraft
 			blockCursorSprite = nullptr;
 			regularInventorySlot = nullptr;
 			selectedInventorySlot = nullptr;
+		}
+
+		static void updatePauseScreen()
+		{
+			Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));
+
+			Gui::advanceCursor(glm::vec2(0.0f, 1.0f));
+			Gui::centerNextElement();
+			defaultButton.text = "Save and Exit";
+			if (Gui::textureButton(defaultButton))
+			{
+				Scene::changeScene(SceneType::MainMenu);
+			}
+
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+			Gui::centerNextElement();
+			defaultButton.text = "Start LAN Server";
+			if (Gui::textureButton(defaultButton))
+			{
+				g_logger_info("STARTING LAN SERVER");
+			}
+
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+			Gui::centerNextElement();
+			defaultButton.text = "Settings";
+			if (Gui::textureButton(defaultButton))
+			{
+				g_logger_info("OPENING SETTINGS");
+			}
+
+			Gui::endWindow();
 		}
 
 		static void updateCraftingScreen(Inventory& inventory)

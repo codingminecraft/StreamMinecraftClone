@@ -57,6 +57,8 @@ namespace Minecraft
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
+			Application::getWindow().setCursorMode(CursorMode::Locked);
+
 			// Initialize memory
 			registry = &sceneRegistry;
 			g_logger_assert(savePath != "", "World save path must not be empty.");
@@ -228,6 +230,8 @@ namespace Minecraft
 			ChunkManager::serialize();
 			ChunkManager::free();
 			MainHud::free();
+
+			registry->clear();
 		}
 
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)

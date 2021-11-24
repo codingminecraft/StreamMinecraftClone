@@ -31,6 +31,7 @@ namespace Minecraft
 
 		// Internal functions
 		static void changeSceneInternal();
+		static void addCameraToRegistry();
 
 		void init(SceneType type, Ecs::Registry& inRegistry)
 		{
@@ -83,22 +84,7 @@ namespace Minecraft
 
 			registry = &inRegistry;
 
-			// Setup camera
-			Ecs::EntityId cameraEntity = registry->createEntity();
-			registry->addComponent<Transform>(cameraEntity);
-			registry->addComponent<Tag>(cameraEntity);
-			Transform& cameraTransform = registry->getComponent<Transform>(cameraEntity);
-			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
-			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
-			camera.fov = 45.0f;
-			camera.cameraEntity = cameraEntity;
-			Tag& cameraTag = registry->getComponent<Tag>(cameraEntity);
-			cameraTag.type = TagType::Camera;
-
-			Renderer::setCameraFrustum(cameraFrustum);
-			Renderer::setCamera(camera);
-			Input::setProjectionMatrix(camera.calculateHUDProjectionMatrix());
-
+			addCameraToRegistry();
 			changeScene(type);
 		}
 
@@ -152,6 +138,7 @@ namespace Minecraft
 			{
 			case SceneType::Game:
 				World::free();
+				addCameraToRegistry();
 				break;
 			case SceneType::MainMenu:
 				MainMenu::free();
@@ -196,6 +183,25 @@ namespace Minecraft
 
 			currentScene = nextSceneType;
 			nextSceneType = SceneType::None;
+		}
+
+		static void addCameraToRegistry()
+		{
+			// Setup camera
+			Ecs::EntityId cameraEntity = registry->createEntity();
+			registry->addComponent<Transform>(cameraEntity);
+			registry->addComponent<Tag>(cameraEntity);
+			Transform& cameraTransform = registry->getComponent<Transform>(cameraEntity);
+			cameraTransform.position = glm::vec3(0, 257.0f, 1.0f);
+			cameraTransform.orientation = glm::vec3(0.0f, 0.0f, 0.0f);
+			camera.fov = 45.0f;
+			camera.cameraEntity = cameraEntity;
+			Tag& cameraTag = registry->getComponent<Tag>(cameraEntity);
+			cameraTag.type = TagType::Camera;
+
+			Renderer::setCameraFrustum(cameraFrustum);
+			Renderer::setCamera(camera);
+			Input::setProjectionMatrix(camera.calculateHUDProjectionMatrix());
 		}
 	}
 }
