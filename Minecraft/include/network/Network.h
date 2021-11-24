@@ -15,9 +15,15 @@ namespace Minecraft
 		size_t dataSize;
 	};
 
+	struct NetworkEventData
+	{
+		NetworkEvent* event;
+		uint8* data;
+	};
+
 	namespace Network
 	{
-		void init(bool isServer, bool isClient);
+		void init(bool isServer);
 
 		// TODO: Move this into it's own thread worker and process all network
 		// stuff on a dedicated thread
@@ -28,6 +34,8 @@ namespace Minecraft
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 
 		void free();
+
+		NetworkEventData deserializeNetworkEvent(uint8* data, size_t dataSizeInBytes);
 	}
 }
 

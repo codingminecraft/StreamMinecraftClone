@@ -6,18 +6,25 @@
 
 namespace Minecraft
 {
+	struct NetworkPacket
+	{
+		uint8* data;
+		size_t size;
+	};
+
 	namespace Network
 	{
 		// Internal variables
 		static bool isServer;
-		static bool isClient;
+		static bool isInitialized = false;
 
-		void init(bool inIsServer, bool inIsClient)
+		// Internal functions
+		static NetworkPacket createPacket(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+
+		void init(bool inIsServer)
 		{
+			g_logger_assert(!isInitialized, "Cannot initailze the network code twice.");
 			isServer = inIsServer;
-			isClient = inIsClient;
-
-			g_logger_assert(!(isServer && isServer == isClient), "You cannot start a server and a client in the same application.");
 
 			if (enet_initialize() != 0)
 			{
@@ -26,39 +33,36 @@ namespace Minecraft
 					"add in a gameplay mode that doesn't require ENet.");
 			}
 
-			// We aren't doing any networking stuff here...
-			if (!isServer && !isClient)
-			{
-				return;
-			}
-
 			if (isServer)
 			{
 				Server::init();
 			}
-
-			if (isClient)
+			else
 			{
 				Client::init();
 			}
+
+			isInitialized = true;
 		}
 
 		void update(float dt)
 		{
-			if (isServer)
+			if (isInitialized)
 			{
-				Server::update(dt);
-			}
-
-			if (isClient)
-			{
-				Client::update(dt);
+				if (isServer)
+				{
+					Server::update(dt);
+				}
+				else
+				{
+					Client::update(dt);
+				}
 			}
 		}
 
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
 		{
-			g_logger_assert(isClient, "Cannot send server a message from the server.");
+			g_logger_assert(!isServer, "Cannot send server a message from the server.");
 			ENetPacket* packet = enet_packet_create(data, dataSizeInBytes, ENET_PACKET_FLAG_RELIABLE);
 			Client::sendServer(packet);
 		}
@@ -70,6 +74,51 @@ namespace Minecraft
 
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
 		{
+			NetworkPacket networkPacket = createPacket(eventType, data, dataSizeInBytes);
+			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, ENET_PACKET_FLAG_RELIABLE);
+
+			if (isServer)
+			{
+				Server::broadcast(packet);
+			}
+			else
+			{
+				Client::sendServer(packet);
+			}
+
+			g_memory_free(networkPacket.data);
+		}
+
+		void free()
+		{
+			if (isServer)
+			{
+				Server::free();
+			}
+			else
+			{
+				Client::free();
+			}
+
+			enet_deinitialize();
+		}
+
+		NetworkEventData deserializeNetworkEvent(uint8* data, size_t dataSizeInBytes)
+		{
+			g_logger_assert(dataSizeInBytes >= sizeof(NetworkEvent), "Error, all event messages must be >= sizeof(NetworkEvent).");
+			NetworkEvent* networkEvent = (NetworkEvent*)(data);
+			g_logger_assert(dataSizeInBytes == sizeof(NetworkEvent) + networkEvent->dataSize, "Error, all event messages must be equal to sizeof(NetworkEvent) + dataSize");
+			uint8* eventData = data + sizeof(NetworkEvent);
+
+			NetworkEventData res;
+			res.data = eventData;
+			res.event = networkEvent;
+			return res;
+		}
+
+		// Internal functions
+		static NetworkPacket createPacket(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		{
 			// Copy event and data into the packet
 			size_t eventPlusDataSize = sizeof(NetworkEvent) + dataSizeInBytes;
 			// TODO: Create custom stack based memory allocator for the server messages
@@ -79,32 +128,10 @@ namespace Minecraft
 			networkEvent->type = eventType;
 			g_memory_copyMem(eventPlusData + sizeof(NetworkEvent), data, dataSizeInBytes);
 
-			ENetPacket* packet = enet_packet_create(eventPlusData, eventPlusDataSize, ENET_PACKET_FLAG_RELIABLE);
-
-			if (isServer)
-			{
-				Server::broadcast(packet);
-			}
-			else if (isClient)
-			{
-				Client::sendServer(packet);
-			}
-			g_memory_free(eventPlusData);
-		}
-
-		void free()
-		{
-			if (isClient)
-			{
-				Client::free();
-			}
-
-			if (isServer)
-			{
-				Server::free();
-			}
-
-			enet_deinitialize();
+			NetworkPacket res;
+			res.data = eventPlusData;
+			res.size = eventPlusDataSize;
+			return res;
 		}
 	}
 }

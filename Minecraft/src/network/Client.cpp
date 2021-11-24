@@ -86,11 +86,8 @@ namespace Minecraft
 						event.packet->data,
 						event.peer->data,
 						event.channelID);
-					g_logger_assert(event.packet->dataLength >= sizeof(NetworkEvent), "Error, all event messages must be >= sizeof(NetworkEvent).");
-					NetworkEvent* networkEvent = (NetworkEvent*)(event.packet->data);
-					g_logger_assert(event.packet->dataLength == sizeof(NetworkEvent) + networkEvent->dataSize, "Error, all event messages must be equal to sizeof(NetworkEvent) + dataSize");
-					uint8* data = event.packet->data + sizeof(NetworkEvent);
-					processEvent(networkEvent, data);
+					NetworkEventData networkEventData = Network::deserializeNetworkEvent(event.packet->data, event.packet->dataLength);
+					processEvent(networkEventData.event, networkEventData.data);
 
 					// Clean up the packet now that we're done using it
 					enet_packet_destroy(event.packet);

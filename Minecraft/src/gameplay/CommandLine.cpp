@@ -31,6 +31,7 @@ namespace Minecraft
 		SetTime,
 		StartLocalServer,
 		ConnectToLocalServer,
+		StopNetwork,
 		Length
 	};
 
@@ -171,12 +172,13 @@ namespace Minecraft
 				executeSetTime(args, argsLength);
 				break;
 			case CommandLineType::StartLocalServer:
-				Network::free();
-				Network::init(true, false);
+				Network::init(true);
 				break;
 			case CommandLineType::ConnectToLocalServer:
+				Network::init(false);
+				break;
+			case CommandLineType::StopNetwork:
 				Network::free();
-				Network::init(false, true);
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
