@@ -66,7 +66,7 @@ namespace Minecraft
 
 	TextureBuilder& TextureBuilder::setFilepath(const char* filepath)
 	{
-		texture.path = (char*)g_memory_allocate(sizeof(char) * std::strlen(filepath));
+		texture.path = (char*)g_memory_allocate(sizeof(char) * (std::strlen(filepath) + 1));
 		std::strcpy(texture.path, filepath);
 		return *this;
 	}

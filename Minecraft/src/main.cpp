@@ -1,12 +1,12 @@
 // UNCOMMENT ME FOR MEMORY LEAK DETECTION STUFF
-#include <crtdbg.h>
+//#include <crtdbg.h>
 #include <cppUtils/cppUtils.hpp>
 #include "core/Application.h"
 #include "world/TerrainGenerator.h"
 
 int main()
 {
-	_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
+	//_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 
 	g_memory_init(true);
 #ifdef _RELEASE
