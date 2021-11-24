@@ -56,7 +56,7 @@ namespace Minecraft
 		{
 			// Net Code only lives inside of a world, that way we can initialize it with the appropriate
 			// connection settings and everything
-			Network::init(true);
+			Network::init(true, "127.0.0.1", 8080);
 
 			// Initialize memory
 			registry = &sceneRegistry;

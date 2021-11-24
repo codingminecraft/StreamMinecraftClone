@@ -247,7 +247,7 @@ namespace Minecraft
 			return res;
 		}
 
-		bool textureButton(const TexturedButton& button)
+		bool textureButton(const TexturedButton& button, bool isDisabled)
 		{
 			WindowState& windowState = getCurrentWindow();
 
@@ -257,9 +257,11 @@ namespace Minecraft
 			bool res = false;
 			glm::vec2 buttonPosition = getElementPosition(windowState, button.size);
 			WidgetState state = mouseInAABB(buttonPosition, button.size);
-			if (state == WidgetState::Click)
+			if (state == WidgetState::Click || isDisabled)
 			{
-				res = true;
+				// If the button isn't disabled and they clicked it, then set the result to true
+				// Otherwise if it's disabled set the result to false
+				res = !isDisabled;
 				sprite = &button.clickSprite;
 			}
 			else if (state == WidgetState::Hover)

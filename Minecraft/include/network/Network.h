@@ -23,7 +23,7 @@ namespace Minecraft
 
 	namespace Network
 	{
-		void init(bool isServer);
+		void init(bool isServer, const char* hostname, int port);
 
 		// TODO: Move this into it's own thread worker and process all network
 		// stuff on a dedicated thread
@@ -32,6 +32,8 @@ namespace Minecraft
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 		void sendClient(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+
+		bool isLanServer();
 
 		void free();
 

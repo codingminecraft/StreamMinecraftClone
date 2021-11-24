@@ -21,7 +21,7 @@ namespace Minecraft
 		// Internal functions
 		static NetworkPacket createPacket(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 
-		void init(bool inIsServer)
+		void init(bool inIsServer, const char* hostname, int port)
 		{
 			g_logger_assert(!isInitialized, "Cannot initailze the network code twice.");
 			isServer = inIsServer;
@@ -35,11 +35,11 @@ namespace Minecraft
 
 			if (isServer)
 			{
-				Server::init();
+				Server::init(hostname, port);
 			}
 			else
 			{
-				Client::init();
+				Client::init(hostname, port);
 			}
 
 			isInitialized = true;
@@ -89,18 +89,26 @@ namespace Minecraft
 			g_memory_free(networkPacket.data);
 		}
 
+		bool isLanServer()
+		{
+			return isServer;
+		}
+
 		void free()
 		{
-			if (isServer)
+			if (isInitialized)
 			{
-				Server::free();
-			}
-			else
-			{
-				Client::free();
-			}
+				if (isServer)
+				{
+					Server::free();
+				}
+				else
+				{
+					Client::free();
+				}
 
-			enet_deinitialize();
+				enet_deinitialize();
+			}
 		}
 
 		NetworkEventData deserializeNetworkEvent(uint8* data, size_t dataSizeInBytes)

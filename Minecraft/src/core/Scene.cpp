@@ -95,7 +95,9 @@ namespace Minecraft
 
 			switch (currentScene)
 			{
-			case SceneType::Game:
+			case SceneType::SinglePlayerGame:
+			case SceneType::LocalLanGame:
+			case SceneType::MultiplayerGame:
 				World::update(dt, cameraFrustum, worldTexture);
 				break;
 			case SceneType::MainMenu:
@@ -136,7 +138,9 @@ namespace Minecraft
 
 			switch (currentScene)
 			{
-			case SceneType::Game:
+			case SceneType::SinglePlayerGame:
+			case SceneType::LocalLanGame:
+			case SceneType::MultiplayerGame:
 				World::free();
 				addCameraToRegistry();
 				break;
@@ -154,7 +158,7 @@ namespace Minecraft
 
 		bool isPlayingGame()
 		{
-			return currentScene == SceneType::Game;
+			return currentScene == SceneType::SinglePlayerGame;
 		}
 
 		Camera& getCamera()
@@ -168,7 +172,14 @@ namespace Minecraft
 
 			switch (nextSceneType)
 			{
-			case SceneType::Game:
+			case SceneType::SinglePlayerGame:
+				World::init(*registry);
+				break;
+			case SceneType::LocalLanGame:
+				World::init(*registry, "127.0.0.1", 8080);
+				break;
+			case SceneType::MultiplayerGame:
+				g_logger_warning("Multiplayer games not supported yet.");
 				World::init(*registry);
 				break;
 			case SceneType::MainMenu:

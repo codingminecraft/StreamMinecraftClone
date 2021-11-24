@@ -11,6 +11,7 @@
 #include "input/Input.h"
 #include "gameplay/Inventory.h"
 #include "utils/CMath.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
@@ -155,9 +156,10 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 			Gui::centerNextElement();
 			defaultButton.text = "Start LAN Server";
-			if (Gui::textureButton(defaultButton))
+			if (Gui::textureButton(defaultButton, Network::isLanServer()))
 			{
-				g_logger_info("STARTING LAN SERVER");
+				Network::free();
+				Network::init(true, "127.0.0.1", 8080);
 			}
 
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));

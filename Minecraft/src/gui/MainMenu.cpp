@@ -86,6 +86,14 @@ namespace Minecraft
 
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
 				Gui::centerNextElement();
+				button.text = "Join LAN Server";
+				if (Gui::textureButton(button))
+				{
+					Scene::changeScene(SceneType::LocalLanGame);
+				}
+
+				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
+				Gui::centerNextElement();
 				button.text = "Quit";
 				if (Gui::textureButton(button))
 				{

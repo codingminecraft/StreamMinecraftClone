@@ -29,8 +29,6 @@ namespace Minecraft
 		DebugLight,
 		DoDaylightCycle,
 		SetTime,
-		StartLocalServer,
-		ConnectToLocalServer,
 		StopNetwork,
 		Length
 	};
@@ -170,12 +168,6 @@ namespace Minecraft
 				break;
 			case CommandLineType::SetTime:
 				executeSetTime(args, argsLength);
-				break;
-			case CommandLineType::StartLocalServer:
-				Network::init(true);
-				break;
-			case CommandLineType::ConnectToLocalServer:
-				Network::init(false);
 				break;
 			case CommandLineType::StopNetwork:
 				Network::free();

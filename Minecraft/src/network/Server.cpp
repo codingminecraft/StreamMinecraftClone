@@ -15,15 +15,20 @@ namespace Minecraft
 		static std::array<ENetPeer*, maxClients> clients;
 		static int numConnectedClients;
 
-		static const char* hostname = "127.0.0.1";
-		static int port = 8080;
+		static const char* hostname = nullptr;
+		static int port = 0;
 
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data);
 
-		void init()
+		void init(const char* inHostname, int inPort)
 		{
+			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
+			hostname = inHostname;
+			port = inPort;
+
 			// Bind the server to the default localhost
+			g_logger_warning("Server only supports localhost right now.");
 			address.host = ENET_HOST_ANY;
 			address.port = port;
 			g_memory_zeroMem(clients.data(), sizeof(ENetPeer*) * maxClients);
@@ -115,6 +120,9 @@ namespace Minecraft
 		void free()
 		{
 			enet_host_destroy(server);
+
+			hostname = "";
+			port = 0;
 		}
 
 		static void processEvent(NetworkEvent* event, uint8* data)

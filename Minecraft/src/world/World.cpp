@@ -55,8 +55,13 @@ namespace Minecraft
 		static Ecs::Registry* registry;
 		static glm::vec2 lastPlayerLoadPosition;
 
-		void init(Ecs::Registry& sceneRegistry)
+		void init(Ecs::Registry& sceneRegistry, const char* hostname, int port)
 		{
+			if (strcmp(hostname, "") != 0 && port != 0)
+			{
+				Network::init(false, hostname, port);
+			}
+
 			Application::getWindow().setCursorMode(CursorMode::Locked);
 
 			// Initialize memory
@@ -221,6 +226,9 @@ namespace Minecraft
 
 		void free()
 		{
+			// Force any connections that might have been opened to close
+			Network::free();
+
 			opaqueShader.destroy();
 			transparentShader.destroy();
 			skybox.destroy();

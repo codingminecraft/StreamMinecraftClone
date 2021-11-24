@@ -9,7 +9,9 @@ namespace Minecraft
 	enum class SceneType : uint8
 	{
 		None,
-		Game,
+		SinglePlayerGame,
+		LocalLanGame,
+		MultiplayerGame,
 		MainMenu
 	};
 

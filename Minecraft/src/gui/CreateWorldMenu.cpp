@@ -103,9 +103,9 @@ namespace Minecraft
 			// TODO: Make it so I can place this after the element I just drew
 			Gui::advanceCursor(glm::vec2((6.0f - (button.size.x * 2.0f)) / 2.0f, (0.5f - button.size.y) / 2.0f));
 			Gui::sameLine();
-			if (Gui::textureButton(button))
+			if (Gui::textureButton(button, selectedWorldIndex == -1))
 			{
-				Scene::changeScene(SceneType::Game);
+				Scene::changeScene(SceneType::SinglePlayerGame);
 			}
 
 			Gui::advanceCursor(glm::vec2(0.05f, 0.0f));
@@ -139,7 +139,7 @@ namespace Minecraft
 			button.text = "Create World";
 			if (Gui::textureButton(button))
 			{
-				Scene::changeScene(SceneType::Game);
+				Scene::changeScene(SceneType::SinglePlayerGame);
 			}
 
 			Gui::endWindow();

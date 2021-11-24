@@ -13,13 +13,13 @@ namespace Minecraft
 		static ENetHost* client;
 		static ENetPeer* peer;
 
-		static const char* hostname = "127.0.0.1";
-		static int port = 8080;
+		static const char* hostname;
+		static int port;
 
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data);
 
-		void init()
+		void init(const char* inHostname, int inPort)
 		{
 			client = enet_host_create(
 				NULL, // create a client host
@@ -35,6 +35,10 @@ namespace Minecraft
 			}
 
 			// Bind the client to the default localhost
+			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
+			hostname = inHostname;
+			port = inPort;
+
 			enet_address_set_host(&address, hostname);
 			address.port = port;
 
@@ -120,6 +124,9 @@ namespace Minecraft
 
 			enet_host_destroy(client);
 			client = NULL;
+
+			hostname = "";
+			port = 0;
 		}
 
 		static void processEvent(NetworkEvent* event, uint8* data)
