@@ -31,6 +31,7 @@
 #include "utils/CMath.h"
 #include "gui/Gui.h"
 #include "gui/MainHud.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
@@ -56,6 +57,10 @@ namespace Minecraft
 
 		void init(Ecs::Registry& sceneRegistry)
 		{
+			// Net Code only lives inside of a world, that way we can initialize it with the appropriate
+			// connection settings and everything
+			Network::init(false, false);
+
 			// Initialize memory
 			registry = &sceneRegistry;
 			g_logger_assert(savePath != "", "World save path must not be empty.");
@@ -218,6 +223,8 @@ namespace Minecraft
 
 		void free()
 		{
+			Network::free();
+
 			opaqueShader.destroy();
 			transparentShader.destroy();
 			skybox.destroy();
@@ -232,6 +239,7 @@ namespace Minecraft
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
 		{
 			// Update all systems
+			Network::update(dt);
 			KeyHandler::update(dt);
 			Physics::update(*registry, dt);
 			PlayerController::update(*registry, dt);

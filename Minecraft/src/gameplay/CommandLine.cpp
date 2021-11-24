@@ -10,6 +10,7 @@
 #include "core/Window.h"
 #include "gameplay/PlayerController.h"
 #include "world/ChunkManager.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
@@ -28,6 +29,8 @@ namespace Minecraft
 		DebugLight,
 		DoDaylightCycle,
 		SetTime,
+		StartLocalServer,
+		ConnectToLocalServer,
 		Length
 	};
 
@@ -164,6 +167,14 @@ namespace Minecraft
 				break;
 			case CommandLineType::SetTime:
 				executeSetTime(args, argsLength);
+				break;
+			case CommandLineType::StartLocalServer:
+				Network::free();
+				Network::init(true, false);
+				break;
+			case CommandLineType::ConnectToLocalServer:
+				Network::free();
+				Network::init(false, true);
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
