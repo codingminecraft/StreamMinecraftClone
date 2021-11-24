@@ -6,8 +6,13 @@ namespace Minecraft
 {
 	enum class NetworkEventType : uint8
 	{
-		Connect,
-		Disconnect,
+		Chat,
+	};
+
+	struct NetworkEvent
+	{
+		NetworkEventType type;
+		size_t dataSize;
 	};
 
 	namespace Network
@@ -20,6 +25,7 @@ namespace Minecraft
 
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 		void sendClient(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 
 		void free();
 	}

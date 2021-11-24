@@ -6,13 +6,6 @@
 
 namespace Minecraft
 {
-	struct NetworkEvent
-	{
-		NetworkEventType type;
-		size_t dataSize;
-		void* data;
-	};
-
 	namespace Network
 	{
 		// Internal variables
@@ -67,12 +60,36 @@ namespace Minecraft
 		{
 			g_logger_assert(isClient, "Cannot send server a message from the server.");
 			ENetPacket* packet = enet_packet_create(data, dataSizeInBytes, ENET_PACKET_FLAG_RELIABLE);
-			//Client::sendPacket(packet);
+			Client::sendServer(packet);
 		}
 
 		void sendClient(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
 		{
 			g_logger_assert(isServer, "Cannot send client a message from the client.");
+		}
+
+		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		{
+			// Copy event and data into the packet
+			size_t eventPlusDataSize = sizeof(NetworkEvent) + dataSizeInBytes;
+			// TODO: Create custom stack based memory allocator for the server messages
+			uint8* eventPlusData = (uint8*)g_memory_allocate(eventPlusDataSize);
+			NetworkEvent* networkEvent = (NetworkEvent*)eventPlusData;
+			networkEvent->dataSize = dataSizeInBytes;
+			networkEvent->type = eventType;
+			g_memory_copyMem(eventPlusData + sizeof(NetworkEvent), data, dataSizeInBytes);
+
+			ENetPacket* packet = enet_packet_create(eventPlusData, eventPlusDataSize, ENET_PACKET_FLAG_RELIABLE);
+
+			if (isServer)
+			{
+				Server::broadcast(packet);
+			}
+			else if (isClient)
+			{
+				Client::sendServer(packet);
+			}
+			g_memory_free(eventPlusData);
 		}
 
 		void free()

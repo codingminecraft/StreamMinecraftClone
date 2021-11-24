@@ -209,5 +209,8 @@ project "MinecraftServer"
     cppdialect "C++17"
     staticruntime "on"
 
+    targetdir("bin\\" .. outputdir .. "\\%{prj.name}")
+    objdir("bin-int\\" .. outputdir .. "\\%{prj.name}")
+
     -- TODO: Start this in debug mode using command line args or something
     debugcommand ("bin\\" .. outputdir .. "\\Minecraft\\Minecraft.exe")

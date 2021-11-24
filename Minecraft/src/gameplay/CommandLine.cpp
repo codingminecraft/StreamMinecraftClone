@@ -78,6 +78,8 @@ namespace Minecraft
 					else
 					{
 						// TODO: Display the message to chat
+						size_t messageLength = strlen(buffer.data()) + 1;
+						Network::broadcast(NetworkEventType::Chat, buffer.data(), messageLength);
 					}
 
 					buffer[0] = '\0';
