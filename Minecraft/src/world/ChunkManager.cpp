@@ -1262,7 +1262,11 @@ namespace Minecraft
 					const int worldChunkX = chunkX * 16;
 					const int worldChunkZ = chunkZ * 16;
 
-					if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+					glm::ivec2 localChunkPos = glm::vec2(lastPlayerLoadPosChunkCoords.x - chunkX, lastPlayerLoadPosChunkCoords.y - chunkZ);
+					bool inRangeOfPlayer =
+						(localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
+						((World::ChunkRadius - 1) * (World::ChunkRadius - 1));
+					if (!inRangeOfPlayer)
 					{
 						// Skip over all chunks in range radius - 1
 						continue;
@@ -1271,7 +1275,8 @@ namespace Minecraft
 					Chunk* chunk = ChunkManager::getChunk(glm::vec3(worldChunkX, 128.0f, worldChunkZ));
 					if (!chunk)
 					{
-						g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
+						// TODO: Is this a problem...? It should only effect chunks on the edge of the border
+						// g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
 						continue;
 					}
 
@@ -1372,7 +1377,11 @@ namespace Minecraft
 						const int worldChunkX = chunkX * 16;
 						const int worldChunkZ = chunkZ * 16;
 
-						if (CMath::length2(glm::ivec2(chunkX, chunkZ) - lastPlayerLoadPosChunkCoords) > (World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+						glm::ivec2 localChunkPos = glm::vec2(lastPlayerLoadPosChunkCoords.x - chunkX, lastPlayerLoadPosChunkCoords.y - chunkZ);
+						bool inRangeOfPlayer =
+							(localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
+							((World::ChunkRadius - 1) * (World::ChunkRadius - 1));
+						if (!inRangeOfPlayer)
 						{
 							// Skip over all chunks in range radius - 1
 							continue;
@@ -1381,7 +1390,8 @@ namespace Minecraft
 						Chunk* chunk = ChunkManager::getChunk(glm::vec3(worldChunkX, 128.0f, worldChunkZ));
 						if (!chunk)
 						{
-							g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
+							// TODO: Is this a problem...? It should only effect chunks on the edge of the border
+							// g_logger_error("Bad chunk when generating terrain. Skipping chunk.");
 							continue;
 						}
 

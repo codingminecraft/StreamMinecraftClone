@@ -57,6 +57,9 @@ namespace Minecraft
 
 		void init()
 		{
+			viewingCraftScreen = false;
+			isPaused = false;
+
 			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 			blockCursorSprite = &menuSprites.at(std::string("blockCursor"));
 			regularInventorySlot = &menuSprites.at(std::string("regularInventorySlot"));

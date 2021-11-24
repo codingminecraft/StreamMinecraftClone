@@ -15,6 +15,7 @@ namespace Minecraft
 		// Internal variables
 		static bool isCreatingNewWorld;
 		static Sprite dirtTextureSprite;
+		static int selectedWorldIndex;
 
 		// Internal functions
 		static void showSavedWorlds();
@@ -23,6 +24,7 @@ namespace Minecraft
 		void init()
 		{
 			isCreatingNewWorld = false;
+			selectedWorldIndex = -1;
 
 			g_logger_info("Initialized settings menu.");
 
@@ -73,8 +75,6 @@ namespace Minecraft
 
 			TexturedButton button = *GuiElements::defaultButton;
 
-			static int selectedIndex = -1;
-
 			std::filesystem::path filepath = AppData::worldsRootPath;
 			int i = 0;
 			for (auto& worldPath : std::filesystem::directory_iterator(filepath))
@@ -84,10 +84,10 @@ namespace Minecraft
 				std::string worldDataPath = stem.string();
 				button.text = worldDataPath.c_str();
 				button.size.y = 0.3f;
-				if (Gui::worldSaveItem(worldDataPath.c_str(), button.size, selectedIndex == i))
+				if (Gui::worldSaveItem(worldDataPath.c_str(), button.size, selectedWorldIndex == i))
 				{
 					World::savePath = worldDataPath;
-					selectedIndex = i;
+					selectedWorldIndex = i;
 				}
 				Gui::advanceCursor(glm::vec2(0.0f, 0.05f));
 
