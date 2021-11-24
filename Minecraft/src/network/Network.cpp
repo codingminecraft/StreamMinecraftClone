@@ -67,9 +67,13 @@ namespace Minecraft
 			Client::sendServer(packet);
 		}
 
-		void sendClient(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes)
 		{
 			g_logger_assert(isServer, "Cannot send client a message from the client.");
+			NetworkPacket networkPacket = createPacket(eventType, data, dataSizeInBytes);
+			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, ENET_PACKET_FLAG_RELIABLE);
+			Server::sendClient(peer, packet);
+			g_memory_free(networkPacket.data);
 		}
 
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
@@ -94,6 +98,11 @@ namespace Minecraft
 			return isServer;
 		}
 
+		bool isNetworkEnabled()
+		{
+			return isInitialized;
+		}
+
 		void free()
 		{
 			if (isInitialized)
@@ -116,7 +125,12 @@ namespace Minecraft
 			g_logger_assert(dataSizeInBytes >= sizeof(NetworkEvent), "Error, all event messages must be >= sizeof(NetworkEvent).");
 			NetworkEvent* networkEvent = (NetworkEvent*)(data);
 			g_logger_assert(dataSizeInBytes == sizeof(NetworkEvent) + networkEvent->dataSize, "Error, all event messages must be equal to sizeof(NetworkEvent) + dataSize");
-			uint8* eventData = data + sizeof(NetworkEvent);
+
+			uint8* eventData = nullptr;
+			if (networkEvent->dataSize > 0)
+			{
+				eventData = data + sizeof(NetworkEvent);
+			}
 
 			NetworkEventData res;
 			res.data = eventData;
@@ -134,7 +148,11 @@ namespace Minecraft
 			NetworkEvent* networkEvent = (NetworkEvent*)eventPlusData;
 			networkEvent->dataSize = dataSizeInBytes;
 			networkEvent->type = eventType;
-			g_memory_copyMem(eventPlusData + sizeof(NetworkEvent), data, dataSizeInBytes);
+
+			if (dataSizeInBytes > 0)
+			{
+				g_memory_copyMem(eventPlusData + sizeof(NetworkEvent), data, dataSizeInBytes);
+			}
 
 			NetworkPacket res;
 			res.data = eventPlusData;

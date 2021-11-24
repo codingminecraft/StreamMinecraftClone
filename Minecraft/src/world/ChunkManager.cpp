@@ -14,17 +14,19 @@
 #include "renderer/Framebuffer.h"
 #include "renderer/Texture.h"
 #include "core/Application.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
 	enum class CommandType : uint8
 	{
 		SaveBlockData = 0,
-		GenerateTerrain = 1,
-		GenerateDecorations = 2,
-		CalculateLighting = 3,
-		RecalculateLighting = 4,
-		TesselateVertices = 5
+		ClientLoadChunk,
+		GenerateTerrain,
+		GenerateDecorations,
+		CalculateLighting,
+		RecalculateLighting,
+		TesselateVertices
 	};
 
 	struct FillChunkCommand
@@ -36,6 +38,7 @@ namespace Minecraft
 		CommandType type;
 		glm::vec3 blockThatUpdated;
 		bool removedLightSource;
+		void* clientChunkData;
 	};
 
 	namespace ChunkPrivate
@@ -158,6 +161,16 @@ namespace Minecraft
 					{
 						switch (command.type)
 						{
+						case CommandType::ClientLoadChunk:
+						{
+							g_logger_assert(command.clientChunkData != nullptr, "Invalid client data sent to the chunk.");
+							g_memory_copyMem(command.chunk->data, command.clientChunkData,
+								sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
+							g_memory_free(command.clientChunkData);
+							command.chunk->needsToGenerateDecorations = false;
+							command.chunk->needsToCalculateLighting = true;
+							break;
+						}
 						case CommandType::GenerateTerrain:
 						{
 							if (ChunkPrivate::exists(World::chunkSavePath, command.chunk->chunkCoords))
@@ -570,6 +583,11 @@ namespace Minecraft
 			}
 		}
 
+		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks()
+		{
+			return chunks;
+		}
+
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates)
 		{
 			// Only upload if we need to
@@ -703,6 +721,56 @@ namespace Minecraft
 			}
 		}
 
+		void queueClientLoadChunk(void* chunkData, const glm::ivec2& chunkCoordinates, ChunkState state)
+		{
+			// Only upload if we need to
+			Chunk* chunk = getChunk(chunkCoordinates);
+			if (!chunk)
+			{
+				if (chunkFreeList.size() > 0)
+				{
+					Chunk newChunk;
+					newChunk.data = chunkFreeList.front();
+					chunkFreeList.pop_front();
+
+					newChunk.chunkCoords = chunkCoordinates;
+					newChunk.topNeighbor = getChunk(chunkCoordinates + INormals2::Up);
+					newChunk.bottomNeighbor = getChunk(chunkCoordinates + INormals2::Down);
+					newChunk.leftNeighbor = getChunk(chunkCoordinates + INormals2::Left);
+					newChunk.rightNeighbor = getChunk(chunkCoordinates + INormals2::Right);
+					newChunk.state = state;
+
+					{
+						// TODO: Ensure this is only ever accessed from the main thread
+						//std::lock_guard lock(chunkMtx);
+						chunks[newChunk.chunkCoords] = newChunk;
+					}
+
+					FillChunkCommand cmd;
+					cmd.type = CommandType::ClientLoadChunk;
+					cmd.chunk = &chunks[newChunk.chunkCoords];
+					cmd.subChunks = subChunks;
+					cmd.clientChunkData = chunkData;
+
+					// Queue the fill command
+					chunkWorker->queueCommand(cmd);
+					// Queue the calculate lighting command
+					cmd.type = CommandType::CalculateLighting;
+					chunkWorker->queueCommand(cmd);
+					// Queue the tesselate command
+					cmd.type = CommandType::TesselateVertices;
+					chunkWorker->queueCommand(cmd);
+
+					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed + blockPool->poolSize() * sizeof(Block);
+				}
+				else
+				{
+					// What do we do if there were no free blocks?
+					g_logger_warning("No free pools for block data.");
+				}
+			}
+		}
+
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos)
 		{
 			FillChunkCommand cmd;
@@ -807,6 +875,11 @@ namespace Minecraft
 				chunk.leftNeighbor = getChunk(chunk.chunkCoords + INormals2::Left);
 				chunk.rightNeighbor = getChunk(chunk.chunkCoords + INormals2::Right);
 			}
+		}
+
+		void beginWork()
+		{
+			chunkWorker->beginWork();
 		}
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum)
@@ -1876,28 +1949,35 @@ namespace Minecraft
 
 		void deserialize(Block* blockData, const std::string& worldSavePath, const glm::ivec2& chunkCoordinates)
 		{
-			std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
-			FILE* fp = fopen(filepath.c_str(), "rb");
-			if (!fp)
+			if (!Network::isNetworkEnabled())
 			{
-				g_logger_error("Could not open file '%s'", filepath.c_str());
-				return;
-			}
-
-			fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
-			// TODO: Separate lightmaps into different arrays than block ids
-			for (int y = 0; y < World::ChunkHeight; y++)
-			{
-				for (int x = 0; x < World::ChunkDepth; x++)
+				std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
+				FILE* fp = fopen(filepath.c_str(), "rb");
+				if (!fp)
 				{
-					for (int z = 0; z < World::ChunkWidth; z++)
+					g_logger_error("Could not open file '%s'", filepath.c_str());
+					return;
+				}
+
+				fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
+				// TODO: Separate lightmaps into different arrays than block ids
+				for (int y = 0; y < World::ChunkHeight; y++)
+				{
+					for (int x = 0; x < World::ChunkDepth; x++)
 					{
-						blockData[to1DArray(x, y, z)].setLightLevel(0);
-						blockData[to1DArray(x, y, z)].setSkyLightLevel(0);
+						for (int z = 0; z < World::ChunkWidth; z++)
+						{
+							blockData[to1DArray(x, y, z)].setLightLevel(0);
+							blockData[to1DArray(x, y, z)].setSkyLightLevel(0);
+						}
 					}
 				}
+				fclose(fp);
 			}
-			fclose(fp);
+			else
+			{
+				g_logger_warning("Cannot deserialize chunk over the network yet...");
+			}
 		}
 
 		bool exists(const std::string& worldSavePath, const glm::ivec2& chunkCoordinates)

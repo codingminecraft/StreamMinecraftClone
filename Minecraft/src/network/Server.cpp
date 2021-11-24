@@ -1,6 +1,10 @@
 #include "network/Server.h"
 #include "core.h"
+#include "core/Scene.h"
 #include "network/Network.h"
+#include "world/ChunkManager.h"
+#include "world/Chunk.hpp"
+#include "world/BlockMap.h"
 
 #include <enet/enet.h>
 
@@ -65,6 +69,42 @@ namespace Minecraft
 					clients[numConnectedClients] = event.peer;
 					numConnectedClients++;
 					g_logger_assert(numConnectedClients <= 32, "Somehow we connected more than the maximum number of clients allowed.");
+
+					g_logger_info("Sending client chunk data.");
+					robin_hood::unordered_node_map<glm::ivec2, Chunk>& chunks = ChunkManager::getAllChunks();
+					Network::sendClient(event.peer, NetworkEventType::WorldSeed, &World::seed, sizeof(uint32));
+					for (auto& pair : chunks)
+					{
+						Chunk& chunk = pair.second;
+						if (chunk.state == ChunkState::Loaded)
+						{
+							g_logger_assert(*(uint64*)(char*)(&chunk.data[0]) != 0xcccc, "Bad chunk somehow getting sent...");
+							size_t chunkDataSize = sizeof(Block) * World::ChunkHeight * World::ChunkWidth * World::ChunkDepth;
+							size_t chunkCoordsSize = sizeof(int) * 2;
+							size_t chunkStateSize = sizeof(ChunkState);
+							uint8* chunkDataEvent = (uint8*)g_memory_allocate(chunkDataSize + chunkCoordsSize + chunkStateSize);
+							g_memory_copyMem(chunkDataEvent, chunk.data, chunkDataSize);
+							g_memory_copyMem(chunkDataEvent + chunkDataSize, &chunk.chunkCoords.x, sizeof(int));
+							g_memory_copyMem(chunkDataEvent + chunkDataSize + sizeof(int), &chunk.chunkCoords.y, sizeof(int));
+							g_memory_copyMem(chunkDataEvent + chunkDataSize + chunkCoordsSize, &chunk.state, sizeof(ChunkState));
+							Network::sendClient(event.peer, NetworkEventType::ChunkData, chunkDataEvent,
+								chunkDataSize + chunkCoordsSize + chunkStateSize);
+							g_memory_free(chunkDataEvent);
+						}
+					}
+
+					g_logger_info("Telling client to patch their dang chunk neighbors.");
+					Network::sendClient(event.peer, NetworkEventType::PatchChunkNeighbors, nullptr, 0);
+					Network::sendClient(event.peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
+
+					g_logger_warning("TODO: Need to send client all the entities in the world...");
+					//Ecs::Registry* registry = Scene::getRegistry();
+					//auto view = registry->view<>();
+					//for (auto entity : view)
+					//{
+					//	if (registry->hasComponent<Transform>()
+					//}
+					enet_host_flush(server);
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
@@ -111,10 +151,12 @@ namespace Minecraft
 			enet_host_broadcast(server, 0, packet);
 		}
 
-		void sendClient(ENetPacket* packet)
+		void sendClient(ENetPeer* peer, ENetPacket* packet)
 		{
-			// TODO: Create client abstraction to send messages to individual clients
-			//enet_peer_send(peer, 0, packet);
+			if (enet_peer_send(peer, 0, packet) != 0)
+			{
+				g_logger_error("Failed to send packet from server.");
+			}
 		}
 
 		void free()
@@ -130,9 +172,16 @@ namespace Minecraft
 			switch (event->type)
 			{
 			case NetworkEventType::Chat:
+			{
 				char* msg = (char*)data;
 				g_logger_info("<ServerMsg>: %s", msg);
 				break;
+			}
+			default:
+			{
+				g_logger_error("Unknown chat NetworkEventType: %d", event->type);
+				break;
+			}
 			}
 		}
 	}

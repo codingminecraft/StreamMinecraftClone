@@ -27,6 +27,8 @@ namespace Minecraft
 
 		bool isPlayingGame();
 
+		Ecs::Registry* getRegistry();
+
 		Camera& getCamera();
 	}
 }

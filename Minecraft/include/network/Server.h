@@ -2,6 +2,7 @@
 #define MINECRAFT_SERVER_H
 
 typedef struct _ENetPacket ENetPacket;
+typedef struct _ENetPeer ENetPeer;
 
 namespace Minecraft
 {
@@ -13,7 +14,7 @@ namespace Minecraft
 
 		void broadcast(ENetPacket* packet);
 
-		void sendClient(ENetPacket* packet);
+		void sendClient(ENetPeer* peer, ENetPacket* packet);
 
 		void free();
 	}

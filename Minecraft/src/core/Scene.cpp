@@ -161,6 +161,11 @@ namespace Minecraft
 			return currentScene == SceneType::SinglePlayerGame;
 		}
 
+		Ecs::Registry* getRegistry()
+		{
+			return registry;
+		}
+
 		Camera& getCamera()
 		{
 			return camera;

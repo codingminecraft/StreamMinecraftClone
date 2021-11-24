@@ -1,6 +1,9 @@
 #include "network/Client.h"
 #include "core.h"
 #include "network/Network.h"
+#include "world/ChunkManager.h"
+#include "world/Chunk.hpp"
+#include "world/BlockMap.h"
 
 #include <enet/enet.h>
 
@@ -85,11 +88,6 @@ namespace Minecraft
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
-					g_logger_info("A packet of length %u containing %s was received from %s on channel %u.",
-						event.packet->dataLength,
-						event.packet->data,
-						event.peer->data,
-						event.channelID);
 					NetworkEventData networkEventData = Network::deserializeNetworkEvent(event.packet->data, event.packet->dataLength);
 					processEvent(networkEventData.event, networkEventData.data);
 
@@ -134,9 +132,48 @@ namespace Minecraft
 			switch (event->type)
 			{
 			case NetworkEventType::Chat:
+			{
 				char* msg = (char*)data;
 				g_logger_info("<ClientMsg>: %s", msg);
 				break;
+			}
+			case NetworkEventType::ChunkData:
+			{
+				size_t chunkDataSize = sizeof(Block) * World::ChunkHeight * World::ChunkWidth * World::ChunkDepth;
+				size_t chunkCoordsSize = sizeof(int) * 2;
+				size_t chunkStateSize = sizeof(ChunkState);
+				int chunkX = *(int*)(char*)(data + chunkDataSize);
+				int chunkY = *(int*)(char*)(data + chunkDataSize + sizeof(int));
+				ChunkState state = *(ChunkState*)((char*)(data + chunkDataSize + chunkCoordsSize));
+				void* chunkData = g_memory_allocate(chunkDataSize);
+				g_memory_copyMem(chunkData, data, chunkDataSize);
+				ChunkManager::queueClientLoadChunk(chunkData, glm::ivec2(chunkX, chunkY), state);
+				break;
+			}
+			case NetworkEventType::PatchChunkNeighbors:
+			{
+				ChunkManager::patchChunkPointers();
+				break;
+			}
+			case NetworkEventType::NotifyChunkWorker:
+			{
+				ChunkManager::beginWork();
+				break;
+			}
+			case NetworkEventType::WorldSeed:
+			{
+				uint32 worldSeed = *(uint32*)(char*)(data);
+				World::seed = worldSeed;
+				World::seedAsFloat = (float)((double)worldSeed / (double)UINT32_MAX) * 2.0f - 1.0f;
+				g_logger_info("Client received world seed: %u", worldSeed);
+				g_logger_info("World seed (as float): %2.8f", World::seedAsFloat.load());
+				break;
+			}
+			default:
+			{
+				g_logger_error("Unknown chat NetworkEventType: %d", event->type);
+				break;
+			}
 			}
 		}
 	}

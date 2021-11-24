@@ -78,7 +78,10 @@ namespace Minecraft
 					{
 						// TODO: Display the message to chat
 						size_t messageLength = strlen(buffer.data()) + 1;
-						Network::broadcast(NetworkEventType::Chat, buffer.data(), messageLength);
+						if (Network::isNetworkEnabled())
+						{
+							Network::broadcast(NetworkEventType::Chat, buffer.data(), messageLength);
+						}
 					}
 
 					buffer[0] = '\0';
@@ -291,7 +294,7 @@ namespace Minecraft
 					return false;
 				}
 
-				
+
 				if (isCharIgnoreCase(str[1], 'a') && isCharIgnoreCase(str[2], 'l') && isCharIgnoreCase(str[3], 's') &&
 					isCharIgnoreCase(str[4], 'e'))
 				{

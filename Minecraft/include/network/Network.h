@@ -2,11 +2,17 @@
 #define MINECRAFT_NETWORK_H
 #include "core.h"
 
+typedef struct _ENetPeer ENetPeer;
+
 namespace Minecraft
 {
 	enum class NetworkEventType : uint8
 	{
 		Chat,
+		ChunkData,
+		PatchChunkNeighbors,
+		NotifyChunkWorker,
+		WorldSeed,
 	};
 
 	struct NetworkEvent
@@ -30,10 +36,11 @@ namespace Minecraft
 		void update(float dt);
 
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
-		void sendClient(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 
 		bool isLanServer();
+		bool isNetworkEnabled();
 
 		void free();
 
