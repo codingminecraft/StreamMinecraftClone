@@ -215,13 +215,22 @@ namespace Minecraft
 			{
 				if (!isFile(directoryName)) 
 				{
-					return mkdir(directoryName,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+					if (mkdir(directoryName,  0700) != 0)
+					{
+						g_logger_error("Make directory '%s' failed with error code: %d", directoryName, errno);
+						return false;
+					}
+					return true;
 				}
 				else 
 				{
 					g_logger_error("Cannot make '%s' a directory. A file with that name already exists.", directoryName);
 					return false;
 				}
+			}
+			else 
+			{
+				g_logger_info("Not creating '%s' because it is already a directory.", directoryName);
 			}
 			
 			return true;

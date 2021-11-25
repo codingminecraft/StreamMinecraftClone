@@ -97,11 +97,11 @@ namespace Minecraft
 				switch (attribute.type)
 				{
 				case AttributeType::Float:
-					glVertexAttribPointer(attribute.attributeSlot, attribute.numElements, type, GL_FALSE, sizeof(T), (void*)attribute.offset);
+					glVertexAttribPointer(attribute.attributeSlot, attribute.numElements, type, GL_FALSE, sizeof(T), (void*)(int64)attribute.offset);
 					break;
 				case AttributeType::Int:
 				case AttributeType::Uint:
-					glVertexAttribIPointer(attribute.attributeSlot, attribute.numElements, type, sizeof(T), (void*)attribute.offset);
+					glVertexAttribIPointer(attribute.attributeSlot, attribute.numElements, type, sizeof(T), (void*)(int64)attribute.offset);
 					break;
 				}
 				glEnableVertexAttribArray(attribute.attributeSlot);
