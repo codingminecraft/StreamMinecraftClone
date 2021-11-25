@@ -162,12 +162,15 @@ project "Bootstrap"
         "Bootstrap/include",
         "Bootstrap/vendor/curl/include",
         "Minecraft/vendor/cppUtils/single_include/",
-        "Bootstrap/vendor/bit7z/include/"
     }
 
     filter "system:windows"
         buildoptions { "-lgdi32" }
         systemversion "latest"
+
+        includedirs {
+            "Bootstrap/vendor/bit7z/include/"
+        }
 
         libdirs {
             "./Bootstrap/vendor/curl/lib",
@@ -180,11 +183,13 @@ project "Bootstrap"
             "user32"
         }
 
-        filter { "configurations:Debug" }
+        filter { "configurations:Debug", "system:windows" }
+            buildoptions "/MTd"
             links {
                 "bit7z64_d"
             }
-        filter { "configurations:Release" }
+        filter { "configurations:Release", "system:windows" }
+            buildoptions "/MT"
             links {
                 "bit7z64"
             }
@@ -193,13 +198,20 @@ project "Bootstrap"
             "_CRT_SECURE_NO_WARNINGS"
         }
 
+    filter "system:linux"
+        removefiles {
+            "Bootstrap/vendor/bit7z/**.hpp"
+        }
+
+        links {
+            "curl"
+        }
+
     filter { "configurations:Debug" }
-        buildoptions "/MTd"
         runtime "Debug"
         symbols "on"
 
     filter { "configurations:Release" }
-        buildoptions "/MT"
         runtime "Release"
         optimize "on"
 

@@ -5,7 +5,7 @@ if [[ $# > 0 && $1 != 'help' && $1 != 'h' ]]; then
 
     if [ ! -e Minecraft/vendor/freetype ]; then
         echo 'Downloading any libraries required.'
-        ./vendor/Bootstrap/Bootstrap.out
+        ./vendor/Bootstrap/Bootstrap
     fi
 
 else
@@ -13,7 +13,8 @@ else
     echo -e 'Enter "build.bat action" where action is one of the following:'
     echo
     echo -e '\tcodelite          Generate CodeLite project files'
-    echo -e '\tgmake             Generate GNU makefiles for Linux'
+    echo -e '\tgmake             Generate GNU makefiles for Linux using gcc'
+    echo -e '\tgmake2            Generate GNU makefiles for Linux using g++'
     echo -e '\tvs2005            Generate Visual Studio 2005 project files'
     echo -e '\tvs2008            Generate Visual Studio 2008 project files'
     echo -e '\tvs2010            Generate Visual Studio 2010 project files'

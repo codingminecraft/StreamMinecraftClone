@@ -2,11 +2,16 @@
 #include "File.h"
 
 #include <cppUtils/cppUtils.hpp>
+#include <string>
+#include <cstring>
+
+#ifdef _WIN32
 #include <bitextractor.hpp>
 #include <bit7z.hpp>
-#include <curl/curl.h>
-
 using namespace bit7z;
+#endif
+
+#include <curl/curl.h>
 
 size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream)
 {
@@ -82,6 +87,7 @@ static std::wstring charPtrToWString(const char* string)
 	return std::wstring(&string[0], &string[strLength]);
 }
 
+#ifdef _WIN32
 bool manim_unzip(const char* fileToUnzip, const char* outputFile, zip_type type)
 {
 	g_logger_info("Unzipping '%s'.", fileToUnzip);
@@ -111,3 +117,12 @@ bool manim_unzip(const char* fileToUnzip, const char* outputFile, zip_type type)
 	remove(fileToUnzip);
 	return true;
 }
+#elif defined(__linux__)
+bool manim_unzip(const char* fileToUnzip, const char* outputFile, zip_type type)
+{
+	const int length = 1024;
+	char buffer[length];
+	snprintf(buffer, length, "unzip %s -d %s", fileToUnzip, outputFile);
+	return system(buffer) == 0;
+}
+#endif

@@ -19,7 +19,8 @@ echo.
 echo Enter 'build.bat action' where action is one of the following:
 echo.
 echo   codelite          Generate CodeLite project files
-echo   gmake             Generate GNU makefiles for Linux
+echo   gmake             Generate GNU makefiles for Linux or Cygwin using gcc
+echo   gmake2            Generate GNU makefiles for Linux or Cygwin using g++
 echo   vs2005            Generate Visual Studio 2005 project files
 echo   vs2008            Generate Visual Studio 2008 project files
 echo   vs2010            Generate Visual Studio 2010 project files

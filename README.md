@@ -4,7 +4,10 @@ This is a Minecraft clone that will be used for an education YouTube series. I w
 
 ## To Build
 
-> Note: Currently this code only supports Windows
+> Note: Currently this code only supports Windows and Linux (almost)
+
+<details>
+<summary>Windows</summary>
 
 In order to build this, you must have git installed. Then you can create a new directory where you want to install this code and open a command prompt. Then run:
 
@@ -15,6 +18,45 @@ build.bat vs2019
 ```
 
 This should create a Visual Studio solution file, and all you need to do is double click the solution file, then build and run the project within Visual Studio.
+</details>
+
+<details>
+<summary>Linux (Ubuntu)</summary>
+In order to build this, you must have git and a few other dependencies installed. You cun run the following commands to ensure you have all the dependencies:
+
+```bash
+# Get the dependencies for libcurl
+sudo apt-get install libcurl4-gnutls-dev
+
+# Get the dependencies for freetype
+wget https://download.savannah.gnu.org/releases/freetype/freetype-2.10.4.tar.gz
+tar xvfz freetype-2.10.4.tar.gz
+cd freetype-2.10.4
+./configure --prefix=/usr/local/freetype/2_10_4 --enable-freetype-config
+make
+make install
+cd ..
+rm -rf ./freetype-2.10.4
+rm ./freetype-2.10.4.tar.gz
+
+# Clone the repository and change into the directory
+git clone --recursive https://github.com/codingminecraft/StreamMinecraftClone
+cd StreamMinecraftClone
+
+# Finally build the project 
+./build.sh gmake2
+make
+
+# This is just to make sure you execute all the comamnds if you copy paste this :)
+```
+
+If you ever need to rebuild the project simply run these two commands:
+```bash
+./build.sh gmake2
+make
+```
+
+</details>
 
 > Note: If you want to use a different build system, just run build.bat which will print out all available build systems.
 
