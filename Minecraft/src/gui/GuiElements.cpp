@@ -6,7 +6,7 @@ namespace Minecraft
 {
 	namespace GuiElements
 	{
-		extern TexturedButton* defaultButton = nullptr;
+		TexturedButton* defaultButton = nullptr;
 
 		// Internal variables
 		static Texture menuTextures;

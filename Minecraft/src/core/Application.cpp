@@ -68,7 +68,7 @@ namespace Minecraft
 			opaqueTextureSpec.wrapS = WrapMode::None;
 			opaqueTextureSpec.wrapT = WrapMode::None;
 			opaqueTextureSpec.format = ByteFormat::RGBA_16F;
-			opaqueTextureSpec.path = "";
+			opaqueTextureSpec.path = (char*)"";
 
 			Texture accumulationTextureSpec;
 			accumulationTextureSpec.type = TextureType::_2D;
@@ -79,7 +79,7 @@ namespace Minecraft
 			accumulationTextureSpec.wrapS = WrapMode::None;
 			accumulationTextureSpec.wrapT = WrapMode::None;
 			accumulationTextureSpec.format = ByteFormat::RGBA_16F;
-			accumulationTextureSpec.path = "";
+			accumulationTextureSpec.path = (char*)"";
 
 			Texture revealTextureSpec;
 			revealTextureSpec.type = TextureType::_2D;
@@ -90,7 +90,7 @@ namespace Minecraft
 			revealTextureSpec.wrapS = WrapMode::None;
 			revealTextureSpec.wrapT = WrapMode::None;
 			revealTextureSpec.format = ByteFormat::R8_F;
-			revealTextureSpec.path = "";
+			revealTextureSpec.path = (char*)"";
 
 			mainFramebuffer = FramebufferBuilder(window.width, window.height)
 				.addColorAttachment(opaqueTextureSpec)

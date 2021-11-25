@@ -7,10 +7,10 @@ namespace Minecraft
 	{
 		namespace Internal
 		{
-			extern int32 ComponentCounter = 0;
+			int32 ComponentCounter = 0;
 		}
 
-		extern EntityId nullEntity = Internal::createEntityId(UINT32_MAX, 0);
+		EntityId nullEntity = Internal::createEntityId(UINT32_MAX, 0);
 
 		void Internal::SparseSet::free()
 		{
@@ -47,7 +47,7 @@ namespace Minecraft
 
 		EntityId Registry::find(TagType type)
 		{
-			auto& tagView = view<Tag>();
+			auto tagView = view<Tag>();
 			for (EntityId entity : tagView)
 			{
 				if (getComponent<Tag>(entity).type == type)

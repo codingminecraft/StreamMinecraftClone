@@ -14,7 +14,7 @@ namespace Minecraft
 			-1.0f, -1.0f, 0.0f, 0.0f  // Bottom-left pos and uvs
 		};
 
-		extern uint32 fullScreenSpaceRectangleVao = UINT32_MAX;
+		uint32 fullScreenSpaceRectangleVao = UINT32_MAX;
 		static uint32 fullScreenSpaceRectangleVbo = UINT32_MAX;
 
 		void init()

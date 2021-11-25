@@ -84,14 +84,6 @@ project "Minecraft"
         "Minecraft/vendor/enet/include"
     }
 
-    libdirs {
-        "\"./Minecraft/vendor/freetype/release dll/win64\""
-    }
-
-    links {
-        "freetype.lib"
-    }
-
     defines {
         "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS"
     }
@@ -100,8 +92,13 @@ project "Minecraft"
         buildoptions { "-lgdi32" }
         systemversion "latest"
 
+        libdirs {
+            "\"./Minecraft/vendor/freetype/release dll/win64\""
+        }
+
         links {
-            "Winmm.lib"
+            "Winmm.lib",
+            "freetype.lib"
         }
 
         files {
@@ -130,18 +127,36 @@ project "Minecraft"
             "copy /y \"Minecraft\\vendor\\freetype\\release dll\\win64\\freetype.lib\" \"%{cfg.targetdir}\\freetype.lib\""
         }
 
+        filter { "configurations:Debug", "system:windows" }
+            buildoptions "/MTd"
+
+        filter { "configurations:Release", "system:windows" }
+            buildoptions "/MT"
+    
+    filter { "system:linux" }
+        buildoptions {
+            "-fext-numeric-literals"
+        }
+
+        links {
+            "glfw3",
+            "freetype",
+            "pthread",
+            "dl"
+        }
+
+        removefiles {
+            "Minecraft/vendor/GLFW/**.c"
+        }
+
     filter { "configurations:Debug" }
-        buildoptions "/MTd"
         runtime "Debug"
         symbols "on"
 
     filter { "configurations:Release" }
         defines {" _RELEASE" }
-        buildoptions "/MT"
         runtime "Release"
         optimize "on"
-
-
 
 project "Bootstrap"
     kind "ConsoleApp"
@@ -216,13 +231,16 @@ project "Bootstrap"
         optimize "on"
 
 project "MinecraftServer"
-    kind "ConsoleApp"
     language "C++"
     cppdialect "C++17"
     staticruntime "on"
+    filter "system:linux"
+        kind "None"
+    filter "system:windows"
+        kind "ConsoleApp"
 
     targetdir("bin\\" .. outputdir .. "\\%{prj.name}")
     objdir("bin-int\\" .. outputdir .. "\\%{prj.name}")
-
+    
     -- TODO: Start this in debug mode using command line args or something
     debugcommand ("bin\\" .. outputdir .. "\\Minecraft\\Minecraft.exe")

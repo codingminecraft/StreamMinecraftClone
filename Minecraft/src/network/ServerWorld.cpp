@@ -40,12 +40,12 @@ namespace Minecraft
 
 	namespace ServerWorld
 	{
-		extern std::string savePath = "";
-		extern uint32 seed = UINT32_MAX;
-		extern std::atomic<float> seedAsFloat = 0.0f;
-		extern std::string chunkSavePath = "";
-		extern int worldTime = 0;
-		extern bool doDaylightCycle = false;
+		std::string savePath = "";
+		uint32 seed = UINT32_MAX;
+		std::atomic<float> seedAsFloat = 0.0f;
+		std::string chunkSavePath = "";
+		int worldTime = 0;
+		bool doDaylightCycle = false;
 
 		// Members
 		static robin_hood::unordered_set<glm::ivec2> loadedChunkPositions;

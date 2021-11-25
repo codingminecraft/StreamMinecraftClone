@@ -13,14 +13,14 @@ namespace Minecraft
 {
 	namespace BlockMap
 	{
-		extern Block NULL_BLOCK = {
+		Block NULL_BLOCK = {
 			0,
 			0,
 			0,
 			0
 		};
 
-		extern Block AIR_BLOCK = {
+		Block AIR_BLOCK = {
 			1,
 			0,
 			0,
@@ -270,7 +270,7 @@ namespace Minecraft
 		{
 			YAML::Node recipes = YamlExtended::readFile(craftingRecipesConfig);
 
-			for (auto& largeRecipe : recipes)
+			for (auto largeRecipe : recipes)
 			{
 				if (largeRecipe.second["outputCount"])
 				{
@@ -279,7 +279,7 @@ namespace Minecraft
 					int outputId = getBlockId(outputName);
 					g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
 
-					for (auto& subRecipe : largeRecipe.second)
+					for (auto subRecipe : largeRecipe.second)
 					{
 						if (subRecipe.first.as<std::string>() != "outputCount")
 						{
@@ -291,13 +291,13 @@ namespace Minecraft
 							resultRecipe.output = outputId;
 							resultRecipe.outputCount = outputCount;
 
-							for (auto& row : subRecipe.second)
+							for (auto row : subRecipe.second)
 							{
 								g_logger_assert(row.IsSequence(), "Crafting recipe '%s:%s' must contain arrays only. E.g - [stick, stick]", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 								g_logger_assert(row.size() == maxWidth, "Crafting recipe '%s:%s', must contain arrays of the same size.", outputName.c_str(), subRecipe.first.as<std::string>().c_str());
 
 								int columnIndex = 0;
-								for (auto& item : row)
+								for (auto item : row)
 								{
 									if (!item.IsNull())
 									{
@@ -403,8 +403,9 @@ namespace Minecraft
 				// Only regenerate the block item pictures if the file is out of date
 				FileTime configMetrics = File::getFileTimes(blockFormatConfig);
 				FileTime outputMetrics = File::getFileTimes(outputPath);
-				if (outputMetrics.lastWrite >= configMetrics.lastWrite)
+				if (outputMetrics.lastWrite > configMetrics.lastWrite)
 				{
+					g_logger_info("Skipping generation of block item pictures because they have already been created.");
 					return;
 				}
 				else 
@@ -438,7 +439,7 @@ namespace Minecraft
 			texture.format = ByteFormat::RGBA8_UI;
 			texture.wrapS = WrapMode::None;
 			texture.wrapT = WrapMode::None;
-			texture.path = "";
+			texture.path = (char*)"";
 			Framebuffer framebuffer = FramebufferBuilder(64, 64)
 				.addColorAttachment(texture)
 				.generate();

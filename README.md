@@ -39,15 +39,22 @@ cd ..
 rm -rf ./freetype-2.10.4
 rm ./freetype-2.10.4.tar.gz
 
+# Get dependencies for GLFW
+sudo apt-get install xorg-dev
+
 # Clone the repository and change into the directory
 git clone --recursive https://github.com/codingminecraft/StreamMinecraftClone
-cd StreamMinecraftClone
+
+# Compile and install GLFW
+cd StreamMinecraftClone/Minecraft/vendor/GLFW
+cmake .
+make 
+sudo make install
+cd ../../../
 
 # Finally build the project 
 ./build.sh gmake2
 make
-
-# This is just to make sure you execute all the comamnds if you copy paste this :)
 ```
 
 If you ever need to rebuild the project simply run these two commands:

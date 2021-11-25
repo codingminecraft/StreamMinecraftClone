@@ -11,6 +11,9 @@ namespace Minecraft
 		template<typename... Components>
 		class RegistryView;
 
+		template<typename T>
+		int32 componentId();
+
 		typedef uint32 EntityIndex;
 		typedef uint32 EntityVersion;
 		typedef uint64 EntityId;

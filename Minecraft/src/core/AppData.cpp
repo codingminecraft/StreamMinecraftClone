@@ -5,9 +5,9 @@ namespace Minecraft
 {
 	namespace AppData
 	{
-		extern std::string appDataFilepath = "";
-		extern std::string worldsRootPath = "";
-		extern std::string screenshotsPath = "";
+		std::string appDataFilepath = "";
+		std::string worldsRootPath = "";
+		std::string screenshotsPath = "";
 
 		void init()
 		{

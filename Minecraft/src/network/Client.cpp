@@ -58,7 +58,7 @@ namespace Minecraft
 			if (enet_host_service(client, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
 			{
 				g_logger_info("Successfully connected to '%s':'%d'", hostname, port);
-				event.peer->data = "Client Info Blah";
+				event.peer->data = (void*)"Client Info Blah";
 			}
 			else
 			{
@@ -83,7 +83,7 @@ namespace Minecraft
 				{
 					g_logger_info("A new client connected from %x:%u.", event.peer->address.host, event.peer->address.port);
 					// Store any relevant client information here...
-					event.peer->data = "Client information";
+					event.peer->data = (void*)"Client information";
 					break;
 				}
 				case ENET_EVENT_TYPE_RECEIVE:

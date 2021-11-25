@@ -35,7 +35,7 @@ namespace Minecraft
 
 	namespace CommandLine
 	{
-		extern bool isActive = false;
+		bool isActive = false;
 
 		static void parseCommand(const char* command, int length);
 		static void executeCommand(CommandLineType type, CommandStringView* args, int argsLength);

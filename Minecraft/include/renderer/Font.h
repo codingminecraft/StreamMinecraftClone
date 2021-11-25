@@ -52,7 +52,7 @@ namespace Minecraft
 		Font* getFont(const char* filepath, FontSize fontSize);
 	}
 
-	FontSize operator""_px(uint64 numPixels);
+	FontSize operator""_px(unsigned long long int numPixels);
 	FontSize operator""_em(long double emSize);
 }
 

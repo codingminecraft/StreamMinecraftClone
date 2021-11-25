@@ -37,12 +37,12 @@ namespace Minecraft
 {
 	namespace World
 	{
-		extern std::string savePath = "";
-		extern uint32 seed = UINT32_MAX;
-		extern std::atomic<float> seedAsFloat = 0.0f;
-		extern std::string chunkSavePath = "";
-		extern int worldTime = 0;
-		extern bool doDaylightCycle = false;
+		std::string savePath = "";
+		uint32 seed = UINT32_MAX;
+		std::atomic<float> seedAsFloat = 0.0f;
+		std::string chunkSavePath = "";
+		int worldTime = 0;
+		bool doDaylightCycle = false;
 
 		// Members
 		static Shader opaqueShader;
@@ -494,6 +494,7 @@ namespace Minecraft
 			{
 				// TODO: Get the world info from the server on connection
 			}
+			return false;
 		}
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates)

@@ -21,8 +21,10 @@ int main()
 	Minecraft::Application::free();
 	
 	g_memory_dumpMemoryLeaks();
-	_CrtCheckMemory();
+#ifdef _WIN32
+	//_CrtCheckMemory();
 	//_CrtDumpMemoryLeaks();
+#endif
 	return 0;
 }
 

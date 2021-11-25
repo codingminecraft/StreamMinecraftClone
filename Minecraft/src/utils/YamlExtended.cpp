@@ -28,7 +28,13 @@ namespace YamlExtended
 		return YAML::LoadFile(filename);
 	}
 
-	void writeVec2(const char* name, const glm::vec2& vec2, YAML::Node& node)
+	void writeVec2(const char* name, const glm::vec2& vec2, YAML::Node&& node)
+	{
+		node[name]["x"] = vec2.x;
+		node[name]["y"] = vec2.y;
+	}
+
+	void writeVec2(const char* name, const glm::vec2& vec2, YAML::Node& node) 
 	{
 		node[name]["x"] = vec2.x;
 		node[name]["y"] = vec2.y;

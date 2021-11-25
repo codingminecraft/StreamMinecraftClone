@@ -124,4 +124,130 @@ namespace Minecraft
 	}
 }
 
+// end _WIN_32
+#elif defined(__linux__) 
+#include <dirent.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <unistd.h>
+
+namespace Minecraft
+{
+	namespace File
+	{
+		bool removeDir(const char* directoryName)
+		{
+			DIR* directory = opendir(directoryName);
+			size_t pathLength = strlen(directoryName);
+			int result = -1;
+
+			if (directory) 
+			{
+				struct dirent* parent;
+
+				result = 0;
+				while (!result && (parent=readdir(directory))) 
+				{
+					int result2 = -1;
+					char* buffer;
+					size_t length;
+
+					/* Skip the names "." and ".." as we don't want to recurse on them. */
+					if (!strcmp(parent->d_name, ".") || !strcmp(parent->d_name, ".."))
+						continue;
+
+					length = pathLength + strlen(parent->d_name) + 2; 
+					buffer = (char*)malloc(length);
+
+					if (buffer) 
+					{
+						struct stat statbuf;
+
+						snprintf(buffer, length, "%s/%s", directoryName, parent->d_name);
+						if (!stat(buffer, &statbuf)) 
+						{
+							if (S_ISDIR(statbuf.st_mode))
+							{
+								result2 = removeDir(buffer);
+							}
+							else
+							{
+								result2 = unlink(buffer);
+							}
+						}
+						free(buffer);
+					}
+					result = result2;
+				}
+				closedir(directory);
+			}
+
+			if (result == 0)
+			{
+				result = rmdir(directoryName);
+			}
+
+			return result == 0;
+		}
+
+		bool isDir(const char* directoryName)
+		{
+			struct stat path_stat;
+			stat(directoryName, &path_stat);
+			return S_ISDIR(path_stat.st_mode);
+		}
+
+		bool isFile(const char* directoryName)
+		{
+			struct stat path_stat;
+			stat(directoryName, &path_stat);
+			return S_ISREG(path_stat.st_mode);
+		}
+
+		bool moveFile(const char* from, const char* to)
+		{
+			return rename(from, to) == 0;
+		}
+
+		bool createDirIfNotExists(const char* directoryName)
+		{
+			if (!isDir(directoryName)) 
+			{
+				if (!isFile(directoryName)) 
+				{
+					return mkdir(directoryName,  S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+				}
+				else 
+				{
+					g_logger_error("Cannot make '%s' a directory. A file with that name already exists.", directoryName);
+					return false;
+				}
+			}
+			
+			return true;
+		}
+
+		std::string getSpecialAppFolder()
+		{
+			return std::string("/usr/games");
+		}
+
+		FileTime getFileTimes(const char* fileOrDirName)
+		{
+			struct stat attr;
+			if (stat(fileOrDirName, &attr) == 0) 
+			{
+				FileTime res;
+				res.creation = (uint64)attr.st_ctime;
+				res.lastAccess = (uint64)attr.st_atime;
+				res.lastWrite = (uint64)attr.st_mtime;
+				return res;
+			}
+
+			return { UINT64_MAX, UINT64_MAX, UINT64_MAX };
+		}
+	}
+}
+
+// end __linux__
 #endif

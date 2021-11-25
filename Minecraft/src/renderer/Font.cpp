@@ -315,7 +315,7 @@ namespace Minecraft
 		}
 	}
 
-	FontSize operator""_px(uint64 numPixels)
+	FontSize operator""_px(unsigned long long int numPixels)
 	{
 		return (uint32)numPixels;
 	}

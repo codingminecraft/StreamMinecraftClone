@@ -92,7 +92,7 @@ namespace Minecraft
 
 	namespace ChunkManager
 	{
-		extern bool doStepLogic = false;
+		bool doStepLogic = false;
 
 		class ChunkWorker
 		{
@@ -1060,7 +1060,7 @@ namespace Minecraft
 						(World::ChunkRadius * World::ChunkRadius);
 					if (!inRangeOfPlayer)
 					{
-						auto& iter = chunks.find(chunkPos);
+						auto iter = chunks.find(chunkPos);
 						if (iter != chunks.end() && iter->second.state != ChunkState::Saving)
 						{
 							if (iter->second.state != ChunkState::Saving)

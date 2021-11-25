@@ -65,7 +65,7 @@ namespace Minecraft
 				{
 					g_logger_info("A new client connected from %x:%u.", event.peer->address.host, event.peer->address.port);
 					// Store any relevant client information here...
-					event.peer->data = "Client information";
+					event.peer->data = (void*)"Client information";
 					clients[numConnectedClients] = event.peer;
 					numConnectedClients++;
 					g_logger_assert(numConnectedClients <= 32, "Somehow we connected more than the maximum number of clients allowed.");

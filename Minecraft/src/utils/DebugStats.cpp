@@ -10,13 +10,13 @@ namespace Minecraft
 {
 	namespace DebugStats
 	{
-		extern uint32 numDrawCalls = 0;
-		extern float lastFrameTime = 0.16f;
-		extern glm::vec3 playerPos = glm::vec3();
-		extern glm::vec3 playerOrientation = glm::vec3();
-		extern std::atomic<float> totalChunkRamUsed = 0.0f;
-		extern float totalChunkRamAvailable = 0.0f;
-		extern Block blockLookingAt = BlockMap::NULL_BLOCK;
+		uint32 numDrawCalls = 0;
+		float lastFrameTime = 0.16f;
+		glm::vec3 playerPos = glm::vec3();
+		glm::vec3 playerOrientation = glm::vec3();
+		std::atomic<float> totalChunkRamUsed = 0.0f;
+		float totalChunkRamAvailable = 0.0f;
+		Block blockLookingAt = BlockMap::NULL_BLOCK;
 
 		void render()
 		{

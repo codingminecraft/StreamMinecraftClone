@@ -4,18 +4,18 @@ namespace Minecraft
 {
 	namespace Input
 	{
-		extern float mouseScreenX = 0;
-		extern float mouseScreenY = 0;
-		extern float mouseX = 0;
-		extern float mouseY = 0;
-		extern float deltaMouseX = 0;
-		extern float deltaMouseY = 0;
-		extern float mouseScrollX = 0;
-		extern float mouseScrollY = 0;
-		extern bool keyPressed[GLFW_KEY_LAST] = {};
-		extern bool keyBeginPressData[GLFW_KEY_LAST] = {};
-		extern bool mousePressed[GLFW_MOUSE_BUTTON_LAST] = {};
-		extern bool mouseBeginPressData[GLFW_MOUSE_BUTTON_LAST] = {};
+		float mouseScreenX = 0;
+		float mouseScreenY = 0;
+		float mouseX = 0;
+		float mouseY = 0;
+		float deltaMouseX = 0;
+		float deltaMouseY = 0;
+		float mouseScrollX = 0;
+		float mouseScrollY = 0;
+		bool keyPressed[GLFW_KEY_LAST] = {};
+		bool keyBeginPressData[GLFW_KEY_LAST] = {};
+		bool mousePressed[GLFW_MOUSE_BUTTON_LAST] = {};
+		bool mouseBeginPressData[GLFW_MOUSE_BUTTON_LAST] = {};
 
 		uint32 lastCharPressedData = '\0';
 

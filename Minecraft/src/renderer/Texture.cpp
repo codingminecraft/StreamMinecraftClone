@@ -21,7 +21,7 @@ namespace Minecraft
 		texture.width = 0;
 		texture.height = 0;
 		texture.format = ByteFormat::None;
-		texture.path = "";
+		texture.path = (char*)"";
 		texture.swizzleFormat[0] = ColorChannel::Red;
 		texture.swizzleFormat[1] = ColorChannel::Green;
 		texture.swizzleFormat[2] = ColorChannel::Blue;
