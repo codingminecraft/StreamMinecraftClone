@@ -1941,10 +1941,17 @@ namespace Minecraft
 
 		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)
 		{
-			std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
-			FILE* fp = fopen(filepath.c_str(), "wb");
-			fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
-			fclose(fp);
+			if ((Network::isNetworkEnabled() && Network::isLanServer()) || (!Network::isNetworkEnabled()))
+			{
+				std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
+				FILE* fp = fopen(filepath.c_str(), "wb");
+				fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
+				fclose(fp);
+			}
+			else
+			{
+				g_logger_warning("Cannot serialize chunk over the network yet... I mean I can, I just don't feel like adding it in this part of the code.");
+			}
 		}
 
 		void deserialize(Block* blockData, const std::string& worldSavePath, const glm::ivec2& chunkCoordinates)

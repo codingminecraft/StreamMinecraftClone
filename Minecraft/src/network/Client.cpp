@@ -139,24 +139,67 @@ namespace Minecraft
 			}
 			case NetworkEventType::ChunkData:
 			{
-				size_t chunkDataSize = sizeof(Block) * World::ChunkHeight * World::ChunkWidth * World::ChunkDepth;
-				size_t chunkCoordsSize = sizeof(int) * 2;
-				size_t chunkStateSize = sizeof(ChunkState);
-				int chunkX = *(int*)(char*)(data + chunkDataSize);
-				int chunkY = *(int*)(char*)(data + chunkDataSize + sizeof(int));
-				ChunkState state = *(ChunkState*)((char*)(data + chunkDataSize + chunkCoordsSize));
-				void* chunkData = g_memory_allocate(chunkDataSize);
-				g_memory_copyMem(chunkData, data, chunkDataSize);
-				ChunkManager::queueClientLoadChunk(chunkData, glm::ivec2(chunkX, chunkY), state);
+				g_logger_info("Recieving server chunk data.");
+				uint16 numChunks;
+				uint8* chunkDataPtr = data;
+				g_memory_copyMem(&numChunks, chunkDataPtr, sizeof(uint16));
+				chunkDataPtr += sizeof(uint16);
+				g_logger_info("Num chunks: %u", numChunks);
+
+				for (uint16 i = 0; i < numChunks; i++)
+				{
+					uint32 compressedChunkSize;
+					g_memory_copyMem(&compressedChunkSize, chunkDataPtr, sizeof(uint32));
+					chunkDataPtr += sizeof(uint32);
+
+					Block* chunkData = (Block*)g_memory_allocate(sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
+					g_memory_zeroMem(chunkData, sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
+					int blockIndex = 0;
+					uint32 chunkByteCounter = 0;
+					while (chunkByteCounter < compressedChunkSize)
+					{
+						uint16 blockId;
+						uint16 blockCount;
+						g_memory_copyMem(&blockId, chunkDataPtr, sizeof(uint16));
+						chunkDataPtr += sizeof(uint16);
+						chunkByteCounter += sizeof(uint16);
+						g_memory_copyMem(&blockCount, chunkDataPtr, sizeof(uint16));
+						chunkDataPtr += sizeof(uint16);
+						chunkByteCounter += sizeof(uint16);
+
+						for (uint16 blockCounter = 0; blockCounter < blockCount; blockCounter++)
+						{
+							chunkData[blockIndex].id = blockId;
+							blockIndex++;
+						}
+					}
+					g_logger_assert(blockIndex == World::ChunkWidth * World::ChunkDepth * World::ChunkHeight, 
+						"Deserialized invalid block data on client. Count was '%d', should be '%d'", blockIndex, World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
+					int32 chunkX, chunkZ;
+					ChunkState state;
+					g_memory_copyMem(&chunkX, chunkDataPtr, sizeof(int32));
+					chunkDataPtr += sizeof(int32);
+					g_memory_copyMem(&chunkZ, chunkDataPtr, sizeof(int32));
+					chunkDataPtr += sizeof(int32);
+					g_memory_copyMem(&state, chunkDataPtr, sizeof(ChunkState));
+					chunkDataPtr += sizeof(ChunkState);
+
+					ChunkManager::queueClientLoadChunk(chunkData, glm::ivec2(chunkX, chunkZ), state);
+				}
+				g_logger_assert(chunkDataPtr - data == event->dataSize, "Deserialized more or less data than we recieved from the client.");
+				g_logger_info("Done processing chunk data.");
 				break;
 			}
 			case NetworkEventType::PatchChunkNeighbors:
 			{
+				g_logger_info("Patching chunk pointers.");
 				ChunkManager::patchChunkPointers();
+				g_logger_info("Done patching chunk pointers.");
 				break;
 			}
 			case NetworkEventType::NotifyChunkWorker:
 			{
+				g_logger_info("Starting the work on the thread.");
 				ChunkManager::beginWork();
 				break;
 			}
