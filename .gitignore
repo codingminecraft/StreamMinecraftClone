@@ -17,3 +17,6 @@ test.png
 **/freetype/**
 
 assets/generated/**
+
+Makefile
+**.make
