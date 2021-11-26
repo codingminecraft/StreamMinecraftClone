@@ -63,7 +63,7 @@ namespace Minecraft
 
 				Gui::beginWindow(windowPos, windowSize);
 
-				static std::array<char, 512> buffer;
+				static std::array<char, 512> buffer = { '\0' };
 				if (!parseText)
 				{
 					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 4);
@@ -93,6 +93,11 @@ namespace Minecraft
 
 		static void parseCommand(const char* command, int length)
 		{
+			if (command[0] == '\0') 
+			{
+				return;
+			}
+
 			// Figure out which command (if any) we are trying to call
 			CommandLineType type = CommandLineType::None;
 			for (int i = 0; i < (int)CommandLineType::Length; i++)
@@ -102,7 +107,8 @@ namespace Minecraft
 				{
 					bool match = true;
 					int commandTypeLength = 1;
-					for (int strIndex = 1; strIndex < length; strIndex++)
+					int minLength = glm::min((int)enumName.length() + 1, length);
+					for (int strIndex = 1; strIndex < minLength; strIndex++)
 					{
 						if (command[strIndex] == '\0' || command[strIndex] == ' ')
 						{
@@ -124,19 +130,40 @@ namespace Minecraft
 						static CommandStringView args[10];
 						int argsLength = 0;
 						CommandStringView arg;
-						arg.string = &command[commandTypeLength + 1];
-						for (int i = commandTypeLength + 1; i < length; i++)
+
+						// Find the start of the first argument by skipping whitespace
+						int startArgIndex = commandTypeLength + 1;
+						for (int i = startArgIndex; i < length; i++) 
 						{
-							if (command[i] == ' ' || command[i] == '\0')
+							if ((command[i] != ' ' && command[i] != '\t') || command[i] == '\0') 
+							{
+								arg.string = &command[i];
+								startArgIndex = i;
+								break;
+							}
+						}
+
+						for (int i = startArgIndex; i < length; i++)
+						{
+							if (command[i] == ' ' || command[i] == '\0' || command[i] == '\t')
 							{
 								arg.length = (int)(&command[i] - arg.string);
 								args[argsLength++] = arg;
 								if (i < length - 1)
 								{
-									arg.string = &command[i + 1];
+									// Skip whitespace
+									for (int j = i + 1; j < length; j++) 
+									{
+										if ((command[j] != ' ' && command[j] != '\t') || command[j] == '\0') 
+										{
+											arg.string = &command[j];
+											i = j - 1;
+											break;
+										}
+									}
 								}
 
-								if (command[i] == '\0')
+								if (command[i] == '\0' || arg.string[0] == '\0')
 								{
 									break;
 								}

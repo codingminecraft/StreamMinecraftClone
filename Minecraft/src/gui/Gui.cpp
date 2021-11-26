@@ -182,16 +182,24 @@ namespace Minecraft
 				uint32 c = Input::lastCharPressed();
 				if (c != '\0')
 				{
+					bool placedNullChar = false;
 					for (int i = 0; i < inputBufferLength - 1; i++)
 					{
 						if (inputBuffer[i] == '\0')
 						{
 							inputBuffer[i] = c;
 							inputBuffer[i + 1] = '\0';
+							placedNullChar = true;
 							break;
 						}
 					}
-					res = true;
+
+					res = placedNullChar;
+					if (!placedNullChar) 
+					{
+						g_logger_error("Ran out of room in input buffer, terminating string early.");
+						inputBuffer[inputBufferLength - 1] = '\0';
+					}
 				}
 				if (Input::keyBeginPress(GLFW_KEY_BACKSPACE))
 				{
