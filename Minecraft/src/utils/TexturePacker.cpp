@@ -100,7 +100,7 @@ namespace Minecraft
 			}
 
 			int pngOutputHeight = currentY + lineHeight;
-			stbi_write_png(outputFilepath, pngOutputWidth, pngOutputHeight, 4, &pixels.begin()->r, pngOutputWidth * sizeof(Pixel));
+			stbi_write_png(outputFilepath, pngOutputWidth, pngOutputHeight, 4, pixels.data(), pngOutputWidth * sizeof(Pixel));
 		
 			YAML::Node textureFormat;
 			uint16 uid = 0;
