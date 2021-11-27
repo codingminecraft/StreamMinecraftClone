@@ -111,14 +111,15 @@ namespace Minecraft
 			// Run game loop
 			// Start with a 60 fps frame rate
 			Window& window = getWindow();
-			float previousTime = (float)glfwGetTime() - 0.016f;
+			double previousTime = glfwGetTime();
 			bool inMainMenu = true;
 			const float targetFps = 0.016f;
 			const float nextTarget = 0.032f;
 			while (!window.shouldClose())
 			{
-				float deltaTime = (float)glfwGetTime() - previousTime;
-				previousTime = (float)glfwGetTime();
+
+				double currentTime = glfwGetTime();
+				double deltaTime = currentTime - previousTime;
 
 				//if (Input::keyBeginPress(GLFW_KEY_F8))
 				//{
@@ -137,8 +138,8 @@ namespace Minecraft
 				//}
 
 				// TODO: Do I want to keep this?
-				float actualFps = deltaTime;
-				if (targetFps - actualFps > 0)
+				//float actualFps = deltaTime;
+				/*if (targetFps - actualFps > 0)
 				{
 					std::this_thread::sleep_for(std::chrono::milliseconds((int)((targetFps - actualFps) * 1000)));
 					deltaTime = targetFps;
@@ -147,7 +148,7 @@ namespace Minecraft
 				{
 					std::this_thread::sleep_for(std::chrono::milliseconds((int)((nextTarget - actualFps) * 1000)));
 					deltaTime = nextTarget;
-				}
+				}*/
 
 				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
 				{
@@ -226,6 +227,8 @@ namespace Minecraft
 					g_memory_free(pixels);
 					dumpScreenshot = false;
 				}
+
+				previousTime = currentTime;
 			}
 		}
 
