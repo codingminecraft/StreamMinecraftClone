@@ -54,7 +54,7 @@ cd ../../../
 
 # Finally build the project 
 ./build.sh gmake2
-make
+make Minecraft
 ```
 
 If you ever need to rebuild the project simply run these two commands:
@@ -139,3 +139,8 @@ This is a list of tasks that still need to be done.
 - [ ] Mobs
 - [ ] True survival mode
 - [ ] Settings Menu
+
+### Bugs
+---
+
+- [ ] Linux Fileystem doesn't like numbers

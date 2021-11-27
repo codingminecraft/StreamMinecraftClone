@@ -137,19 +137,6 @@ namespace Minecraft
 				//	}
 				//}
 
-				// TODO: Do I want to keep this?
-				//float actualFps = deltaTime;
-				/*if (targetFps - actualFps > 0)
-				{
-					std::this_thread::sleep_for(std::chrono::milliseconds((int)((targetFps - actualFps) * 1000)));
-					deltaTime = targetFps;
-				}
-				else if (targetFps - nextTarget > 0)
-				{
-					std::this_thread::sleep_for(std::chrono::milliseconds((int)((nextTarget - actualFps) * 1000)));
-					deltaTime = nextTarget;
-				}*/
-
 				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
 				{
 					mainFramebuffer.width = getWindow().width;

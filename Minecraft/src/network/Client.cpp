@@ -7,6 +7,7 @@
 
 #include <enet/enet.h>
 
+#undef min
 namespace Minecraft
 {
 	namespace Client
@@ -55,7 +56,7 @@ namespace Minecraft
 
 			// Check if the connection succeeded
 			ENetEvent event;
-			if (enet_host_service(client, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
+			if (enet_host_service(client, &event, 15000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
 			{
 				g_logger_info("Successfully connected to '%s':'%d'", hostname, port);
 				event.peer->data = (void*)"Client Info Blah";
@@ -167,7 +168,10 @@ namespace Minecraft
 						chunkDataPtr += sizeof(uint16);
 						chunkByteCounter += sizeof(uint16);
 
-						for (uint16 blockCounter = 0; blockCounter < blockCount; blockCounter++)
+						g_logger_assert(blockIndex + blockCount <= World::ChunkWidth * World::ChunkDepth * World::ChunkHeight,
+							"Encountered bad data while serializing chunk data.");
+						int maxBlockCount = glm::min((int)blockCount, World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
+						for (int blockCounter = 0; blockCounter < maxBlockCount; blockCounter++)
 						{
 							chunkData[blockIndex].id = blockId;
 							blockIndex++;

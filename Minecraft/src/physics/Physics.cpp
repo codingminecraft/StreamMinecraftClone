@@ -38,9 +38,9 @@ namespace Minecraft
 
 	namespace Physics
 	{
-		static glm::vec3 gravity = glm::vec3(0.0f, 7.2f, 0.0f);
-		static glm::vec3 terminalVelocity = glm::vec3(20.0f, 20.0f, 20.0f);
-		static const float physicsUpdateRate = 0.032f;
+		static glm::vec3 gravity = glm::vec3(0.0f, 20.0f, 0.0f);
+		static glm::vec3 terminalVelocity = glm::vec3(50.0f, 50.0f, 50.0f);
+		static const float physicsUpdateRate = 1.0f / 120.0f;
 
 		static void resolveStaticCollision(Ecs::EntityId entity, Rigidbody& rb, Transform& transform, BoxCollider& boxCollider);
 		static CollisionManifold staticCollisionInformation(const Rigidbody& r1, const BoxCollider& b1, const Transform& t1, const BoxCollider& b2, const Transform& t2);
@@ -62,14 +62,9 @@ namespace Minecraft
 			// Never update the physics more than twice per frame. This means we will get skipped physics
 			// frames, but that's probably more ideal then lagging forever
 			int numUpdates = 0;
-			while (accumulatedDeltaTime > 0 && numUpdates < 2)
+			while (accumulatedDeltaTime >= physicsUpdateRate)
 			{
-				accumulatedDeltaTime -= dt;
-				numUpdates++;
-				if (numUpdates == 2 && accumulatedDeltaTime > 0)
-				{
-					accumulatedDeltaTime = 0;
-				}
+				accumulatedDeltaTime -= physicsUpdateRate;
 
 				for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 				{
