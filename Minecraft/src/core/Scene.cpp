@@ -67,7 +67,6 @@ namespace Minecraft
 
 			// Generate all the cube item pictures and pack them into a texture
 			const char* blockItemOutput = "assets/generated/blockItems/";
-			File::createDirIfNotExists(blockItemOutput);
 			BlockMap::generateBlockItemPictures("assets/custom/blockFormats.yaml", blockItemOutput);
 			TexturePacker::packTextures(blockItemOutput, "assets/generated/blockItemTextureFormat.yaml", "assets/generated/packedBlockItemsTextures.png", "BlockItems", 64, 64);
 			BlockMap::loadBlockItemTextures("assets/generated/blockItemTextureFormat.yaml");

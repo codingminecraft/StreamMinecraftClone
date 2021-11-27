@@ -86,6 +86,7 @@ project "Minecraft"
 
     defines {
         "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS"
+        --"ENET_FEATURE_ADDRESS_MAPPING"
     }
 
     filter "system:windows"

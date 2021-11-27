@@ -414,6 +414,7 @@ namespace Minecraft
 					g_logger_info("Config '%s' was edited since the last time we generated block item textures. Regenerating block item textures.", blockFormatConfig);
 				}
 			}
+			File::createDirIfNotExists(outputPath);
 
 			glm::vec3 cameraPos = glm::vec3(-1.0f, 1.0f, 1.0f);
 			glm::vec3 cameraOrientation = glm::vec3(-35.0f, -45.0f, 0.0f);
