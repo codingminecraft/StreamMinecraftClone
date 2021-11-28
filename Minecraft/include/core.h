@@ -71,4 +71,10 @@
 // User defined literals
 glm::vec4 operator""_hex(const char* hexColor, size_t length);
 
+struct RawMemory
+{
+	uint8* data;
+	size_t size;
+};
+
 #endif

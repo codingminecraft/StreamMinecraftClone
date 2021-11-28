@@ -1,5 +1,6 @@
 #include "network/Client.h"
 #include "core.h"
+#include "core/Scene.h"
 #include "network/Network.h"
 #include "world/ChunkManager.h"
 #include "world/Chunk.hpp"
@@ -214,6 +215,15 @@ namespace Minecraft
 				World::seedAsFloat = (float)((double)worldSeed / (double)UINT32_MAX) * 2.0f - 1.0f;
 				g_logger_info("Client received world seed: %u", worldSeed);
 				g_logger_info("World seed (as float): %2.8f", World::seedAsFloat.load());
+				break;
+			}
+			case NetworkEventType::EntityData:
+			{
+				Ecs::Registry* registry = Scene::getRegistry();
+				RawMemory memory;
+				memory.data = data;
+				memory.size = event->dataSize;
+				registry->deserialize(memory);
 				break;
 			}
 			default:

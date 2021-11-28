@@ -71,72 +71,72 @@ namespace Minecraft
 				isClient = true;
 				Network::init(false, hostname, port);
 
-				Ecs::EntityId player = registry->createEntity();
-				playerId = player;
-				registry->addComponent<Transform>(player);
-				registry->addComponent<CharacterController>(player);
-				registry->addComponent<BoxCollider>(player);
-				registry->addComponent<Rigidbody>(player);
-				registry->addComponent<Tag>(player);
-				registry->addComponent<Inventory>(player);
-				BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
-				boxCollider.size.x = 0.55f;
-				boxCollider.size.y = 1.8f;
-				boxCollider.size.z = 0.55f;
-				Transform& playerTransform = registry->getComponent<Transform>(player);
-				playerTransform.position.x = -145.0f;
-				playerTransform.position.y = 289;
-				playerTransform.position.z = 55.0f;
-				CharacterController& controller = registry->getComponent<CharacterController>(player);
-				controller.lockedToCamera = true;
-				controller.controllerBaseSpeed = 4.4f;
-				controller.controllerRunSpeed = 6.2f;
-				controller.movementSensitivity = 0.6f;
-				controller.isRunning = false;
-				controller.movementAxis = glm::vec3();
-				controller.viewAxis = glm::vec2();
-				controller.applyJumpForce = false;
-				controller.jumpForce = 7.6f;
-				controller.downJumpForce = -25.0f;
-				controller.cameraOffset = glm::vec3(0, 0.65f, 0);
-				Inventory& inventory = registry->getComponent<Inventory>(player);
-				g_memory_zeroMem(&inventory, sizeof(Inventory));
-				Tag& tag = registry->getComponent<Tag>(player);
-				tag.type = TagType::Player;
+				//Ecs::EntityId player = registry->createEntity();
+				//playerId = player;
+				//registry->addComponent<Transform>(player);
+				//registry->addComponent<CharacterController>(player);
+				//registry->addComponent<BoxCollider>(player);
+				//registry->addComponent<Rigidbody>(player);
+				//registry->addComponent<Tag>(player);
+				//registry->addComponent<Inventory>(player);
+				//BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
+				//boxCollider.size.x = 0.55f;
+				//boxCollider.size.y = 1.8f;
+				//boxCollider.size.z = 0.55f;
+				//Transform& playerTransform = registry->getComponent<Transform>(player);
+				//playerTransform.position.x = -145.0f;
+				//playerTransform.position.y = 289;
+				//playerTransform.position.z = 55.0f;
+				//CharacterController& controller = registry->getComponent<CharacterController>(player);
+				//controller.lockedToCamera = true;
+				//controller.controllerBaseSpeed = 4.4f;
+				//controller.controllerRunSpeed = 6.2f;
+				//controller.movementSensitivity = 0.6f;
+				//controller.isRunning = false;
+				//controller.movementAxis = glm::vec3();
+				//controller.viewAxis = glm::vec2();
+				//controller.applyJumpForce = false;
+				//controller.jumpForce = 7.6f;
+				//controller.downJumpForce = -25.0f;
+				//controller.cameraOffset = glm::vec3(0, 0.65f, 0);
+				//Inventory& inventory = registry->getComponent<Inventory>(player);
+				//g_memory_zeroMem(&inventory, sizeof(Inventory));
+				//Tag& tag = registry->getComponent<Tag>(player);
+				//tag.type = TagType::Player;
 
-				// Setup random physics entity
-				randomEntity = registry->createEntity();
-				registry->addComponent<Transform>(randomEntity);
-				registry->addComponent<BoxCollider>(randomEntity);
-				registry->addComponent<Rigidbody>(randomEntity);
-				registry->addComponent<CharacterController>(randomEntity);
-				registry->addComponent<Tag>(randomEntity);
-				registry->addComponent<Inventory>(randomEntity);
-				BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
-				boxCollider2.size.x = 0.55f;
-				boxCollider2.size.y = 1.8f;
-				boxCollider2.size.z = 0.55f;
-				Transform& transform2 = registry->getComponent<Transform>(randomEntity);
-				transform2.position.y = 255;
-				transform2.position.x = -145.0f;
-				transform2.position.z = 55.0f;
-				CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
-				controller2.lockedToCamera = false;
-				controller2.controllerBaseSpeed = 4.2f;
-				controller2.controllerRunSpeed = 8.4f;
-				controller2.isRunning = false;
-				controller2.movementAxis = glm::vec3();
-				controller2.viewAxis = glm::vec2();
-				controller2.movementSensitivity = 0.6f;
-				controller2.applyJumpForce = false;
-				controller2.jumpForce = 16.0f;
-				controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
-				Inventory& inventory2 = registry->getComponent<Inventory>(randomEntity);
-				g_memory_zeroMem(&inventory2, sizeof(Inventory));
-				Tag& tag2 = registry->getComponent<Tag>(randomEntity);
-				tag2.type = TagType::None;
+				//// Setup random physics entity
+				//randomEntity = registry->createEntity();
+				//registry->addComponent<Transform>(randomEntity);
+				//registry->addComponent<BoxCollider>(randomEntity);
+				//registry->addComponent<Rigidbody>(randomEntity);
+				//registry->addComponent<CharacterController>(randomEntity);
+				//registry->addComponent<Tag>(randomEntity);
+				//registry->addComponent<Inventory>(randomEntity);
+				//BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
+				//boxCollider2.size.x = 0.55f;
+				//boxCollider2.size.y = 1.8f;
+				//boxCollider2.size.z = 0.55f;
+				//Transform& transform2 = registry->getComponent<Transform>(randomEntity);
+				//transform2.position.y = 255;
+				//transform2.position.x = -145.0f;
+				//transform2.position.z = 55.0f;
+				//CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
+				//controller2.lockedToCamera = false;
+				//controller2.controllerBaseSpeed = 4.2f;
+				//controller2.controllerRunSpeed = 8.4f;
+				//controller2.isRunning = false;
+				//controller2.movementAxis = glm::vec3();
+				//controller2.viewAxis = glm::vec2();
+				//controller2.movementSensitivity = 0.6f;
+				//controller2.applyJumpForce = false;
+				//controller2.jumpForce = 16.0f;
+				//controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
+				//Inventory& inventory2 = registry->getComponent<Inventory>(randomEntity);
+				//g_memory_zeroMem(&inventory2, sizeof(Inventory));
+				//Tag& tag2 = registry->getComponent<Tag>(randomEntity);
+				//tag2.type = TagType::None;
 
-				lastPlayerLoadPosition = glm::vec2(playerTransform.position.x, playerTransform.position.z);
+				//lastPlayerLoadPosition = glm::vec2(playerTransform.position.x, playerTransform.position.z);
 			}
 			else
 			{
@@ -416,15 +416,18 @@ namespace Minecraft
 			opaqueShader.uploadInt("uTexCoordTexture", 1);
 
 			// Render all the loaded chunks
-			const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
-			glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
-			ChunkManager::render(playerPosition, playerPositionInChunkCoords, opaqueShader, transparentShader, cameraFrustum);
-
-			// Check chunk radius if needed
-			if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
+			if (playerId != Ecs::nullEntity && registry->hasComponent<Transform>(playerId))
 			{
-				lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
-				ChunkManager::checkChunkRadius(playerPosition);
+				const glm::vec3& playerPosition = registry->getComponent<Transform>(playerId).position;
+				glm::ivec2 playerPositionInChunkCoords = toChunkCoords(playerPosition);
+				ChunkManager::render(playerPosition, playerPositionInChunkCoords, opaqueShader, transparentShader, cameraFrustum);
+
+				// Check chunk radius if needed
+				if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
+				{
+					lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
+					ChunkManager::checkChunkRadius(playerPosition);
+				}
 			}
 		}
 
@@ -444,10 +447,15 @@ namespace Minecraft
 
 		bool isPlayerUnderwater()
 		{
-			Transform& transform = registry->getComponent<Transform>(playerId);
-			CharacterController& characterController = registry->getComponent<CharacterController>(playerId);
-			Block blockAtEyeLevel = ChunkManager::getBlock(transform.position + characterController.cameraOffset);
-			return blockAtEyeLevel.id == 19;
+			if (playerId != Ecs::nullEntity && registry->hasComponent<Transform>(playerId) &&
+				registry->hasComponent<CharacterController>(playerId))
+			{
+				Transform& transform = registry->getComponent<Transform>(playerId);
+				CharacterController& characterController = registry->getComponent<CharacterController>(playerId);
+				Block blockAtEyeLevel = ChunkManager::getBlock(transform.position + characterController.cameraOffset);
+				return blockAtEyeLevel.id == 19;
+			}
+			return false;
 		}
 
 		void serialize()

@@ -27,14 +27,14 @@ namespace Minecraft
 			0
 		};
 
-		static robin_hood::unordered_map<std::string, int> nameToIdMap;
-		static robin_hood::unordered_node_map<int16, BlockFormat> blockFormats;
+		static robin_hood::unordered_flat_map<std::string, int> nameToIdMap;
+		static robin_hood::unordered_flat_map<int16, BlockFormat> blockFormats;
 		static std::vector<CraftingRecipe> craftingRecipes;
 		// TODO: Ensure that these maps never change throughout a gameplay cycle
 		// unless a resource pack is loaded
-		static robin_hood::unordered_map<std::string, TextureFormat> textureFormatMap;
-		static robin_hood::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
-		static robin_hood::unordered_map<std::string, TextureFormat> blockItemTextureMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> textureFormatMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> itemTextureFormatMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> blockItemTextureMap;
 
 		static uint32 texCoordsTextureId;
 		static uint32 texCoordsBufferId;
@@ -485,24 +485,9 @@ namespace Minecraft
 		}
 	}
 
-	bool operator==(const Block& a, const Block& b)
-	{
-		return a.id == b.id;
-	}
-
-	bool operator!=(const Block& a, const Block& b)
-	{
-		return !(a == b);
-	}
-
 	bool Block::isLightSource() const
 	{
 		return BlockMap::getBlock(id).isLightSource;
-	}
-
-	bool Block::isTransparent() const
-	{
-		return BlockMap::getBlock(id).isTransparent;
 	}
 
 	bool Block::isItemOnly() const

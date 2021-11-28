@@ -1288,16 +1288,27 @@ namespace Minecraft
 						{
 							// Bedrock
 							chunk->data[arrayExpansion].id = 7;
+							// Set the first bit of compressed data to false, to let us know
+							// this is not a transparent block
+							chunk->data[arrayExpansion].setTransparent(false);
+							chunk->data[arrayExpansion].setIsBlendable(false);
+							chunk->data[arrayExpansion].setIsLightSource(false);
 						}
 						else if (y < stoneHeight)
 						{
 							// Stone
 							chunk->data[arrayExpansion].id = 6;
+							chunk->data[arrayExpansion].setTransparent(false);
+							chunk->data[arrayExpansion].setIsBlendable(false);
+							chunk->data[arrayExpansion].setIsLightSource(false);
 						}
 						else if (y < maxHeight)
 						{
 							// Dirt
 							chunk->data[arrayExpansion].id = 4;
+							chunk->data[arrayExpansion].setTransparent(false);
+							chunk->data[arrayExpansion].setIsBlendable(false);
+							chunk->data[arrayExpansion].setIsLightSource(false);
 						}
 						else if (y == maxHeight)
 						{
@@ -1305,21 +1316,33 @@ namespace Minecraft
 							{
 								// Sand
 								chunk->data[arrayExpansion].id = 3;
+								chunk->data[arrayExpansion].setTransparent(false);
+								chunk->data[arrayExpansion].setIsBlendable(false);
+								chunk->data[arrayExpansion].setIsLightSource(false);
 							}
 							else
 							{
 								// Grass
 								chunk->data[arrayExpansion].id = 2;
+								chunk->data[arrayExpansion].setTransparent(false);
+								chunk->data[arrayExpansion].setIsBlendable(false);
+								chunk->data[arrayExpansion].setIsLightSource(false);
 							}
 						}
 						else if (y >= minBiomeHeight && y < oceanLevel)
 						{
 							// Water 
 							chunk->data[arrayExpansion].id = 19;
+							chunk->data[arrayExpansion].setTransparent(true);
+							chunk->data[arrayExpansion].setIsBlendable(true);
+							chunk->data[arrayExpansion].setIsLightSource(false);
 						}
 						else if (!chunk->data[arrayExpansion].id)
 						{
 							chunk->data[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
+							chunk->data[arrayExpansion].setTransparent(true);
+							chunk->data[arrayExpansion].setIsBlendable(false);
+							chunk->data[arrayExpansion].setIsLightSource(false);
 						}
 					}
 				}
@@ -1382,6 +1405,9 @@ namespace Minecraft
 										for (int treeY = 0; treeY <= treeHeight; treeY++)
 										{
 											chunk->data[to1DArray(x, treeY + y, z)].id = 8;
+											chunk->data[to1DArray(x, treeY + y, z)].setIsBlendable(false);
+											chunk->data[to1DArray(x, treeY + y, z)].setTransparent(false);
+											chunk->data[to1DArray(x, treeY + y, z)].setIsLightSource(false);
 										}
 
 										int ringLevel = 0;
@@ -1395,12 +1421,18 @@ namespace Minecraft
 													if (leavesX < World::ChunkDepth && leavesX >= 0 && leavesZ < World::ChunkWidth && leavesZ >= 0)
 													{
 														chunk->data[to1DArray(leavesX, leavesY, leavesZ)].id = 9;
+														chunk->data[to1DArray(leavesX, leavesY, leavesZ)].setIsBlendable(false);
+														chunk->data[to1DArray(leavesX, leavesY, leavesZ)].setTransparent(true);
+														chunk->data[to1DArray(leavesX, leavesY, leavesZ)].setIsLightSource(false);
 													}
 													else if (leavesX < 0)
 													{
 														if (chunk->bottomNeighbor)
 														{
 															chunk->bottomNeighbor->data[to1DArray(World::ChunkDepth + leavesX, leavesY, leavesZ)].id = 9;
+															chunk->data[to1DArray(World::ChunkDepth + leavesX, leavesY, leavesZ)].setIsBlendable(false);
+															chunk->data[to1DArray(World::ChunkDepth + leavesX, leavesY, leavesZ)].setTransparent(true);
+															chunk->data[to1DArray(World::ChunkDepth + leavesX, leavesY, leavesZ)].setIsLightSource(false);
 														}
 													}
 													else if (leavesX >= World::ChunkDepth)
@@ -1408,6 +1440,9 @@ namespace Minecraft
 														if (chunk->topNeighbor)
 														{
 															chunk->topNeighbor->data[to1DArray(leavesX - World::ChunkDepth, leavesY, leavesZ)].id = 9;
+															chunk->data[to1DArray(leavesX - World::ChunkDepth, leavesY, leavesZ)].setIsBlendable(false);
+															chunk->data[to1DArray(leavesX - World::ChunkDepth, leavesY, leavesZ)].setTransparent(true);
+															chunk->data[to1DArray(leavesX - World::ChunkDepth, leavesY, leavesZ)].setIsLightSource(false);
 														}
 													}
 													else if (leavesZ < 0)
@@ -1415,6 +1450,9 @@ namespace Minecraft
 														if (chunk->leftNeighbor)
 														{
 															chunk->leftNeighbor->data[to1DArray(leavesX, leavesY, World::ChunkWidth + leavesZ)].id = 9;
+															chunk->data[to1DArray(leavesX, leavesY, World::ChunkWidth + leavesZ)].setIsBlendable(false);
+															chunk->data[to1DArray(leavesX, leavesY, World::ChunkWidth + leavesZ)].setTransparent(true);
+															chunk->data[to1DArray(leavesX, leavesY, World::ChunkWidth + leavesZ)].setIsLightSource(false);
 														}
 													}
 													else if (leavesZ >= World::ChunkWidth)
@@ -1422,6 +1460,9 @@ namespace Minecraft
 														if (chunk->rightNeighbor)
 														{
 															chunk->rightNeighbor->data[to1DArray(leavesX, leavesY, leavesZ - World::ChunkWidth)].id = 9;
+															chunk->data[to1DArray(leavesX, leavesY, leavesZ - World::ChunkWidth)].setIsBlendable(false);
+															chunk->data[to1DArray(leavesX, leavesY, leavesZ - World::ChunkWidth)].setTransparent(true);
+															chunk->data[to1DArray(leavesX, leavesY, leavesZ - World::ChunkWidth)].setIsLightSource(false);
 														}
 													}
 												}
@@ -1506,10 +1547,7 @@ namespace Minecraft
 
 						// Set the block to the max light level since this has to be a sky block
 						chunk->data[arrayExpansion].setSkyLightLevel(31);
-						chunk->data[arrayExpansion].lightColor =
-							((7 << 0) & 0x7) |  // R
-							((7 << 3) & 0x38) | // G
-							((7 << 6) & 0x1C0); // B
+						chunk->data[arrayExpansion].setLightColor(glm::ivec3(7, 7, 7));
 					}
 				}
 			}
@@ -1922,74 +1960,11 @@ namespace Minecraft
 							{7, 6, 2, 3}  // FRONT
 						};
 
-						glm::vec<4, uint8_t, glm::defaultp> smoothLightVertex[6] = {};
-
 						for (int i = 0; i < 6; i++)
 						{
 							blocks[i] = getBlockInternal(chunk, xCoords[i], yCoords[i], zCoords[i]);
-							lightColors[i] = glm::ivec3(
-								((blocks[i].lightColor & 0x7) >> 0),  // R
-								((blocks[i].lightColor & 0x38) >> 3), // G
-								((blocks[i].lightColor & 0x1C0) >> 6) // B;
-							);
-
-							for (int v = 0; v < 4; v++)
-							{
-								glm::ivec3 v0 = verts[vertIndices[i][v]];
-								glm::ivec3 v1 = verts[vertIndices[i][v]];
-								glm::ivec3 v2 = verts[vertIndices[i][v]];
-								glm::ivec3 v3 = verts[vertIndices[i][v]];
-								GetLightVerticesBySide(i, v0, v1, v2, v3);
-
-								const Block& v0b = getBlockInternal(chunk, v0.x, v0.y, v0.z);
-								const Block& v1b = getBlockInternal(chunk, v1.x, v1.y, v1.z);
-								const Block& v2b = getBlockInternal(chunk, v2.x, v2.y, v2.z);
-								const Block& v3b = getBlockInternal(chunk, v3.x, v3.y, v3.z);
-
-								uint8_t count = 0;
-
-								uint8_t currentVertexLight = 0;
-
-								if (v0b == BlockMap::NULL_BLOCK || v0b == BlockMap::AIR_BLOCK)
-								{
-									currentVertexLight += v0b.calculatedLightLevel();
-									count++;
-								}
-
-								if (v1b == BlockMap::NULL_BLOCK || v1b == BlockMap::AIR_BLOCK)
-								{
-									currentVertexLight += v1b.calculatedLightLevel();
-									count++;
-								}
-
-								if (v2b == BlockMap::NULL_BLOCK || v2b == BlockMap::AIR_BLOCK)
-								{
-									currentVertexLight += v2b.calculatedLightLevel();
-									count++;
-								}
-
-								if (v3b == BlockMap::NULL_BLOCK || v3b == BlockMap::AIR_BLOCK)
-								{
-									currentVertexLight += v3b.calculatedLightLevel();
-									count++;
-								}
-
-								if (count > 0)
-								{
-									currentVertexLight /= count;
-								}
-
-								smoothLightVertex[i][v] = currentVertexLight;
-							}
+							lightColors[i] = blocks[i].getLightColor();
 						}
-						const BlockFormat* blockFormats[6] = {
-							&BlockMap::getBlock(blocks[0].id),
-							&BlockMap::getBlock(blocks[1].id),
-							&BlockMap::getBlock(blocks[2].id),
-							&BlockMap::getBlock(blocks[3].id),
-							&BlockMap::getBlock(blocks[4].id),
-							&BlockMap::getBlock(blocks[5].id)
-						};
 
 						SubChunk** currentSubChunkPtr = &solidSubChunk;
 						if (currentBlockIsBlendable)
@@ -2000,8 +1975,59 @@ namespace Minecraft
 						// Only add the faces that are not culled by other blocks
 						for (int i = 0; i < 6; i++)
 						{
-							if (blocks[i].id && (blockFormats[i]->isTransparent && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
+							if (blocks[i].id && (blocks[i].isTransparent() && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
 							{
+								// Smooth lighting
+								glm::vec<4, uint8_t, glm::defaultp> smoothLightVertex[6] = {};
+								for (int v = 0; v < 4; v++)
+								{
+									glm::ivec3 v0 = verts[vertIndices[i][v]];
+									glm::ivec3 v1 = verts[vertIndices[i][v]];
+									glm::ivec3 v2 = verts[vertIndices[i][v]];
+									glm::ivec3 v3 = verts[vertIndices[i][v]];
+									GetLightVerticesBySide(i, v0, v1, v2, v3);
+
+									const Block& v0b = getBlockInternal(chunk, v0.x, v0.y, v0.z);
+									const Block& v1b = getBlockInternal(chunk, v1.x, v1.y, v1.z);
+									const Block& v2b = getBlockInternal(chunk, v2.x, v2.y, v2.z);
+									const Block& v3b = getBlockInternal(chunk, v3.x, v3.y, v3.z);
+
+									uint8_t count = 0;
+
+									uint8_t currentVertexLight = 0;
+
+									if (v0b == BlockMap::NULL_BLOCK || v0b == BlockMap::AIR_BLOCK)
+									{
+										currentVertexLight += v0b.calculatedLightLevel();
+										count++;
+									}
+
+									if (v1b == BlockMap::NULL_BLOCK || v1b == BlockMap::AIR_BLOCK)
+									{
+										currentVertexLight += v1b.calculatedLightLevel();
+										count++;
+									}
+
+									if (v2b == BlockMap::NULL_BLOCK || v2b == BlockMap::AIR_BLOCK)
+									{
+										currentVertexLight += v2b.calculatedLightLevel();
+										count++;
+									}
+
+									if (v3b == BlockMap::NULL_BLOCK || v3b == BlockMap::AIR_BLOCK)
+									{
+										currentVertexLight += v3b.calculatedLightLevel();
+										count++;
+									}
+
+									if (count > 0)
+									{
+										currentVertexLight /= count;
+									}
+
+									smoothLightVertex[i][v] = currentVertexLight;
+								}
+
 								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsBlendable);
 								SubChunk* currentSubChunk = *currentSubChunkPtr;
 								if (!currentSubChunk)
@@ -2084,14 +2110,20 @@ namespace Minecraft
 
 				fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
 				// TODO: Separate lightmaps into different arrays than block ids
+				// TODO: Switch to run-length encoding here
 				for (int y = 0; y < World::ChunkHeight; y++)
 				{
 					for (int x = 0; x < World::ChunkDepth; x++)
 					{
 						for (int z = 0; z < World::ChunkWidth; z++)
 						{
-							blockData[to1DArray(x, y, z)].setLightLevel(0);
-							blockData[to1DArray(x, y, z)].setSkyLightLevel(0);
+							const int arrayExpansion = to1DArray(x, y, z);
+							blockData[arrayExpansion].setLightLevel(0);
+							blockData[arrayExpansion].setSkyLightLevel(0);
+							const BlockFormat& blockFormat = BlockMap::getBlock(blockData[arrayExpansion].id);
+							blockData[arrayExpansion].setTransparent(blockFormat.isTransparent);
+							blockData[arrayExpansion].setIsBlendable(blockFormat.isBlendable);
+							blockData[arrayExpansion].setIsLightSource(blockFormat.isLightSource);
 						}
 					}
 				}
@@ -2225,10 +2257,7 @@ namespace Minecraft
 
 			int index = to1DArray(x, y, z);
 			chunk->data[index].id = BlockMap::AIR_BLOCK.id;
-			chunk->data[index].lightColor =
-				((7 << 0) & 0x7) | // R
-				((7 << 3) & 0x38) | // G
-				((7 << 6) & 0x1C0); // B
+			chunk->data[index].setLightColor(glm::ivec3(7, 7, 7));
 
 			return true;
 		}

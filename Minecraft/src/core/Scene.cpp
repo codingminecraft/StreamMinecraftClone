@@ -11,6 +11,9 @@
 #include "utils/Settings.h"
 #include "utils/TexturePacker.h"
 #include "input/Input.h"
+#include "physics/PhysicsComponents.h"
+#include "gameplay/CharacterController.h"
+#include "gameplay/Inventory.h"
 
 namespace Minecraft
 {
@@ -83,6 +86,13 @@ namespace Minecraft
 
 			registry = &inRegistry;
 
+			registry->registerComponent<Transform>("Transform");
+			registry->registerComponent<Rigidbody>("Rigidbody");
+			registry->registerComponent<BoxCollider>("BoxCollider");
+			registry->registerComponent<Tag>("Tag");
+			registry->registerComponent<CharacterController>("CharacterController");
+			registry->registerComponent<Inventory>("Inventory");
+
 			addCameraToRegistry();
 			changeScene(type);
 		}
@@ -141,7 +151,10 @@ namespace Minecraft
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
 				World::free();
-				addCameraToRegistry();
+				if (!freeGlobalResources)
+				{
+					addCameraToRegistry();
+				}
 				break;
 			case SceneType::MainMenu:
 				MainMenu::free();

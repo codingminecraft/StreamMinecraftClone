@@ -18,11 +18,46 @@ namespace Minecraft
 		uint16 id;
 		uint16 lightLevel;
 		int16 lightColor;
-		int16 padding;
+
+		// Bit 1 isTransparent
+		// Bit 2 isBlendable
+		// Bit 3 isLightSource
+		int16 compressedData;
+
+		bool isItemOnly() const;
+
+		inline bool isTransparent() const
+		{
+			return (compressedData & 0b1);
+		}
+
+		inline void setTransparent(bool transparent)
+		{
+			compressedData |= transparent ? 0b1 : 0;
+		}
+
+		inline bool isBlendable() const
+		{
+			return (compressedData & 0b10);
+		}
+
+		inline void setIsBlendable(bool isBlendable)
+		{
+			compressedData |= isBlendable ? 0b10 : 0;
+		}
+
+		// TODO: This doesn't work for some reason
+		//inline bool isLightSource() const
+		//{
+		//	return (compressedData & 0b100) == 0b100;
+		//}
+
+		inline void setIsLightSource(bool isLightSource)
+		{
+			compressedData |= isLightSource ? 0b100 : 0;
+		}
 
 		bool isLightSource() const;
-		bool isTransparent() const;
-		bool isItemOnly() const;
 
 		inline bool isLightPassable() const 
 		{
@@ -54,10 +89,34 @@ namespace Minecraft
 		{
 			return (lightLevel & 0x3e0) >> 5;
 		}
+
+		inline void setLightColor(const glm::ivec3& color)
+		{
+			lightColor =
+				((color.r << 0) & 0x7)  | 
+				((color.g << 3) & 0x38) | 
+				((color.b << 6) & 0x1C0); 
+		}
+
+		inline glm::ivec3 getLightColor() const
+		{
+			return glm::ivec3(
+				((lightColor & 0x7) >> 0),  // R
+				((lightColor & 0x38) >> 3), // G
+				((lightColor & 0x1C0) >> 6) // B;
+			);
+		}
 	};
 
-	bool operator==(const Block& a, const Block& b);
-	bool operator!=(const Block& a, const Block& b);
+	inline bool operator==(const Block& a, const Block& b)
+	{
+		return a.id == b.id;
+	}
+
+	inline bool operator!=(const Block& a, const Block& b)
+	{
+		return a.id != b.id;
+	}
 
 	struct TextureFormat;
 	struct BlockFormat
