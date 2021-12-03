@@ -18,8 +18,8 @@ namespace Minecraft
 	namespace MainHud
 	{
 		// External variables
-		extern bool viewingCraftScreen = false;
-		extern bool isPaused = false;
+		bool viewingCraftScreen = false;
+		bool isPaused = false;
 
 		// Internal variables
 		static const Sprite* blockCursorSprite = nullptr;

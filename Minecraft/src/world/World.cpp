@@ -247,6 +247,10 @@ namespace Minecraft
 				g_logger_info("World seed: %u", seed);
 				g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
+				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
+				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
+				ChunkManager::checkChunkRadius(playerTransform->position);
+
 				// TODO: Remove me, just here for testing
 				// ~~ECS can handle large numbers of entities fine~~
 				// TODO: Test if it can handle removing and adding a bunch of components/entities?
@@ -289,10 +293,6 @@ namespace Minecraft
 				//		g_logger_info("BoxCollider Size: <%2.3f, %2.3f, %2.3f>", b.size.x, b.size.y, b.size.z);
 				//	}
 				//}
-
-				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
-				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
-				ChunkManager::checkChunkRadius(playerTransform->position);
 			}
 
 			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");

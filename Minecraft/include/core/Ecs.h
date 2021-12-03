@@ -435,13 +435,13 @@ namespace Minecraft
 				if (!validEntity(id))
 				{
 					g_logger_error("Cannot check if invalid entity %d has a component.", Internal::getEntityIndex(id));
-					return false;
+					return nullptr;
 				}
 
 				if (componentId >= componentSets.size() || componentId < 0)
 				{
 					g_logger_warning("Tried to check if an entity had component '%d', but a component of type '%d' does not exist in the registry.", componentId, componentId);
-					return false;
+					return nullptr;
 				}
 
 				return componentSets[componentId].get(id);

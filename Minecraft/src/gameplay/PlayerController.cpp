@@ -45,7 +45,7 @@ namespace Minecraft
 
 	namespace PlayerController
 	{
-		extern bool generateCubemap = false;
+		bool generateCubemap = false;
 		static CubemapSide sideGenerating = CubemapSide::Left;
 
 		// Internal members
