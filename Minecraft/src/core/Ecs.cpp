@@ -109,6 +109,7 @@ namespace Minecraft
 					read(memory, componentData, componentSize, &offset);
 				}
 			}
+			g_logger_info("Deserialized %d entities.", numEntities);
 		}
 
 		int Ecs::Registry::numComponents(EntityId entity) const

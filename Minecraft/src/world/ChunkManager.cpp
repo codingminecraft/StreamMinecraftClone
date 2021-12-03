@@ -576,7 +576,9 @@ namespace Minecraft
 			{
 				Chunk& chunk = chunkIter.second;
 				Block* blockData = chunk.data;
-				if (chunk.state != ChunkState::Saving && blockData)
+				if (chunk.state != ChunkState::Saving && blockData && 
+					chunk.state != ChunkState::Unloaded && 
+					chunk.state != ChunkState::Unloading)
 				{
 					queueSaveChunk(chunkIter.first);
 				}
@@ -1834,59 +1836,59 @@ namespace Minecraft
 		{
 			switch (side)
 			{
-				case 1: // Right
-				{
-					v0 += glm::ivec3(0, 0, 0);
-					v1 += glm::ivec3(-1, 0, 0);
-					v2 += glm::ivec3(-1, -1, 0);
-					v3 += glm::ivec3(0, -1, 0);
-					break;
-				}
+			case 1: // Right
+			{
+				v0 += glm::ivec3(0, 0, 0);
+				v1 += glm::ivec3(-1, 0, 0);
+				v2 += glm::ivec3(-1, -1, 0);
+				v3 += glm::ivec3(0, -1, 0);
+				break;
+			}
 
-				case 0: // Left
-				{
-					v0 += glm::ivec3(0, 0, -1);
-					v1 += glm::ivec3(-1, 0, -1);
-					v2 += glm::ivec3(-1, -1, -1);
-					v3 += glm::ivec3(0, -1, -1);
-					break;
-				}
+			case 0: // Left
+			{
+				v0 += glm::ivec3(0, 0, -1);
+				v1 += glm::ivec3(-1, 0, -1);
+				v2 += glm::ivec3(-1, -1, -1);
+				v3 += glm::ivec3(0, -1, -1);
+				break;
+			}
 
-				case 3:
-				{ // Top
-					v0 += glm::ivec3(0, 0, 0);
-					v1 += glm::ivec3(-1, 0, 0);
-					v2 += glm::ivec3(-1, 0, -1);
-					v3 += glm::ivec3(0, 0, -1);
-					break;
-				}
+			case 3:
+			{ // Top
+				v0 += glm::ivec3(0, 0, 0);
+				v1 += glm::ivec3(-1, 0, 0);
+				v2 += glm::ivec3(-1, 0, -1);
+				v3 += glm::ivec3(0, 0, -1);
+				break;
+			}
 
-				case 2:
-				{ // Bottom
-					v0 += glm::ivec3(0, -1, 0);
-					v1 += glm::ivec3(-1, -1, 0);
-					v2 += glm::ivec3(-1, -1, -1);
-					v3 += glm::ivec3(0, -1, -1);
-					break;
-				}
-				case 5: // Back
-				{
-					v0 += glm::ivec3(0, 0, 0);
-					v1 += glm::ivec3(0, -1, 0);
-					v2 += glm::ivec3(0, -1, -1);
-					v3 += glm::ivec3(0, 0, -1);
-					break;
-				}
+			case 2:
+			{ // Bottom
+				v0 += glm::ivec3(0, -1, 0);
+				v1 += glm::ivec3(-1, -1, 0);
+				v2 += glm::ivec3(-1, -1, -1);
+				v3 += glm::ivec3(0, -1, -1);
+				break;
+			}
+			case 5: // Back
+			{
+				v0 += glm::ivec3(0, 0, 0);
+				v1 += glm::ivec3(0, -1, 0);
+				v2 += glm::ivec3(0, -1, -1);
+				v3 += glm::ivec3(0, 0, -1);
+				break;
+			}
 
-				case 4: // Front
-				{
-					v0 += glm::ivec3(-1, 0, 0);
-					v1 += glm::ivec3(-1, -1, 0);
-					v2 += glm::ivec3(-1, -1, -1);
-					v3 += glm::ivec3(-1, 0, -1);
-					break;
-				}
-				default:
+			case 4: // Front
+			{
+				v0 += glm::ivec3(-1, 0, 0);
+				v1 += glm::ivec3(-1, -1, 0);
+				v2 += glm::ivec3(-1, -1, -1);
+				v3 += glm::ivec3(-1, 0, -1);
+				break;
+			}
+			default:
 				break;
 			}
 		}
@@ -2087,6 +2089,11 @@ namespace Minecraft
 			{
 				std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
 				FILE* fp = fopen(filepath.c_str(), "wb");
+				if (!fp)
+				{
+					g_logger_error("Failed to serialize chunk<%d, %d>");
+					return;
+				}
 				fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
 				fclose(fp);
 			}

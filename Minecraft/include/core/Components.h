@@ -8,7 +8,10 @@ namespace Minecraft
 	{
 		None,
 		Player,
-		Camera
+		Camera,
+
+		// TODO: Temporary remove this
+		RandomEntity,
 	};
 
 	struct Tag

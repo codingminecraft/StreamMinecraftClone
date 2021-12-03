@@ -15,7 +15,7 @@ namespace Minecraft
 		{
 			static char buffer[FILENAME_MAX];
 			strcpy(buffer, directoryName);
-			buffer[strlen(directoryName) + 1] = '\0';
+			buffer[strlen(directoryName)] = '\0';
 
 			SHFILEOPSTRUCTA op = {
 				NULL,
