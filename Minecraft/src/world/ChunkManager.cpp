@@ -5,7 +5,6 @@
 #include "world/TerrainGenerator.h"
 #include "core/Pool.hpp"
 #include "core/File.h"
-#include "core/Application.h"
 #include "utils/DebugStats.h"
 #include "utils/CMath.h"
 #include "utils/Constants.h"
@@ -14,7 +13,7 @@
 #include "renderer/Frustum.h"
 #include "renderer/Framebuffer.h"
 #include "renderer/Texture.h"
-#include "renderer/Buffer.hpp"
+#include "core/Application.h"
 #include "network/Network.h"
 
 namespace Minecraft
@@ -412,20 +411,20 @@ namespace Minecraft
 		static robin_hood::unordered_node_map<glm::ivec2, Chunk> chunks = {};
 		static std::list<Block*> chunkFreeList = {};
 
-		static Buffer chunkPosInstancedBuffer;
-		static Buffer biomeInstancedBuffer;
+		static uint32 chunkPosInstancedBuffer;
+		static uint32 biomeInstancedVbo;
 		static uint32 globalVao;
 		static uint32 globalRenderVbo;
 		// TODO: Make this better
-		static Buffer solidDrawCommandBuffer;
-		static Buffer blendableDrawCommandBuffer;
+		static uint32 solidDrawCommandVbo;
+		static uint32 blendableDrawCommandVbo;
 		static Shader compositeShader;
 
 		static ChunkWorker* chunkWorker = nullptr;
 		static Pool<SubChunk, World::ChunkCapacity * 16>* subChunks = nullptr;
 		static Pool<Block, World::ChunkCapacity>* blockPool = nullptr;
-		static CommandBufferContainer* solidDrawCommandBufferContainer = nullptr;
-		static CommandBufferContainer* blendableCommandBufferContainer = nullptr;
+		static CommandBufferContainer* solidCommandBuffer = nullptr;
+		static CommandBufferContainer* blendableCommandBuffer = nullptr;
 
 		void init()
 		{
@@ -437,8 +436,8 @@ namespace Minecraft
 			chunkWorker = new ChunkWorker();
 			subChunks = new Pool<SubChunk, World::ChunkCapacity * 16>(1);
 			blockPool = new Pool<Block, World::ChunkCapacity>(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight);
-			solidDrawCommandBufferContainer = new CommandBufferContainer(subChunks->size(), false);
-			blendableCommandBufferContainer = new CommandBufferContainer(subChunks->size(), true);
+			solidCommandBuffer = new CommandBufferContainer(subChunks->size(), false);
+			blendableCommandBuffer = new CommandBufferContainer(subChunks->size(), true);
 
 			compositeShader.compile("assets/shaders/CompositeShader.glsl");
 
@@ -451,17 +450,15 @@ namespace Minecraft
 			}
 
 			// Set up draw commands to relate to our sub chunks
-			solidDrawCommandBufferContainer->init();
-			solidDrawCommandBuffer = BufferBuilder()
-				.setBufferType(BufferType::IndirectBuffer)
-				.setUsageType(BufferUsage::DynamicDraw)
-				.generate(sizeof(DrawCommand) * subChunks->size());
+			solidCommandBuffer->init();
+			glCreateBuffers(1, &solidDrawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
-			blendableCommandBufferContainer->init();
-			blendableDrawCommandBuffer = BufferBuilder()
-				.setBufferType(BufferType::IndirectBuffer)
-				.setUsageType(BufferUsage::DynamicDraw)
-				.generate(sizeof(DrawCommand) * subChunks->size());
+			blendableCommandBuffer->init();
+			glCreateBuffers(1, &blendableDrawCommandVbo);
+			glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
+			glBufferData(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawCommand) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			// Initialize the SubChunks
 			// Generate a bunch of empty vertex buckets for GPU use
@@ -497,20 +494,18 @@ namespace Minecraft
 			}
 
 			// Set up the instanced chunk pos vertex buffer
-			chunkPosInstancedBuffer = BufferBuilder()
-				.setBufferType(BufferType::ArrayBuffer)
-				.setUsageType(BufferUsage::DynamicDraw)
-				.generate(sizeof(int32) * 2 * subChunks->size());
+			glCreateBuffers(1, &chunkPosInstancedBuffer);
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * 2 * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			glVertexAttribIPointer(10, 2, GL_INT, sizeof(int32) * 2, 0);
 			glVertexAttribDivisor(10, 1);
 			glEnableVertexAttribArray(10);
 
 			// Set up biome buffer
-			biomeInstancedBuffer = BufferBuilder()
-				.setBufferType(BufferType::ArrayBuffer)
-				.setUsageType(BufferUsage::DynamicDraw)
-				.generate(sizeof(int32) * subChunks->size());
+			glCreateBuffers(1, &biomeInstancedVbo);
+			glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(int32) * subChunks->size(), NULL, GL_DYNAMIC_DRAW);
 
 			glVertexAttribIPointer(11, 1, GL_INT, sizeof(int32), 0);
 			glVertexAttribDivisor(11, 1);
@@ -527,15 +522,15 @@ namespace Minecraft
 		{
 			// Delete GPU memory
 			// TODO: Do error checking on these VBOs to ensure they are valid
-			solidDrawCommandBuffer.free();
-			blendableDrawCommandBuffer.free();
+			glDeleteBuffers(1, &solidDrawCommandVbo);
+			glDeleteBuffers(1, &blendableDrawCommandVbo);
 
 			chunks.clear();
 			chunkFreeList.clear();
 
 			glDeleteBuffers(1, &globalRenderVbo);
-			chunkPosInstancedBuffer.free();
-			biomeInstancedBuffer.free();
+			glDeleteBuffers(1, &chunkPosInstancedBuffer);
+			glDeleteBuffers(1, &biomeInstancedVbo);
 			glDeleteVertexArrays(1, &globalVao);
 
 			// Delete CPU memory
@@ -558,18 +553,18 @@ namespace Minecraft
 				blockPool = nullptr;
 			}
 
-			if (solidDrawCommandBufferContainer)
+			if (solidCommandBuffer)
 			{
-				solidDrawCommandBufferContainer->free();
-				delete solidDrawCommandBufferContainer;
-				solidDrawCommandBufferContainer = nullptr;
+				solidCommandBuffer->free();
+				delete solidCommandBuffer;
+				solidCommandBuffer = nullptr;
 			}
 
-			if (blendableCommandBufferContainer)
+			if (blendableCommandBuffer)
 			{
-				blendableCommandBufferContainer->free();
-				delete blendableCommandBufferContainer;
-				blendableCommandBufferContainer = nullptr;
+				blendableCommandBuffer->free();
+				delete blendableCommandBuffer;
+				blendableCommandBuffer = nullptr;
 			}
 
 			compositeShader.destroy();
@@ -928,11 +923,11 @@ namespace Minecraft
 								drawCommand.first = (*subChunks)[i]->first;
 								if ((*subChunks)[i]->isBlendable)
 								{
-									blendableCommandBufferContainer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+									blendableCommandBuffer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 								}
 								else
 								{
-									solidDrawCommandBufferContainer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
+									solidCommandBuffer->add(drawCommand, (*subChunks)[i]->chunkCoordinates, (*subChunks)[i]->subChunkLevel, playerPositionInChunkCoords, 0);
 								}
 							}
 
@@ -952,7 +947,7 @@ namespace Minecraft
 			{
 				tint = "#497dd1"_hex;
 			}
-			if (solidDrawCommandBufferContainer->getNumCommands() > 0)
+			if (solidCommandBuffer->getNumCommands() > 0)
 			{
 				// Render opaque geometry
 				glEnable(GL_CULL_FACE);
@@ -961,24 +956,25 @@ namespace Minecraft
 				glDepthMask(GL_TRUE);
 				glDisable(GL_BLEND);
 
-				solidDrawCommandBufferContainer->sort(playerPositionInChunkCoords);
-				chunkPosInstancedBuffer.bufferSubData(0, sizeof(int32) * 2 * solidDrawCommandBufferContainer->getNumCommands(), solidDrawCommandBufferContainer->getChunkPosBuffer());
-				biomeInstancedBuffer.bufferSubData(0, sizeof(int32) * solidDrawCommandBufferContainer->getNumCommands(), solidDrawCommandBufferContainer->getBiomeBuffer());
-				solidDrawCommandBuffer.bufferSubData(0, sizeof(DrawCommand) * solidDrawCommandBufferContainer->getNumCommands(), solidDrawCommandBufferContainer->getCommandBuffer());
-				//glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
-				//glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * solidDrawCommandBufferContainer->getNumCommands(), solidDrawCommandBufferContainer->getCommandBuffer());
-				DebugStats::numDrawCalls += solidDrawCommandBufferContainer->getNumCommands();
+				solidCommandBuffer->sort(playerPositionInChunkCoords);
+				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getChunkPosBuffer());
+				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getBiomeBuffer());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, solidDrawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * solidCommandBuffer->getNumCommands(), solidCommandBuffer->getCommandBuffer());
+				DebugStats::numDrawCalls += solidCommandBuffer->getNumCommands();
 
 				glBindVertexArray(globalVao);
 				opaqueShader.bind();
 				opaqueShader.uploadVec3("uPlayerPosition", playerPosition);
 				opaqueShader.uploadInt("uChunkRadius", World::ChunkRadius);
 				opaqueShader.uploadVec3("uTint", tint);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidDrawCommandBufferContainer->getNumCommands(), sizeof(DrawCommand));
-				solidDrawCommandBufferContainer->softReset();
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, solidCommandBuffer->getNumCommands(), sizeof(DrawCommand));
+				solidCommandBuffer->softReset();
 			}
 
-			if (blendableCommandBufferContainer->getNumCommands() > 0)
+			if (blendableCommandBuffer->getNumCommands() > 0)
 			{
 				const GLenum blendableDrawBuffer[3] = { GL_NONE, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 				glDrawBuffers(3, blendableDrawBuffer);
@@ -996,10 +992,15 @@ namespace Minecraft
 				glBlendFunci(2, GL_ZERO, GL_ONE_MINUS_SRC_COLOR); // Revealage blend target
 				glBlendEquation(GL_FUNC_ADD);
 
-				chunkPosInstancedBuffer.bufferSubData(0, sizeof(int32) * 2 * blendableCommandBufferContainer->getNumCommands(), blendableCommandBufferContainer->getChunkPosBuffer());
-				biomeInstancedBuffer.bufferSubData(0, sizeof(int32)* blendableCommandBufferContainer->getNumCommands(), blendableCommandBufferContainer->getBiomeBuffer());
-				blendableDrawCommandBuffer.bufferSubData(0, sizeof(DrawCommand)* blendableCommandBufferContainer->getNumCommands(), blendableCommandBufferContainer->getCommandBuffer());
-				DebugStats::numDrawCalls += blendableCommandBufferContainer->getNumCommands();
+				// We shouldn't need to even sort this...
+				//transparentCommandBuffer().sort(playerPositionInChunkCoords);
+				glBindBuffer(GL_ARRAY_BUFFER, chunkPosInstancedBuffer);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * 2 * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getChunkPosBuffer());
+				glBindBuffer(GL_ARRAY_BUFFER, biomeInstancedVbo);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int32) * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getBiomeBuffer());
+				glBindBuffer(GL_DRAW_INDIRECT_BUFFER, blendableDrawCommandVbo);
+				glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawCommand) * blendableCommandBuffer->getNumCommands(), blendableCommandBuffer->getCommandBuffer());
+				DebugStats::numDrawCalls += blendableCommandBuffer->getNumCommands();
 
 				transparentShader.bind();
 				transparentShader.uploadVec3("uPlayerPosition", playerPosition);
@@ -1007,8 +1008,8 @@ namespace Minecraft
 				transparentShader.uploadVec3("uTint", tint);
 
 				glBindVertexArray(globalVao);
-				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBufferContainer->getNumCommands(), sizeof(DrawCommand));
-				blendableCommandBufferContainer->softReset();
+				glMultiDrawArraysIndirect(GL_TRIANGLES, NULL, blendableCommandBuffer->getNumCommands(), sizeof(DrawCommand));
+				blendableCommandBuffer->softReset();
 
 				// Reset render state
 				glEnable(GL_CULL_FACE);
