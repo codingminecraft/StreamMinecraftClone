@@ -8,9 +8,11 @@ int main()
 {
 	//_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 
+#ifdef _DEBUG
 	g_memory_init(true);
-#ifdef _RELEASE
-	g_logger_set_level(g_logger_level::Info);
+#elif defined(_RELEASE)
+	//g_memory_init(false);
+	g_logger_set_level(g_logger_level::Info);	
 #endif
 
 	//Minecraft::TerrainGenerator::outputNoiseToTextures();
