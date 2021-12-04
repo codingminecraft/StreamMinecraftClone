@@ -367,6 +367,7 @@ namespace Minecraft
 				}
 				componentSets.clear();
 				componentSets = std::vector<Internal::SparseSet>();
+				debugComponentNames.clear();
 				freeEntities.clear();
 			}
 
@@ -390,11 +391,7 @@ namespace Minecraft
 				int32 componentId = Ecs::componentId<T>();
 				const EntityIndex index = Internal::getEntityIndex(id);
 
-				if (componentSets.size() <= componentId)
-				{
-					componentSets.resize(componentId + 1, Internal::SparseSet::defaultSet<T>(index));
-					g_logger_assert(componentId < Internal::MaxNumComponents, "Exceeded the maximum number of components, you can increase this if needed.");
-				}
+				g_logger_assert(componentId < componentSets.size(), "You need to register all components in the same order *everywhere*. Component '%s' was not registered.", typeid(T).name());
 
 				// Get or add the component at this index
 				T& component = *componentSets[componentId].addOrGet<T>(index);

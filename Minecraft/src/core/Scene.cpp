@@ -86,14 +86,6 @@ namespace Minecraft
 
 			registry = &inRegistry;
 
-			registry->registerComponent<Transform>("Transform");
-			registry->registerComponent<Rigidbody>("Rigidbody");
-			registry->registerComponent<BoxCollider>("BoxCollider");
-			registry->registerComponent<Tag>("Tag");
-			registry->registerComponent<CharacterController>("CharacterController");
-			registry->registerComponent<Inventory>("Inventory");
-
-			addCameraToRegistry();
 			changeScene(type);
 		}
 
@@ -151,10 +143,6 @@ namespace Minecraft
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
 				World::free();
-				if (!freeGlobalResources)
-				{
-					addCameraToRegistry();
-				}
 				break;
 			case SceneType::MainMenu:
 				MainMenu::free();
@@ -186,6 +174,15 @@ namespace Minecraft
 		static void changeSceneInternal()
 		{
 			free(false);
+
+			registry->clear();
+			registry->registerComponent<Transform>("Transform");
+			registry->registerComponent<Rigidbody>("Rigidbody");
+			registry->registerComponent<BoxCollider>("BoxCollider");
+			registry->registerComponent<Tag>("Tag");
+			registry->registerComponent<CharacterController>("CharacterController");
+			registry->registerComponent<Inventory>("Inventory");
+			addCameraToRegistry();
 
 			switch (nextSceneType)
 			{
