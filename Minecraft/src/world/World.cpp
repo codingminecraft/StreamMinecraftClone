@@ -488,6 +488,7 @@ namespace Minecraft
 				RawMemory serializedRegistry = registry->serialize();
 				fwrite(&serializedRegistry.size, sizeof(size_t), 1, fp);
 				fwrite(serializedRegistry.data, serializedRegistry.size, 1, fp);
+				g_memory_free(serializedRegistry.data);
 				fclose(fp);
 			}
 			else
