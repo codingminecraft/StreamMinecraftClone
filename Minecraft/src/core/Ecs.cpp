@@ -145,9 +145,9 @@ namespace Minecraft
 			if (*offset + dataSize >= memory.size)
 			{
 				// Reallocate
-				size_t newSize = memory.size * 2;
+				size_t newSize = (*offset + dataSize) * 2;
 				uint8* newData = (uint8*)g_memory_realloc(memory.data, newSize);
-				g_logger_assert(newData != nullptr, "Failed to Reallocate more memory.");
+				g_logger_assert(newData != nullptr, "Failed to reallocate more memory.");
 				memory.data = newData;
 				memory.size = newSize;
 			}
