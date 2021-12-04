@@ -9,7 +9,7 @@ int main()
 	//_CrtSetDbgFlag(_CRTDBG_CHECK_ALWAYS_DF);
 
 #ifdef _DEBUG
-	g_memory_init(true);
+	g_memory_init(true, 1024);
 #elif defined(_RELEASE)
 	//g_memory_init(false);
 	g_logger_set_level(g_logger_level::Info);	

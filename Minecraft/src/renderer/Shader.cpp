@@ -159,7 +159,7 @@ namespace Minecraft
 				glGetActiveUniform(program, i, maxCharLength, &length, &size, &type, charBuffer);
 				GLint varLocation = glGetUniformLocation(program, charBuffer);
 				mAllShaderVariableLocations[{
-					std::string(charBuffer),
+					std::string(charBuffer, length),
 						varLocation,
 						program
 				}] = varLocation;
