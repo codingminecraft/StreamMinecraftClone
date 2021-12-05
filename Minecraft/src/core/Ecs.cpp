@@ -5,9 +5,6 @@ namespace Minecraft
 {
 	namespace Ecs
 	{
-		static void write(RawMemory& memory, uint8* data, size_t dataSize, size_t* offset);
-		static void read(RawMemory& memory, uint8* data, size_t dataSize, size_t* offset);
-
 		namespace Internal
 		{
 			int32 ComponentCounter = 0;
@@ -59,54 +56,53 @@ namespace Minecraft
 			// Copy component into this entity id or create this entity if it does not exist
 			RawMemory memory;
 			size_t entityIdDataSize = sizeof(uint32) + (sizeof(uint16) * entities.size());
-			memory.size = entityIdDataSize;
-			memory.data = (uint8*)(g_memory_allocate(memory.size));
-			size_t offset = 0;
+			memory.init(entityIdDataSize);
+
 			uint32 numEntities = (uint32)entities.size();
-			write(memory, (uint8*)(&numEntities), sizeof(uint32), &offset);
+			memory.write<uint32>(&numEntities);
 			for (Ecs::EntityId entity : entities)
 			{
-				write(memory, (uint8*)&entity, sizeof(EntityId), &offset);
-				int numComponents = this->numComponents(entity);
-				write(memory, (uint8*)&numComponents, sizeof(int32), &offset);
+				memory.write<EntityId>(&entity);
+				int32 numComponents = this->numComponents(entity);
+				memory.write<int32>(&numComponents);
 				for (int i = 0; i < componentSets.size(); i++)
 				{
 					if (hasComponentById(entity, i))
 					{
-						write(memory, (uint8*)&i, sizeof(int32), &offset);
+						memory.write<int32>(&i);
 						size_t componentSize = componentSets[i].componentSize;
 						uint8* componentData = componentSets[i].get(Internal::getEntityIndex(entity));
-						write(memory, componentData, componentSize, &offset);
+						memory.writeDangerous(componentData, componentSize);
 					}
 				}
 			}
 
-			memory.data = (uint8*)g_memory_realloc(memory.data, offset);
-			memory.size = offset;
+			memory.shrinkToFit();
 			return memory;
 		}
 
-		void Ecs::Registry::deserialize(RawMemory memory)
+		void Ecs::Registry::deserialize(RawMemory& memory)
 		{
-			size_t offset = 0;
+			memory.resetReadWriteCursor();
+
 			uint32 numEntities;
-			read(memory, (uint8*)&numEntities, sizeof(uint32), &offset);
+			memory.read<uint32>(&numEntities);
 			entities.resize(numEntities);
 			for (int entityCounter = 0; entityCounter < numEntities; entityCounter++)
 			{
 				EntityId entity;
-				read(memory, (uint8*)&entity, sizeof(EntityId), &offset);
+				memory.read<EntityId>(&entity);
 				entities[Internal::getEntityIndex(entity)] = entity;
-				int numComponents;
-				read(memory, (uint8*)&numComponents, sizeof(int), &offset);
+				int32 numComponents;
+				memory.read<int32>(&numComponents);
 				g_logger_assert(numComponents >= 0, "Deserialized bad data.");
 				for (int componentCounter = 0; componentCounter < numComponents; componentCounter++)
 				{
 					int32 componentId;
-					read(memory, (uint8*)&componentId, sizeof(int32), &offset);
+					memory.read<int32>(&componentId);
 					uint8* componentData = addOrGetComponentById(entity, componentId);
 					size_t componentSize = componentSets[componentId].componentSize;
-					read(memory, componentData, componentSize, &offset);
+					memory.readDangerous(componentData, componentSize);
 				}
 			}
 			g_logger_info("Deserialized %d entities.", numEntities);
@@ -138,34 +134,6 @@ namespace Minecraft
 			}
 
 			return nullEntity;
-		}
-
-		static void write(RawMemory& memory, uint8* data, size_t dataSize, size_t* offset)
-		{
-			if (*offset + dataSize >= memory.size)
-			{
-				// Reallocate
-				size_t newSize = (*offset + dataSize) * 2;
-				uint8* newData = (uint8*)g_memory_realloc(memory.data, newSize);
-				g_logger_assert(newData != nullptr, "Failed to reallocate more memory.");
-				memory.data = newData;
-				memory.size = newSize;
-			}
-
-			g_memory_copyMem(memory.data + *offset, data, dataSize);
-			*offset += dataSize;
-		}
-
-		static void read(RawMemory& memory, uint8* data, size_t dataSize, size_t* offset)
-		{
-			if (*offset + dataSize > memory.size)
-			{
-				g_logger_error("Bad data.");
-				return;
-			}
-
-			g_memory_copyMem(data, memory.data + *offset, dataSize);
-			*offset += dataSize;
 		}
 	}
 }

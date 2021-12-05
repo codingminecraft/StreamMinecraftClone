@@ -48,6 +48,7 @@ namespace Minecraft
 		void init();
 		void free();
 		void serialize();
+
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks();
 
 		Block getBlock(const glm::vec3& worldPosition);
@@ -68,7 +69,7 @@ namespace Minecraft
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource);
 		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr, bool doImmediately = false);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum);
-		void checkChunkRadius(const glm::vec3& playerPosition);
+		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient=false);
 
 		extern bool doStepLogic;
 	}

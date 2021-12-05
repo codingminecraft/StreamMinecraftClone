@@ -58,6 +58,9 @@ namespace Minecraft
 
 		void init(Ecs::Registry& sceneRegistry, const char* hostname, int port)
 		{
+			playerId = Ecs::nullEntity;
+			randomEntity = Ecs::nullEntity;
+
 			isClient = false;
 			Application::getWindow().setCursorMode(CursorMode::Locked);
 
@@ -249,7 +252,7 @@ namespace Minecraft
 
 				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
 				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
-				ChunkManager::checkChunkRadius(playerTransform->position);
+				ChunkManager::checkChunkRadius(playerTransform->position, isClient);
 
 				// TODO: Remove me, just here for testing
 				// ~~ECS can handle large numbers of entities fine~~
@@ -331,6 +334,16 @@ namespace Minecraft
 
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
 		{
+			if (playerId == Ecs::nullEntity)
+			{
+				playerId = registry->find(TagType::Player);
+			}
+
+			if (randomEntity == Ecs::nullEntity)
+			{
+				randomEntity = registry->find(TagType::RandomEntity);
+			}
+
 			// Update all systems
 			Network::update(dt);
 			KeyHandler::update(dt);
@@ -357,8 +370,11 @@ namespace Minecraft
 				ticks = 0;
 			}
 
-			Transform& t2 = registry->getComponent<Transform>(randomEntity);
-			Physics::raycastStatic(t2.position, glm::normalize(glm::vec3(0.5f, -0.3f, -0.5f)), 10.0f, true);
+			if (randomEntity != Ecs::nullEntity)
+			{
+				Transform& t2 = registry->getComponent<Transform>(randomEntity);
+				Physics::raycastStatic(t2.position, glm::normalize(glm::vec3(0.5f, -0.3f, -0.5f)), 10.0f, true);
+			}
 
 			// TODO: Remove me, I'm just here for testing purposes
 			if (Input::keyBeginPress(GLFW_KEY_F5))
@@ -438,7 +454,7 @@ namespace Minecraft
 				if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
 				{
 					lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
-					ChunkManager::checkChunkRadius(playerPosition);
+					ChunkManager::checkChunkRadius(playerPosition, isClient);
 				}
 			}
 		}
@@ -512,7 +528,7 @@ namespace Minecraft
 				// Read data
 				fread(&seed, sizeof(uint32), 1, fp);
 				// TODO: This will fail for serialization/deserialization on 64->32 bit systems or vice versa
-				RawMemory registryData = {0, 0};
+				RawMemory registryData = { 0, 0 };
 				fread(&registryData.size, sizeof(size_t), 1, fp);
 				uint8* tmpData = (uint8*)g_memory_allocate(registryData.size);
 				fread(tmpData, registryData.size, 1, fp);

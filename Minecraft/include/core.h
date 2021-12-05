@@ -75,6 +75,29 @@ struct RawMemory
 {
 	uint8* data;
 	size_t size;
+	size_t offset;
+
+	void init(size_t initialSize);
+	void free();
+	void shrinkToFit();
+	void resetReadWriteCursor();
+
+	void writeDangerous(const uint8* data, size_t dataSize);
+	void readDangerous(uint8* data, size_t dataSize);
+
+	template<typename T>
+	void write(const T* data)
+	{
+		writeDangerous((uint8*)data, sizeof(T));
+	}
+
+	template<typename T>
+	void read(T* data)
+	{
+		readDangerous((uint8*)data, sizeof(T));
+	}
+
+	void setCursor(size_t offset);
 };
 
 #endif

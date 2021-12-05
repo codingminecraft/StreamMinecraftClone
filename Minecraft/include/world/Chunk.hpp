@@ -49,6 +49,9 @@ namespace Minecraft
 			return !(*this == other);
 		}
 
+		RawMemory serialize() const;
+		void deserialize(RawMemory& memory);
+
 		struct HashFunction
 		{
 			inline std::size_t operator()(const Chunk& key) const

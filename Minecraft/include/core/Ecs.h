@@ -352,7 +352,7 @@ namespace Minecraft
 
 			RawMemory serialize();
 
-			void deserialize(RawMemory memory);
+			void deserialize(RawMemory& memory);
 
 			void free();
 

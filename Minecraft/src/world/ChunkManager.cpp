@@ -57,8 +57,8 @@ namespace Minecraft
 		bool removeLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData);
 		bool removeBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData);
 
-		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates);
-		void deserialize(Block* blockData, const std::string& worldSavePath, const glm::ivec2& chunkCoordinates);
+		void serialize(const std::string& worldSavePath, const Chunk& chunk);
+		void deserialize(Chunk& blockData, const std::string& worldSavePath);
 
 		bool exists(const std::string& worldSavePath, const glm::ivec2& chunkCoordinates);
 		void info();
@@ -167,15 +167,27 @@ namespace Minecraft
 							g_memory_copyMem(command.chunk->data, command.clientChunkData,
 								sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
 							g_memory_free(command.clientChunkData);
+							for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
+							{
+								BlockFormat format = BlockMap::getBlock(command.chunk->data[i].id);
+								command.chunk->data[i].setTransparent(format.isTransparent);
+								command.chunk->data[i].setIsLightSource(format.isLightSource);
+								command.chunk->data[i].setIsBlendable(format.isBlendable);
+							}
 							command.chunk->needsToGenerateDecorations = false;
 							command.chunk->needsToCalculateLighting = true;
 							break;
 						}
 						case CommandType::GenerateTerrain:
 						{
+							if (Network::isNetworkEnabled())
+							{
+								return;
+							}
+
 							if (ChunkPrivate::exists(World::chunkSavePath, command.chunk->chunkCoords))
 							{
-								ChunkPrivate::deserialize(command.chunk->data, World::chunkSavePath, command.chunk->chunkCoords);
+								ChunkPrivate::deserialize(*command.chunk, World::chunkSavePath);
 								command.chunk->needsToGenerateDecorations = false;
 							}
 							else
@@ -188,6 +200,11 @@ namespace Minecraft
 						break;
 						case CommandType::GenerateDecorations:
 						{
+							if (Network::isNetworkEnabled())
+							{
+								return;
+							}
+
 							ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat, noiseGenerators[0]);
 						}
 						break;
@@ -230,7 +247,7 @@ namespace Minecraft
 							}
 
 							// Serialize block data
-							ChunkPrivate::serialize(World::chunkSavePath, command.chunk->data, command.chunk->chunkCoords);
+							ChunkPrivate::serialize(World::chunkSavePath, *command.chunk);
 
 							// Tell the chunk manager we are done
 							command.chunk->state = ChunkState::Unloading;
@@ -1044,11 +1061,17 @@ namespace Minecraft
 			}
 		}
 
-		void checkChunkRadius(const glm::vec3& playerPosition)
+		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient)
 		{
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
 			chunkWorker->setPlayerPosChunkCoords(playerPosChunkCoords);
 			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
+
+			if (isClient)
+			{
+				chunkWorker->beginWork();
+				return;
+			}
 
 			// Remove out of range chunks
 			for (int i = 0; i < (int)subChunks->size(); i++)
@@ -2083,18 +2106,20 @@ namespace Minecraft
 			}
 		}
 
-		void serialize(const std::string& worldSavePath, const Block* blockData, const glm::ivec2& chunkCoordinates)
+		void serialize(const std::string& worldSavePath, const Chunk& chunk)
 		{
 			if ((Network::isNetworkEnabled() && Network::isLanServer()) || (!Network::isNetworkEnabled()))
 			{
-				std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
+				std::string filepath = getFormattedFilepath(chunk.chunkCoords, worldSavePath);
 				FILE* fp = fopen(filepath.c_str(), "wb");
 				if (!fp)
 				{
 					g_logger_error("Failed to serialize chunk<%d, %d>");
 					return;
 				}
-				fwrite(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
+				RawMemory chunkData = chunk.serialize();
+				fwrite(chunkData.data, chunkData.size, 1, fp);
+				chunkData.free();
 				fclose(fp);
 			}
 			else
@@ -2103,11 +2128,11 @@ namespace Minecraft
 			}
 		}
 
-		void deserialize(Block* blockData, const std::string& worldSavePath, const glm::ivec2& chunkCoordinates)
+		void deserialize(Chunk& chunk, const std::string& worldSavePath)
 		{
 			if (!Network::isNetworkEnabled())
 			{
-				std::string filepath = getFormattedFilepath(chunkCoordinates, worldSavePath);
+				std::string filepath = getFormattedFilepath(chunk.chunkCoords, worldSavePath);
 				FILE* fp = fopen(filepath.c_str(), "rb");
 				if (!fp)
 				{
@@ -2115,25 +2140,19 @@ namespace Minecraft
 					return;
 				}
 
-				fread(blockData, sizeof(Block) * World::ChunkWidth * World::ChunkHeight * World::ChunkDepth, 1, fp);
-				// TODO: Separate lightmaps into different arrays than block ids
-				// TODO: Switch to run-length encoding here
-				for (int y = 0; y < World::ChunkHeight; y++)
-				{
-					for (int x = 0; x < World::ChunkDepth; x++)
-					{
-						for (int z = 0; z < World::ChunkWidth; z++)
-						{
-							const int arrayExpansion = to1DArray(x, y, z);
-							blockData[arrayExpansion].setLightLevel(0);
-							blockData[arrayExpansion].setSkyLightLevel(0);
-							const BlockFormat& blockFormat = BlockMap::getBlock(blockData[arrayExpansion].id);
-							blockData[arrayExpansion].setTransparent(blockFormat.isTransparent);
-							blockData[arrayExpansion].setIsBlendable(blockFormat.isBlendable);
-							blockData[arrayExpansion].setIsLightSource(blockFormat.isLightSource);
-						}
-					}
-				}
+				// Get file size
+				fseek(fp, 0L, SEEK_END);
+				size_t fileSize = ftell(fp);
+				rewind(fp);
+
+				// Read file into raw memory and deserialize
+				RawMemory memory;
+				memory.init(fileSize);
+				fread(memory.data, memory.size, 1, fp);
+				chunk.deserialize(memory);
+				memory.free();
+
+				// Close file
 				fclose(fp);
 			}
 			else
@@ -2225,9 +2244,10 @@ namespace Minecraft
 			}
 
 			int index = to1DArray(x, y, z);
+			BlockFormat blockFormat = BlockMap::getBlock(newBlock.id);
 			chunk->data[index].id = newBlock.id;
-			chunk->data[index].setTransparent(newBlock.isTransparent());
-			chunk->data[index].setIsLightSource(newBlock.isLightSource());
+			chunk->data[index].setTransparent(blockFormat.isTransparent);
+			chunk->data[index].setIsLightSource(blockFormat.isLightSource);
 
 			return true;
 		}

@@ -485,10 +485,10 @@ namespace Minecraft
 		}
 	}
 
-	bool Block::isLightSource() const
-	{
-		return BlockMap::getBlock(id).isLightSource;
-	}
+	//bool Block::isLightSource() const
+	//{
+	//	return BlockMap::getBlock(id).isLightSource;
+	//}
 
 	bool Block::isItemOnly() const
 	{

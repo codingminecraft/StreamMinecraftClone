@@ -47,17 +47,17 @@ namespace Minecraft
 		}
 
 		// TODO: This doesn't work for some reason
-		//inline bool isLightSource() const
-		//{
-		//	return (compressedData & 0b100) == 0b100;
-		//}
-
 		inline void setIsLightSource(bool isLightSource)
 		{
 			compressedData |= isLightSource ? 0b100 : 0;
 		}
 
-		bool isLightSource() const;
+		inline bool isLightSource() const
+		{
+			return (compressedData & 0b100);
+		}
+
+		//bool isLightSource() const;
 
 		inline bool isLightPassable() const 
 		{
