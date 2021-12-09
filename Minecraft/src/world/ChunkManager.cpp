@@ -162,8 +162,8 @@ namespace Minecraft
 		static Shader compositeShader;
 
 		static ChunkThreadWorker* chunkWorker = nullptr;
-		static Pool<SubChunk, World::ChunkCapacity * 16>* subChunks = nullptr;
-		static Pool<Block, World::ChunkCapacity>* blockPool = nullptr;
+		static Pool<SubChunk>* subChunks = nullptr;
+		static Pool<Block>* blockPool = nullptr;
 		static CommandBufferContainer* solidCommandBuffer = nullptr;
 		static CommandBufferContainer* blendableCommandBuffer = nullptr;
 
@@ -175,8 +175,8 @@ namespace Minecraft
 
 			// Initialize the singletons
 			chunkWorker = new ChunkThreadWorker();
-			subChunks = new Pool<SubChunk, World::ChunkCapacity * 16>(1);
-			blockPool = new Pool<Block, World::ChunkCapacity>(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight);
+			subChunks = new Pool<SubChunk>(1, World::ChunkCapacity * 16);
+			blockPool = new Pool<Block>(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight, World::ChunkCapacity);
 			solidCommandBuffer = new CommandBufferContainer(subChunks->size(), false);
 			blendableCommandBuffer = new CommandBufferContainer(subChunks->size(), true);
 

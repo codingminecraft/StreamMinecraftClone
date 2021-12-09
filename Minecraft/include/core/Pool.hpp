@@ -4,26 +4,38 @@
 
 namespace Minecraft
 {
-	template<typename T, const int NumPools>
+	template<typename T>
 	class Pool
 	{
 	public:
 		Pool()
 		{
+			numPools = 0;
 			data = nullptr;
 			dataLength = 0;
 			_poolSize = 0;
-			std::lock_guard<std::mutex> lock(bitsetMtx);
-			poolsBeingUsed.reset();
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			freeList = nullptr;
+			freeListSize = 0;
+			freeListStart = 0;
 		}
 
-		Pool(uint32 poolSize)
+		Pool(uint32 poolSize, uint32 numPools)
 		{
-			data = (T*)g_memory_allocate(sizeof(T) * poolSize * NumPools);
-			dataLength = NumPools * poolSize;
+			this->numPools = numPools;
+			data = (T*)g_memory_allocate(sizeof(T) * poolSize * numPools);
+			dataLength = numPools * poolSize;
 			_poolSize = poolSize;
-			std::lock_guard<std::mutex> lock(bitsetMtx);
-			poolsBeingUsed.reset();
+
+			// Initialize the free list
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			freeListSize = numPools;
+			freeListStart = 0;
+			freeList = (T**)g_memory_allocate(sizeof(T*) * numPools);
+			for (int i = 0; i < numPools; i++)
+			{
+				freeList[i] = data + (_poolSize * i);
+			}
 		}
 
 		~Pool()
@@ -34,47 +46,55 @@ namespace Minecraft
 				data = nullptr;
 				dataLength = 0;
 				_poolSize = 0;
+				numPools = 0;
+
+				g_memory_free(freeList);
+				freeList = nullptr;
+				freeListSize = 0;
+				freeListStart = 0;
 			}
 		}
 
 		T* operator[](int poolIndex)
 		{
-			g_logger_assert(poolIndex >= 0 && poolIndex < NumPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, NumPools);
+			g_logger_assert(poolIndex >= 0 && poolIndex < numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
 			return data + (_poolSize * poolIndex);
 		}
 
 		const T* operator[](int poolIndex) const
 		{
-			g_logger_assert(poolIndex >= 0 && poolIndex < NumPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, NumPools);
-			return data+ (_poolSize * poolIndex);
+			g_logger_assert(poolIndex >= 0 && poolIndex < numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
+			return data + (_poolSize * poolIndex);
 		}
 
 		T* getNewPool()
 		{
-			std::lock_guard<std::mutex> lock(bitsetMtx);
-			for (int i = 0; i < poolsBeingUsed.size(); i++)
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			if (freeListSize > 0)
 			{
-				if (!poolsBeingUsed.test(i))
-				{
-					poolsBeingUsed.set(i, true);
-					return data + (_poolSize * i);
-				}
+				T* nextPool = freeList[freeListStart];
+				freeList[freeListStart] = nullptr;
+				freeListStart = (freeListStart + 1) % numPools;
+				freeListSize--;
+				return nextPool;
 			}
 
-			g_logger_assert(false, "Ran out of pools!");
+			g_logger_error(false, "Ran out of pools.");
 			return nullptr;
 		}
 
 		void freePool(uint32 poolIndex)
 		{
-			g_logger_assert(poolIndex >= 0 && poolIndex < NumPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, NumPools);
-			std::lock_guard<std::mutex> lock(bitsetMtx);
-			poolsBeingUsed.set(poolIndex, false);
+			g_logger_assert(poolIndex >= 0 && poolIndex < numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			uint32 nextIndex = (freeListStart + freeListSize) % numPools;
+			freeList[nextIndex] = (T*)(data + (_poolSize * poolIndex));
+			freeListSize++;
 		}
 
 		uint32 size() const
 		{
-			return NumPools;
+			return numPools;
 		}
 
 		uint32 poolSize() const
@@ -89,15 +109,19 @@ namespace Minecraft
 
 		bool empty()
 		{
-			std::lock_guard<std::mutex> lock(bitsetMtx);
-			return poolsBeingUsed.all();
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			return freeListSize == 0;
 		}
 
 	private:
-		std::mutex bitsetMtx;
-		std::bitset<NumPools> poolsBeingUsed;
+		std::mutex freeListMtx;
+		uint32 freeListStart;
+		uint32 freeListSize;
+		T** freeList;
+
 		uint64 dataLength;
 		uint32 _poolSize;
+		uint32 numPools;
 		T* data;
 	};
 

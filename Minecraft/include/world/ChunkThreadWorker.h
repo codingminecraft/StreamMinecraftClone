@@ -21,7 +21,7 @@ namespace Minecraft
 	{
 		// Must be at least ChunkWidth * ChunkDepth * ChunkHeight blocks available
 		Chunk* chunk;
-		Pool<SubChunk, World::ChunkCapacity * 16>* subChunks;
+		Pool<SubChunk>* subChunks;
 		glm::ivec2 playerPosChunkCoords;
 		CommandType type;
 		glm::vec3 blockThatUpdated;

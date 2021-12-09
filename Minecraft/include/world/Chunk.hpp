@@ -3,6 +3,7 @@
 #include "core.h"
 // TODO: Remove this by getting rid of Pool type
 #include "world/ChunkManager.h"
+#include "core/Pool.hpp"
 
 namespace Minecraft
 {
@@ -70,7 +71,7 @@ namespace Minecraft
 		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator);
 		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator);
 		// Must guarantee at least 16 sub-chunks located at this address
-		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
+		void generateRenderData(Pool<SubChunk>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
 		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords);
 		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate);
 

@@ -699,7 +699,7 @@ namespace Minecraft
 			return removeLocalBlock(localPosition, chunkCoordinates, chunk);
 		}
 
-		static SubChunk* getSubChunk(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates, bool isBlendableSubChunk)
+		static SubChunk* getSubChunk(Pool<SubChunk>* subChunks, SubChunk* currentSubChunk, int currentLevel, const glm::ivec2& chunkCoordinates, bool isBlendableSubChunk)
 		{
 			bool needsNewChunk = currentSubChunk == nullptr
 				|| currentSubChunk->subChunkLevel != currentLevel
@@ -793,7 +793,7 @@ namespace Minecraft
 			}
 		}
 
-		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates)
+		void generateRenderData(Pool<SubChunk>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
