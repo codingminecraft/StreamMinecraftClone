@@ -17,6 +17,7 @@ namespace Minecraft
 		std::atomic<float> totalChunkRamUsed = 0.0f;
 		float totalChunkRamAvailable = 0.0f;
 		Block blockLookingAt = BlockMap::NULL_BLOCK;
+		Block airBlockLookingAt = BlockMap::NULL_BLOCK;
 
 		void render()
 		{
@@ -112,8 +113,17 @@ namespace Minecraft
 					textScale,
 					Styles::defaultStyle);
 
-				blockDataPos = glm::vec2(-0.65f, 1.11f);
-				playerPosStr = std::string("Light Level: " + std::to_string(DebugStats::blockLookingAt.lightLevel));
+				blockDataPos = glm::vec2(-0.87f, 1.11f);
+				playerPosStr = std::string("Light Level: " + std::to_string(DebugStats::airBlockLookingAt.calculatedLightLevel()));
+				Renderer::drawString(
+					playerPosStr,
+					*font,
+					blockDataPos,
+					textScale,
+					Styles::defaultStyle);
+
+				blockDataPos = glm::vec2(-0.04f, 1.11f);
+				playerPosStr = std::string("Sky Level: " + std::to_string(DebugStats::airBlockLookingAt.calculatedSkyLightLevel()));
 				Renderer::drawString(
 					playerPosStr,
 					*font,

@@ -92,6 +92,13 @@ namespace Minecraft
 			freeListSize++;
 		}
 
+		void freePool(T* pool)
+		{
+			g_logger_assert(pool >= data && pool <= data + (_poolSize * numPools), "Data '%zu' does not exist in this pool.", pool);
+			uint32 poolIndex = (pool - data) / _poolSize;
+			freePool(poolIndex);
+		}
+
 		uint32 size() const
 		{
 			return numPools;

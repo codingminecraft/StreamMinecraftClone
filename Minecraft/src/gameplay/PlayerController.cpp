@@ -193,6 +193,7 @@ namespace Minecraft
 				{
 					glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
 					DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
+					DebugStats::airBlockLookingAt = ChunkManager::getBlock(res.point + (res.hitNormal * 0.1f));
 
 					// TODO: Clean this garbage up
 					Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);

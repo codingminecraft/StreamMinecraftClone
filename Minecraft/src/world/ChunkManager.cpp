@@ -150,7 +150,6 @@ namespace Minecraft
 		static std::mutex chunkMtx;
 		static uint32 processorCount = 0;
 		static robin_hood::unordered_node_map<glm::ivec2, Chunk> chunks = {};
-		static std::list<Block*> chunkFreeList = {};
 
 		static uint32 chunkPosInstancedBuffer;
 		static uint32 biomeInstancedVbo;
@@ -179,16 +178,9 @@ namespace Minecraft
 			blockPool = new Pool<Block>(World::ChunkDepth * World::ChunkWidth * World::ChunkHeight, World::ChunkCapacity);
 			solidCommandBuffer = new CommandBufferContainer(subChunks->size(), false);
 			blendableCommandBuffer = new CommandBufferContainer(subChunks->size(), true);
+			chunks.clear();
 
 			compositeShader.compile("assets/shaders/CompositeShader.glsl");
-
-			// Initialize the free list
-			chunks.clear();
-			chunkFreeList.clear();
-			for (int i = 0; i < (int)blockPool->size(); i++)
-			{
-				chunkFreeList.push_back((*blockPool)[i]);
-			}
 
 			// Set up draw commands to relate to our sub chunks
 			solidCommandBuffer->init();
@@ -267,7 +259,6 @@ namespace Minecraft
 			glDeleteBuffers(1, &blendableDrawCommandVbo);
 
 			chunks.clear();
-			chunkFreeList.clear();
 
 			glDeleteBuffers(1, &globalRenderVbo);
 			glDeleteBuffers(1, &chunkPosInstancedBuffer);
@@ -337,11 +328,10 @@ namespace Minecraft
 			Chunk* chunk = getChunk(chunkCoordinates);
 			if (!chunk)
 			{
-				if (chunkFreeList.size() > 0)
+				if (!blockPool->empty())
 				{
 					Chunk newChunk;
-					newChunk.data = chunkFreeList.front();
-					chunkFreeList.pop_front();
+					newChunk.data = blockPool->getNewPool();
 
 					newChunk.chunkCoords = chunkCoordinates;
 					newChunk.topNeighbor = getChunk(chunkCoordinates + INormals2::Up);
@@ -470,11 +460,10 @@ namespace Minecraft
 			Chunk* chunk = getChunk(chunkCoordinates);
 			if (!chunk)
 			{
-				if (chunkFreeList.size() > 0)
+				if (!blockPool->empty())
 				{
 					Chunk newChunk;
-					newChunk.data = chunkFreeList.front();
-					chunkFreeList.pop_front();
+					newChunk.data = blockPool->getNewPool();
 
 					newChunk.chunkCoords = chunkCoordinates;
 					newChunk.topNeighbor = getChunk(chunkCoordinates + INormals2::Up);
@@ -828,7 +817,7 @@ namespace Minecraft
 				{
 					DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (float)(blockPool->poolSize() * sizeof(Block));
 
-					chunkFreeList.push_back(iter->second.data);
+					blockPool->freePool(iter->second.data);
 					iter = chunks.erase(iter);
 				}
 				else
