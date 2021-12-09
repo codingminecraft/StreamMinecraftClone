@@ -1,10 +1,13 @@
 #ifndef MINECRAFT_CHUNK_H
 #define MINECRAFT_CHUNK_H
 #include "core.h"
+// TODO: Remove this by getting rid of Pool type
+#include "world/ChunkManager.h"
 
 namespace Minecraft
 {
 	struct Block;
+	struct SubChunk;
 
 	enum class ChunkState : uint8
 	{
@@ -61,6 +64,29 @@ namespace Minecraft
 			}
 		};
 	};
+
+	namespace ChunkPrivate
+	{
+		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator);
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator);
+		// Must guarantee at least 16 sub-chunks located at this address
+		void generateRenderData(Pool<SubChunk, World::ChunkCapacity * 16>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
+		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords);
+		void calculateLightingUpdate(Chunk* chunk, const glm::ivec2& chunkCoordinates, const glm::vec3& blockPosition, bool removedLightSource, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate);
+
+		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Chunk* blockData);
+		Block getBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, const Chunk* blockData);
+		bool setLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData, Block newBlock);
+		bool setBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData, Block newBlock);
+		bool removeLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData);
+		bool removeBlock(const glm::vec3& worldPosition, const glm::ivec2& chunkCoordinates, Chunk* blockData);
+
+		void serialize(const std::string& worldSavePath, const Chunk& chunk);
+		void deserialize(Chunk& blockData, const std::string& worldSavePath);
+
+		bool exists(const std::string& worldSavePath, const glm::ivec2& chunkCoordinates);
+		void info();
+	}
 }
 
 #endif

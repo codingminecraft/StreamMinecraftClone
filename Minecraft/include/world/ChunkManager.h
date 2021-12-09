@@ -70,8 +70,6 @@ namespace Minecraft
 		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr, bool doImmediately = false);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum);
 		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient=false);
-
-		extern bool doStepLogic;
 	}
 }
 
