@@ -91,7 +91,6 @@ namespace Minecraft
 
 		void update(float dt)
 		{
-			Renderer::clearColor(Settings::Window::clearColor);
 			Gui::beginFrame();
 
 			switch (currentScene)
@@ -154,6 +153,26 @@ namespace Minecraft
 				break;
 			}
 			currentScene = SceneType::None;
+		}
+
+		void reloadShaders()
+		{
+			switch (currentScene)
+			{
+			case SceneType::SinglePlayerGame:
+			case SceneType::LocalLanGame:
+			case SceneType::MultiplayerGame:
+				World::reloadShaders();
+				break;
+			case SceneType::MainMenu:
+				MainMenu::reloadShaders();
+				break;
+			case SceneType::None:
+				break;
+			default:
+				g_logger_warning("Cannot free unknown scene type %d", currentScene);
+				break;
+			}
 		}
 
 		bool isPlayingGame()

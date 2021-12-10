@@ -154,7 +154,7 @@ namespace Minecraft
 		static bool setBlockInternal(Chunk* chunk, int x, int y, int z, Block newBlock);
 		static bool removeBlockInternal(Chunk* chunk, int x, int y, int z);
 		static std::string getFormattedFilepath(const glm::ivec2& chunkCoordinates, const std::string& worldSavePath);
-		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, uint8_t lightLevelv1, uint8_t lightLevelv2, uint8_t lightLevelv3, uint8_t lightLevelv4, const glm::ivec3& lightColor, int skyLightLevel);
+		static void loadBlock(Vertex* vertexData, const glm::ivec3& vert1, const glm::ivec3& vert2, const glm::ivec3& vert3, const glm::ivec3& vert4, const TextureFormat& texture, CUBE_FACE face, bool colorFaceBasedOnBiome, glm::vec<4, uint8, glm::defaultp>& lightLevels, glm::vec<4, uint8, glm::defaultp>& skyLevels, const glm::ivec3& lightColor);
 		static void calculateNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck);
 		static void removeNextLightLevel(Chunk* originalChunk, const glm::ivec2& chunkCoordinates, robin_hood::unordered_flat_set<Chunk*>& chunksToRetesselate, std::queue<glm::ivec3>& blocksToCheck, std::queue<glm::ivec3>& lightSources, bool ignoreThisSolidBlock);
 		// TODO: Consider removing this duplication if it doesn't effect performance
@@ -880,7 +880,8 @@ namespace Minecraft
 							if (blocks[i].id && (blocks[i].isTransparent() && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
 							{
 								// Smooth lighting
-								glm::vec<4, uint8_t, glm::defaultp> smoothLightVertex[6] = {};
+								glm::vec<4, uint8, glm::defaultp> smoothLightVertex[6] = {};
+								glm::vec<4, uint8, glm::defaultp> smoothSkyLightVertex[6] = {};
 								for (int v = 0; v < 4; v++)
 								{
 									glm::ivec3 v0 = verts[vertIndices[i][v]];
@@ -894,40 +895,47 @@ namespace Minecraft
 									const Block& v2b = getBlockInternal(chunk, v2.x, v2.y, v2.z);
 									const Block& v3b = getBlockInternal(chunk, v3.x, v3.y, v3.z);
 
-									uint8_t count = 0;
+									uint8 count = 0;
 
-									uint8_t currentVertexLight = 0;
+									uint8 currentVertexLight = 0;
+									uint8 currentVertexSkyLight = 0;
 
 									if (v0b == BlockMap::NULL_BLOCK || v0b == BlockMap::AIR_BLOCK)
 									{
 										currentVertexLight += v0b.calculatedLightLevel();
+										currentVertexSkyLight += v0b.calculatedSkyLightLevel();
 										count++;
 									}
 
 									if (v1b == BlockMap::NULL_BLOCK || v1b == BlockMap::AIR_BLOCK)
 									{
 										currentVertexLight += v1b.calculatedLightLevel();
+										currentVertexSkyLight += v1b.calculatedSkyLightLevel();
 										count++;
 									}
 
 									if (v2b == BlockMap::NULL_BLOCK || v2b == BlockMap::AIR_BLOCK)
 									{
 										currentVertexLight += v2b.calculatedLightLevel();
+										currentVertexSkyLight += v2b.calculatedSkyLightLevel();
 										count++;
 									}
 
 									if (v3b == BlockMap::NULL_BLOCK || v3b == BlockMap::AIR_BLOCK)
 									{
 										currentVertexLight += v3b.calculatedLightLevel();
+										currentVertexSkyLight += v3b.calculatedSkyLightLevel();
 										count++;
 									}
 
 									if (count > 0)
 									{
 										currentVertexLight /= count;
+										currentVertexSkyLight /= count;
 									}
 
 									smoothLightVertex[i][v] = currentVertexLight;
+									smoothSkyLightVertex[i][v] = currentVertexSkyLight;
 								}
 
 								*currentSubChunkPtr = getSubChunk(subChunks, *currentSubChunkPtr, currentLevel, chunkCoordinates, currentBlockIsBlendable);
@@ -950,12 +958,9 @@ namespace Minecraft
 									*textures[i],
 									(CUBE_FACE)i,
 									colorByBiome,
-									smoothLightVertex[i][0],
-									smoothLightVertex[i][1],
-									smoothLightVertex[i][2],
-									smoothLightVertex[i][3],
-									lightColors[i],
-									blocks[i].calculatedSkyLightLevel());
+									smoothLightVertex[i],
+									smoothSkyLightVertex[i],
+									lightColors[i]);
 								currentSubChunk->numVertsUsed += 6;
 							}
 						}
@@ -1533,12 +1538,9 @@ namespace Minecraft
 			const TextureFormat& texture,
 			CUBE_FACE face,
 			bool colorFaceBasedOnBiome,
-			uint8_t lightLevelv1,
-			uint8_t lightLevelv2,
-			uint8_t lightLevelv3,
-			uint8_t lightLevelv4,
-			const glm::ivec3& lightColor,
-			int skyLightLevel)
+			glm::vec<4, uint8, glm::defaultp>& lightLevels,
+			glm::vec<4, uint8, glm::defaultp>& skyLightLevels,
+			const glm::ivec3& lightColor)
 		{
 			UV_INDEX uv0 = UV_INDEX::BOTTOM_RIGHT;
 			UV_INDEX uv1 = UV_INDEX::TOP_RIGHT;
@@ -1576,13 +1578,13 @@ namespace Minecraft
 				break;
 			}
 
-			vertexData[0] = compress(vert1, texture, face, uv0, colorFaceBasedOnBiome, lightLevelv1, lightColor, skyLightLevel);
-			vertexData[1] = compress(vert2, texture, face, uv1, colorFaceBasedOnBiome, lightLevelv2, lightColor, skyLightLevel);
-			vertexData[2] = compress(vert3, texture, face, uv2, colorFaceBasedOnBiome, lightLevelv3, lightColor, skyLightLevel);
+			vertexData[0] = compress(vert1, texture, face, uv0, colorFaceBasedOnBiome, lightLevels[0], lightColor, skyLightLevels[0]);
+			vertexData[1] = compress(vert2, texture, face, uv1, colorFaceBasedOnBiome, lightLevels[1], lightColor, skyLightLevels[1]);
+			vertexData[2] = compress(vert3, texture, face, uv2, colorFaceBasedOnBiome, lightLevels[2], lightColor, skyLightLevels[2]);
 
-			vertexData[3] = compress(vert1, texture, face, uv3, colorFaceBasedOnBiome, lightLevelv1, lightColor, skyLightLevel);
-			vertexData[4] = compress(vert3, texture, face, uv4, colorFaceBasedOnBiome, lightLevelv3, lightColor, skyLightLevel);
-			vertexData[5] = compress(vert4, texture, face, uv5, colorFaceBasedOnBiome, lightLevelv4, lightColor, skyLightLevel);
+			vertexData[3] = compress(vert1, texture, face, uv3, colorFaceBasedOnBiome, lightLevels[0], lightColor, skyLightLevels[0]);
+			vertexData[4] = compress(vert3, texture, face, uv4, colorFaceBasedOnBiome, lightLevels[2], lightColor, skyLightLevels[2]);
+			vertexData[5] = compress(vert4, texture, face, uv5, colorFaceBasedOnBiome, lightLevels[3], lightColor, skyLightLevels[3]);
 		}
 	}
 }

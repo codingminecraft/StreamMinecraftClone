@@ -146,9 +146,14 @@ namespace Minecraft
 					glViewport(0, 0, getWindow().width, getWindow().height);
 				}
 
+				// TODO: You're trying to debug the black screen because of the glClear framebuffer thing
 				mainFramebuffer.bind();
 				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
 				glDrawBuffers(3, mainDrawBuffer);
+				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+				glClearBufferfv(GL_COLOR, 0, zeroFillerVec);
+				float one = 1;
+				glClearBufferfv(GL_DEPTH, 0, &one);
 				Scene::update(deltaTime);
 
 				// Unbind all framebuffers and render the composited image

@@ -6,6 +6,7 @@ namespace Minecraft
 	namespace MainMenu
 	{
 		void init();
+		void reloadShaders();
 
 		void update(float dt);
 

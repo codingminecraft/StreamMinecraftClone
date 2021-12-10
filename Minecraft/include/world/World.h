@@ -13,6 +13,7 @@ namespace Minecraft
 	{
 		void init(Ecs::Registry& registry, const char* hostname = "", int port = 0);
 		void free();
+		void reloadShaders();
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture);
 		void serialize();
 		bool deserialize();

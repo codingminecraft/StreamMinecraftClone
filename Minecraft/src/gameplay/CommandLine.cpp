@@ -7,6 +7,7 @@
 #include "input/Input.h"
 #include "world/BlockMap.h"
 #include "core/Application.h"
+#include "core/Scene.h"
 #include "core/Window.h"
 #include "gameplay/PlayerController.h"
 #include "world/ChunkManager.h"
@@ -29,6 +30,7 @@ namespace Minecraft
 		DoDaylightCycle,
 		SetTime,
 		StopNetwork,
+		ReloadShaders,
 		Length
 	};
 
@@ -196,6 +198,9 @@ namespace Minecraft
 				break;
 			case CommandLineType::StopNetwork:
 				Network::free();
+				break;
+			case CommandLineType::ReloadShaders:
+				Scene::reloadShaders();
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

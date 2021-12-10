@@ -298,9 +298,7 @@ namespace Minecraft
 				//}
 			}
 
-			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");
-			transparentShader.compile("assets/shaders/TransparentShader.glsl");
-			cubemapShader.compile("assets/shaders/Cubemap.glsl");
+			reloadShaders();
 			skybox = Cubemap::generateCubemap(
 				"assets/images/sky/dayTop.png",
 				"assets/images/sky/dayBottom.png",
@@ -312,6 +310,16 @@ namespace Minecraft
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
 			MainHud::init();
+		}
+
+		void reloadShaders()
+		{
+			opaqueShader.destroy();
+			transparentShader.destroy();
+			cubemapShader.destroy();
+			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");
+			transparentShader.compile("assets/shaders/TransparentShader.glsl");
+			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 		}
 
 		void free()

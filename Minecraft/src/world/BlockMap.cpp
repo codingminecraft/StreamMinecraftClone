@@ -463,7 +463,8 @@ namespace Minecraft
 						const TextureFormat& sideSprite = getTextureFormat(side);
 						const TextureFormat& topSprite = getTextureFormat(top);
 						const TextureFormat& bottomSprite = getTextureFormat(bottom);
-						Renderer::clearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+						glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 						Renderer::drawTexturedCube(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), sideSprite, topSprite, bottomSprite);
 
 						Renderer::flushBatches3D(projectionMatrix, viewMatrix);

@@ -23,6 +23,8 @@ namespace Minecraft
 
 		void changeScene(SceneType type);
 
+		void reloadShaders();
+
 		void free(bool freeGlobalResources=true);
 
 		bool isPlayingGame();
