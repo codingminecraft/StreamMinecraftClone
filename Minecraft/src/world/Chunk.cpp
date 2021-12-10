@@ -721,11 +721,6 @@ namespace Minecraft
 				|| currentSubChunk->numVertsUsed + 6 >= World::MaxVertsPerSubChunk
 				|| currentSubChunk->state != SubChunkState::TesselatingVertices;
 
-			if (needsNewChunk && currentSubChunk)
-			{
-				currentSubChunk->state = SubChunkState::UploadVerticesToGpu;
-			}
-
 			SubChunk* ret = currentSubChunk;
 			if (needsNewChunk)
 			{
@@ -849,13 +844,10 @@ namespace Minecraft
 						verts[2] = verts[1] + INormals3::Front;
 						verts[3] = verts[0] + INormals3::Front;
 
-						if (currentBlockIsWater)
-						{
-							verts[4] = verts[0] + INormals3::Up;
-							verts[5] = verts[1] + INormals3::Up;
-							verts[6] = verts[2] + INormals3::Up;
-							verts[7] = verts[3] + INormals3::Up;
-						}
+						verts[4] = verts[0] + INormals3::Up;
+						verts[5] = verts[1] + INormals3::Up;
+						verts[6] = verts[2] + INormals3::Up;
+						verts[7] = verts[3] + INormals3::Up;
 
 						// The order of coordinates is LEFT, RIGHT, BOTTOM, TOP, BACK, FRONT blocks to check
 						int xCoords[6] = { x, x, x, x, x - 1, x + 1 };
@@ -987,22 +979,20 @@ namespace Minecraft
 				}
 			}
 
-			if (solidSubChunk && solidSubChunk->numVertsUsed > 0)
-			{
-				solidSubChunk->state = SubChunkState::UploadVerticesToGpu;
-			}
-
-			if (blendableSubChunk && blendableSubChunk->numVertsUsed > 0)
-			{
-				blendableSubChunk->state = SubChunkState::UploadVerticesToGpu;
-			}
-
 			for (int i = 0; i < (int)(*subChunks).size(); i++)
 			{
-				if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::RetesselateVertices)
+				if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates)
 				{
-					SubChunk* subChunkToUnload = (*subChunks)[i];
-					subChunkToUnload->state = SubChunkState::DoneRetesselating;
+					if ((*subChunks)[i]->state == SubChunkState::RetesselateVertices)
+					{
+						SubChunk* subChunkToUnload = (*subChunks)[i];
+						subChunkToUnload->state = SubChunkState::DoneRetesselating;
+					}
+					else if ((*subChunks)[i]->state == SubChunkState::TesselatingVertices)
+					{
+						SubChunk* subChunkToUnload = (*subChunks)[i];
+						subChunkToUnload->state = SubChunkState::UploadVerticesToGpu;
+					}
 				}
 			}
 		}
