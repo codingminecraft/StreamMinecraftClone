@@ -182,6 +182,7 @@ namespace Minecraft
 		if (programId != UINT32_MAX)
 		{
 			glDeleteProgram(programId);
+			programId = UINT32_MAX;
 		}
 
 		if (filepath != nullptr)

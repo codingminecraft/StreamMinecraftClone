@@ -89,6 +89,7 @@ namespace Minecraft
 				data[blockIndex].id = blockId;
 				data[blockIndex].setLightLevel(0);
 				data[blockIndex].setSkyLightLevel(0);
+				data[blockIndex].setLightColor(glm::ivec3(255, 255, 255));
 				data[blockIndex].setTransparent(blockFormat.isTransparent);
 				data[blockIndex].setIsBlendable(blockFormat.isBlendable);
 				data[blockIndex].setIsLightSource(blockFormat.isLightSource);
@@ -449,7 +450,7 @@ namespace Minecraft
 
 						// Set the block to the max light level since this has to be a sky block
 						chunk->data[arrayExpansion].setSkyLightLevel(31);
-						chunk->data[arrayExpansion].setLightColor(glm::ivec3(7, 7, 7));
+						chunk->data[arrayExpansion].setLightColor(glm::ivec3(255, 255, 255));
 					}
 				}
 			}
@@ -865,7 +866,7 @@ namespace Minecraft
 						for (int i = 0; i < 6; i++)
 						{
 							blocks[i] = getBlockInternal(chunk, xCoords[i], yCoords[i], zCoords[i]);
-							lightColors[i] = blocks[i].getLightColor();
+							lightColors[i] = blocks[i].getCompressedLightColor();
 						}
 
 						SubChunk** currentSubChunkPtr = &solidSubChunk;
@@ -1168,7 +1169,7 @@ namespace Minecraft
 
 			int index = to1DArray(x, y, z);
 			chunk->data[index].id = BlockMap::AIR_BLOCK.id;
-			chunk->data[index].setLightColor(glm::ivec3(7, 7, 7));
+			chunk->data[index].setLightColor(glm::ivec3(255, 255, 255));
 			chunk->data[index].setTransparent(true);
 			chunk->data[index].setIsLightSource(false);
 
@@ -1272,6 +1273,7 @@ namespace Minecraft
 						if (checkPositionInBounds(&neighborChunk, &neighborLocalX, pos.y, &neighborLocalZ))
 						{
 							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].setLightLevel(myLightLevel - 1);
+							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].setLightColor(glm::ivec3(255, 255, 255));
 							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 							chunksToRetesselate.insert(neighborChunk);
 						}
@@ -1394,6 +1396,7 @@ namespace Minecraft
 						if (checkPositionInBounds(&neighborChunk, &neighborLocalX, pos.y, &neighborLocalZ))
 						{
 							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].setSkyLightLevel(myLightLevel - 1);
+							neighborChunk->data[to1DArray(neighborLocalX, pos.y, neighborLocalZ)].setLightColor(glm::ivec3(255, 255, 255));
 							blocksToCheck.push(glm::ivec3(blockToUpdate.x + iNormal.x, blockToUpdate.y + iNormal.y, blockToUpdate.z + iNormal.z));
 							//g_logger_assert(iNormal.y != 1, "Sky sources should never propagate up once we get inside of here.");
 							chunksToRetesselate.insert(neighborChunk);

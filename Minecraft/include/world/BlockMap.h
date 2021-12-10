@@ -92,18 +92,29 @@ namespace Minecraft
 
 		inline void setLightColor(const glm::ivec3& color)
 		{
+			// Convert from number between 0-255 to number between 0-7
 			lightColor =
-				((color.r << 0) & 0x7)  | 
-				((color.g << 3) & 0x38) | 
-				((color.b << 6) & 0x1C0); 
+				(( ((int)((float)color.r / 255.0f) * 7) << 0) & 0x7)  | 
+				(( ((int)((float)color.g / 255.0f) * 7) << 3) & 0x38) | 
+				(( ((int)((float)color.b / 255.0f) * 7) << 6) & 0x1C0); 
 		}
 
 		inline glm::ivec3 getLightColor() const
 		{
+			// Convert from number between 0-7 to number between 0-255
+			return glm::ivec3(
+				(int)(((float)((lightColor & 0x7)   >> 0) / 7.0f) * 255.0f),  // R
+				(int)(((float)((lightColor & 0x38)  >> 3) / 7.0f) * 255.0f),  // G
+				(int)(((float)((lightColor & 0x1C0) >> 6) / 7.0f) * 255.0f)   // B
+			);
+		}
+
+		inline glm::ivec3 getCompressedLightColor() const
+		{
 			return glm::ivec3(
 				((lightColor & 0x7) >> 0),  // R
 				((lightColor & 0x38) >> 3), // G
-				((lightColor & 0x1C0) >> 6) // B;
+				((lightColor & 0x1C0) >> 6) // B
 			);
 		}
 	};
