@@ -98,7 +98,7 @@ namespace Minecraft
 		}
 		g_logger_assert(blockIndex == World::ChunkWidth * World::ChunkDepth * World::ChunkHeight,
 			"Deserialized invalid block data on client. Count was '%d', should be '%d'", blockIndex, World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
-		
+
 		int32 chunkX, chunkZ;
 		memory.read<int32>(&chunkX);
 		memory.read<int32>(&chunkZ);
@@ -849,10 +849,13 @@ namespace Minecraft
 						verts[2] = verts[1] + INormals3::Front;
 						verts[3] = verts[0] + INormals3::Front;
 
-						verts[4] = verts[0] + INormals3::Up;
-						verts[5] = verts[1] + INormals3::Up;
-						verts[6] = verts[2] + INormals3::Up;
-						verts[7] = verts[3] + INormals3::Up;
+						if (currentBlockIsWater)
+						{
+							verts[4] = verts[0] + INormals3::Up;
+							verts[5] = verts[1] + INormals3::Up;
+							verts[6] = verts[2] + INormals3::Up;
+							verts[7] = verts[3] + INormals3::Up;
+						}
 
 						// The order of coordinates is LEFT, RIGHT, BOTTOM, TOP, BACK, FRONT blocks to check
 						int xCoords[6] = { x, x, x, x, x - 1, x + 1 };
