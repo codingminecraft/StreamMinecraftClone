@@ -308,8 +308,8 @@ namespace Minecraft
 			{
 				Chunk& chunk = chunkIter.second;
 				Block* blockData = chunk.data;
-				if (chunk.state != ChunkState::Saving && blockData && 
-					chunk.state != ChunkState::Unloaded && 
+				if (chunk.state != ChunkState::Saving && blockData &&
+					chunk.state != ChunkState::Unloaded &&
 					chunk.state != ChunkState::Unloading)
 				{
 					queueSaveChunk(chunkIter.first);
@@ -393,11 +393,11 @@ namespace Minecraft
 
 				chunkWorker->queueCommand(cmd);
 				// TODO: this probably isn't necessary, find all the unneccessary retesselations and remove them
-				queueRetesselateChunk(chunkCoordinates, chunk);
+				//queueRetesselateChunk(chunkCoordinates, chunk);
 			}
 		}
 
-		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk, bool doImmediately)
+		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk)
 		{
 			if (!chunk)
 			{
@@ -412,23 +412,20 @@ namespace Minecraft
 				cmd.chunk = chunk;
 
 				// Update the sub-chunks that are about to be deleted
+				bool needsToBeRetesselated = false;
 				for (int i = 0; i < (int)subChunks->size(); i++)
 				{
 					if ((*subChunks)[i]->chunkCoordinates == chunkCoordinates && (*subChunks)[i]->state == SubChunkState::Uploaded)
 					{
 						(*subChunks)[i]->state = SubChunkState::RetesselateVertices;
+						needsToBeRetesselated = true;
 					}
 				}
 
-				// TODO: Remove this flag, this is mostly for debugging
-				if (!doImmediately)
+				if (needsToBeRetesselated)
 				{
 					chunkWorker->queueCommand(cmd);
 					chunkWorker->beginWork();
-				}
-				else
-				{
-					ChunkPrivate::generateRenderData(subChunks, chunk, chunk->chunkCoords);
 				}
 			}
 		}
@@ -639,8 +636,7 @@ namespace Minecraft
 							(*subChunks)[i]->state = SubChunkState::Uploaded;
 						}
 
-						if ((*subChunks)[i]->state == SubChunkState::Uploaded || (*subChunks)[i]->state == SubChunkState::RetesselateVertices ||
-							(*subChunks)[i]->state == SubChunkState::DoneRetesselating)
+						if ((*subChunks)[i]->state == SubChunkState::Uploaded || (*subChunks)[i]->state == SubChunkState::RetesselateVertices)
 						{
 							g_logger_assert((*subChunks)[i]->numVertsUsed.load() > 0, "Sub Chunk should never have tried to upload 0 verts to GPU.");
 							float yCenter = (float)(*subChunks)[i]->subChunkLevel * 16.0f;

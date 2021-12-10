@@ -665,6 +665,20 @@ namespace Minecraft
 					calculateNextSkyLevel(chunk, chunkCoordinates, chunksToRetesselate, blocksToUpdate);
 				}
 			}
+
+			for (auto chunkA : chunksToRetesselate)
+			{
+				for (auto chunkB : chunksToRetesselate)
+				{
+					if (*chunkA != *chunkB)
+					{
+						if (chunkA->chunkCoords == chunkB->chunkCoords)
+						{
+							g_logger_warning("Duplicate, how did you get out of mother goose corner?!");
+						}
+					}
+				}
+			}
 		}
 
 		Block getLocalBlock(const glm::ivec3& localPosition, const glm::ivec2& chunkCoordinates, const Chunk* chunk)
@@ -704,7 +718,8 @@ namespace Minecraft
 		{
 			bool needsNewChunk = currentSubChunk == nullptr
 				|| currentSubChunk->subChunkLevel != currentLevel
-				|| currentSubChunk->numVertsUsed + 6 >= World::MaxVertsPerSubChunk;
+				|| currentSubChunk->numVertsUsed + 6 >= World::MaxVertsPerSubChunk
+				|| currentSubChunk->state != SubChunkState::TesselatingVertices;
 
 			if (needsNewChunk && currentSubChunk)
 			{

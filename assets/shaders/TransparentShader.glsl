@@ -122,8 +122,6 @@ uniform int uChunkRadius;
 uniform bool uIsDay;
 uniform vec3 uTint;
 
-vec3 lightColor = vec3(0.3, 0.3, 0.3);
-
 void faceToNormal(in uint face, out vec3 normal)
 {
 	switch(face)
@@ -163,7 +161,7 @@ void main()
 	float combinedLightLevel = max(skyLevel, float(fLightLevel));
 
 	float baseLightColor = .04;
-	float lightIntensity = pow(combinedLightLevel / 31.0, 1.4) + baseLightColor;
+	float lightIntensity = pow(clamp(combinedLightLevel / 31.0, 0.006, 1.0f), 1.4) + baseLightColor;
 	vec4 lightColor = vec4(vec3(lightIntensity), 1.0) * vec4(fLightColor, 1.0);
 
 	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor * vec4(uTint, 1.0);
