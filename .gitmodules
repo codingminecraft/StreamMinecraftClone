@@ -4,9 +4,6 @@
 [submodule "Minecraft/vendor/yamlCpp"]
 	path = Minecraft/vendor/yamlCpp
 	url = https://github.com/jbeder/yaml-cpp
-[submodule "Minecraft/vendor/simplex"]
-	path = Minecraft/vendor/simplex
-	url = https://github.com/SRombauts/SimplexNoise
 [submodule "Minecraft/vendor/cppUtils"]
 	path = Minecraft/vendor/cppUtils
 	url = https://github.com/ambrosiogabe/CppUtils
