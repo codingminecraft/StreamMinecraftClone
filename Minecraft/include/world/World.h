@@ -26,7 +26,7 @@ namespace Minecraft
 		void givePlayerBlock(int blockId, int blockCount);
 		bool isPlayerUnderwater();
 
-		const uint16 ChunkRadius = 6;
+		const uint16 ChunkRadius = 12;
 		const uint16 ChunkCapacity = (ChunkRadius * 2) * (ChunkRadius * 2);
 
 		const uint16 ChunkWidth = 16;

@@ -26,7 +26,9 @@ namespace Minecraft
 			for (int i = 0; i < terrainNoiseGenerators.size(); i++)
 			{
 				terrainNoiseGenerators[i].state = fnlCreateState();
-				terrainNoiseGenerators[i].state.seed = seed;
+				// Offset the seed for each noise generator, that way the 
+				// values aren't correlated
+				terrainNoiseGenerators[i].state.seed = seed + (i * 7);
 			}
 
 			YAML::Node terrainNoise = YamlExtended::readFile(terrainNoiseConfig);
@@ -182,10 +184,18 @@ namespace Minecraft
 			}
 
 			float blendedNoise = 0.0f;
+			float weightSums = 0.0f;
 			for (int i = 0; i < noise.size(); i++)
 			{
 				blendedNoise += noise[i] * terrainNoiseGenerators[i].weight;
+				weightSums += terrainNoiseGenerators[i].weight;
 			}
+
+			// Divide by the weight of the sums to normalize the value again
+			blendedNoise /= weightSums;
+
+			// Raise it to a power to flatten valleys and increase mountains
+			blendedNoise = glm::pow(blendedNoise, 1.19f);
 
 			return blendedNoise;
 		}

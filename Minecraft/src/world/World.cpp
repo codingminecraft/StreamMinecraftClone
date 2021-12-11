@@ -195,10 +195,10 @@ namespace Minecraft
 
 				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
 				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
+				TerrainGenerator::init("assets/custom/terrainNoise.yaml", seed);
 				asyncInitThread = std::thread(asyncInit, playerTransform->position, isClient);
 			}
 
-			TerrainGenerator::init("assets/custom/terrainNoise.yaml", seed);
 			reloadShaders();
 			skybox = Cubemap::generateCubemap(
 				"assets/images/sky/dayTop.png",
@@ -260,6 +260,7 @@ namespace Minecraft
 			ChunkManager::serialize();
 			ChunkManager::free();
 			MainHud::free();
+			TerrainGenerator::free();
 
 			registry->clear();
 		}
