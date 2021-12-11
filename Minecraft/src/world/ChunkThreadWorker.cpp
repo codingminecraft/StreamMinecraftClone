@@ -214,4 +214,11 @@ namespace Minecraft
 	{
 		this->playerPosChunkCoords = playerPosChunkCoords;
 	}
+
+	float ChunkThreadWorker::percentDone()
+	{
+		std::lock_guard<std::mutex> lock(this->queueMtx);
+		static float initialSize = (float)this->commands.size();
+		return this->commands.size() == 0 ? 1.0f : (initialSize - (float)this->commands.size()) / initialSize;
+	}
 }

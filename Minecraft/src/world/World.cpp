@@ -32,6 +32,7 @@
 #include "gui/Gui.h"
 #include "gui/MainHud.h"
 #include "network/Network.h"
+#include "gui/ChunkLoadingScreen.h"
 
 namespace Minecraft
 {
@@ -55,91 +56,32 @@ namespace Minecraft
 		static Ecs::Registry* registry;
 		static glm::vec2 lastPlayerLoadPosition;
 		static bool isClient;
+		static bool isLoading;
+		static std::thread asyncInitThread;
+
+		// Internal functions
+		static void asyncInit(glm::vec3 playerPosition, bool isClient);
 
 		void init(Ecs::Registry& sceneRegistry, const char* hostname, int port)
 		{
+			isLoading = true;
+			ChunkLoadingScreen::init();
+			registry = &sceneRegistry;
+
 			playerId = Ecs::nullEntity;
 			randomEntity = Ecs::nullEntity;
 
 			isClient = false;
-			Application::getWindow().setCursorMode(CursorMode::Locked);
 
 			// Initialize memory
-			registry = &sceneRegistry;
 			ChunkManager::init();
 
 			lastPlayerLoadPosition = glm::vec2(-145.0f, 55.0f);
+
 			if (strcmp(hostname, "") != 0 && port != 0)
 			{
 				isClient = true;
 				Network::init(false, hostname, port);
-
-				//Ecs::EntityId player = registry->createEntity();
-				//playerId = player;
-				//registry->addComponent<Transform>(player);
-				//registry->addComponent<CharacterController>(player);
-				//registry->addComponent<BoxCollider>(player);
-				//registry->addComponent<Rigidbody>(player);
-				//registry->addComponent<Tag>(player);
-				//registry->addComponent<Inventory>(player);
-				//BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
-				//boxCollider.size.x = 0.55f;
-				//boxCollider.size.y = 1.8f;
-				//boxCollider.size.z = 0.55f;
-				//Transform& playerTransform = registry->getComponent<Transform>(player);
-				//playerTransform.position.x = -145.0f;
-				//playerTransform.position.y = 289;
-				//playerTransform.position.z = 55.0f;
-				//CharacterController& controller = registry->getComponent<CharacterController>(player);
-				//controller.lockedToCamera = true;
-				//controller.controllerBaseSpeed = 4.4f;
-				//controller.controllerRunSpeed = 6.2f;
-				//controller.movementSensitivity = 0.6f;
-				//controller.isRunning = false;
-				//controller.movementAxis = glm::vec3();
-				//controller.viewAxis = glm::vec2();
-				//controller.applyJumpForce = false;
-				//controller.jumpForce = 7.6f;
-				//controller.downJumpForce = -25.0f;
-				//controller.cameraOffset = glm::vec3(0, 0.65f, 0);
-				//Inventory& inventory = registry->getComponent<Inventory>(player);
-				//g_memory_zeroMem(&inventory, sizeof(Inventory));
-				//Tag& tag = registry->getComponent<Tag>(player);
-				//tag.type = TagType::Player;
-
-				//// Setup random physics entity
-				//randomEntity = registry->createEntity();
-				//registry->addComponent<Transform>(randomEntity);
-				//registry->addComponent<BoxCollider>(randomEntity);
-				//registry->addComponent<Rigidbody>(randomEntity);
-				//registry->addComponent<CharacterController>(randomEntity);
-				//registry->addComponent<Tag>(randomEntity);
-				//registry->addComponent<Inventory>(randomEntity);
-				//BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
-				//boxCollider2.size.x = 0.55f;
-				//boxCollider2.size.y = 1.8f;
-				//boxCollider2.size.z = 0.55f;
-				//Transform& transform2 = registry->getComponent<Transform>(randomEntity);
-				//transform2.position.y = 255;
-				//transform2.position.x = -145.0f;
-				//transform2.position.z = 55.0f;
-				//CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
-				//controller2.lockedToCamera = false;
-				//controller2.controllerBaseSpeed = 4.2f;
-				//controller2.controllerRunSpeed = 8.4f;
-				//controller2.isRunning = false;
-				//controller2.movementAxis = glm::vec3();
-				//controller2.viewAxis = glm::vec2();
-				//controller2.movementSensitivity = 0.6f;
-				//controller2.applyJumpForce = false;
-				//controller2.jumpForce = 16.0f;
-				//controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
-				//Inventory& inventory2 = registry->getComponent<Inventory>(randomEntity);
-				//g_memory_zeroMem(&inventory2, sizeof(Inventory));
-				//Tag& tag2 = registry->getComponent<Tag>(randomEntity);
-				//tag2.type = TagType::None;
-
-				//lastPlayerLoadPosition = glm::vec2(playerTransform.position.x, playerTransform.position.z);
 			}
 			else
 			{
@@ -252,50 +194,7 @@ namespace Minecraft
 
 				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
 				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
-				ChunkManager::checkChunkRadius(playerTransform->position, isClient);
-
-				// TODO: Remove me, just here for testing
-				// ~~ECS can handle large numbers of entities fine~~
-				// TODO: Test if it can handle removing and adding a bunch of components/entities?
-				//for (int i = 0; i < 400; i++)
-				//{
-				//	Ecs::EntityId e1 = registry->createEntity();
-				//	registry->addComponent<Transform>(e1);
-				//	Ecs::EntityId e2 = registry->createEntity();
-				//	registry->addComponent<BoxCollider>(e2);
-
-				//	registry->addComponent<Transform>(e2);
-				//	registry->addComponent<BoxCollider>(e1);
-				//}
-				//{
-				//	auto view = registry->view<Transform, BoxCollider>();
-				//	int index = 1;
-				//	for (Ecs::EntityId entity : view)
-				//	{
-				//		Transform& t = registry->getComponent<Transform>(entity);
-				//		t.position.x = index;
-				//		t.position.y = index;
-				//		t.position.z = index;
-
-				//		BoxCollider& b = registry->getComponent<BoxCollider>(entity);
-				//		b.size.x = index;
-				//		b.size.y = index;
-				//		b.size.z = index;
-				//		index++;
-				//	}
-				//}
-
-				//{
-				//	auto view = registry->view<BoxCollider, Transform>();
-				//	for (Ecs::EntityId entity : view)
-				//	{
-				//		Transform& t = registry->getComponent<Transform>(entity);
-				//		BoxCollider& b = registry->getComponent<BoxCollider>(entity);
-				//		g_logger_info("Entity: %d", Ecs::Internal::getEntityIndex(entity));
-				//		g_logger_info("Transform Pos: <%2.3f, %2.3f, %2.3f>", t.position.x, t.position.y, t.position.z);
-				//		g_logger_info("BoxCollider Size: <%2.3f, %2.3f, %2.3f>", b.size.x, b.size.y, b.size.z);
-				//	}
-				//}
+				asyncInitThread = std::thread(asyncInit, playerTransform->position, isClient);
 			}
 
 			reloadShaders();
@@ -324,6 +223,11 @@ namespace Minecraft
 
 		void free()
 		{
+			if (asyncInitThread.joinable())
+			{
+				asyncInitThread.join();
+			}
+
 			// Force any connections that might have been opened to close
 			Network::free();
 
@@ -342,6 +246,25 @@ namespace Minecraft
 
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
 		{
+			//static float slowLoading = 0.0f;
+			if (isLoading)
+			{
+				//slowLoading += 0.1f * dt;
+				float percentLoaded = ChunkManager::percentWorkDone();
+				if (percentLoaded == 1.0f)// && slowLoading >= 1.0f)
+				{
+					asyncInitThread.join();
+					isLoading = false;
+					Application::getWindow().setCursorMode(CursorMode::Locked);
+				}
+				else
+				{
+					ChunkLoadingScreen::update(dt, percentLoaded);
+					//ChunkLoadingScreen::update(dt, slowLoading);
+					return;
+				}
+			}
+
 			if (playerId == Ecs::nullEntity)
 			{
 				playerId = registry->find(TagType::Player);
@@ -565,6 +488,11 @@ namespace Minecraft
 		std::string getWorldDataFilepath(const std::string& worldSavePath)
 		{
 			return worldSavePath + "/world.bin";
+		}
+
+		static void asyncInit(glm::vec3 playerPosition, bool isClient)
+		{
+			ChunkManager::checkChunkRadius(playerPosition, isClient);
 		}
 	}
 }

@@ -51,6 +51,7 @@ namespace Minecraft
 
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks();
 
+		float percentWorkDone();
 		Block getBlock(const glm::vec3& worldPosition);
 		void setBlock(const glm::vec3& worldPosition, Block newBlock);
 		void removeBlock(const glm::vec3& worldPosition);

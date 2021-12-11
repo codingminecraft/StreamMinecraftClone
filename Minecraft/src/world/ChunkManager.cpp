@@ -378,6 +378,11 @@ namespace Minecraft
 			chunkWorker->queueCommand(cmd);
 		}
 
+		float percentWorkDone()
+		{
+			return chunkWorker->percentDone();
+		}
+
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource)
 		{
 			// Only recalculate if we need to

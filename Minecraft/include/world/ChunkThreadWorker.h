@@ -48,6 +48,8 @@ namespace Minecraft
 		void beginWork(bool notifyAll = true);
 		void setPlayerPosChunkCoords(const glm::ivec2& playerPosChunkCoords);
 
+		float percentDone();
+
 	private:
 		std::priority_queue<FillChunkCommand, std::vector<FillChunkCommand>, CompareFillChunkCommand> commands;
 		std::thread workerThread;
