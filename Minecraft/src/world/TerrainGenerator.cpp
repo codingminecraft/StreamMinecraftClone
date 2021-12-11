@@ -11,6 +11,9 @@ namespace Minecraft
 		const float scale[numNoise] = { 0.002f, 0.005f, 0.04f , 0.015f, 0.004f };
 		const float weights[numNoise] = { 0.6f, 0.2f, 0.05f, 0.1f, 0.05f };
 
+		const int numCaveNoise = 4;
+		const float caveScale[numNoise] = { 0.005f, 0.015f, 0.02f, 0.00345f };
+
 		void outputNoiseToTextures()
 		{
 			const int textureWidth = 512;
@@ -55,6 +58,71 @@ namespace Minecraft
 			g_memory_free(finalTexture);
 		}
 
+		bool getIsCave(const SimplexNoise& generator, int x, int y, int z, int16 maxBiomeHeight)
+		{
+			// If we're at ground level, only 10% chance of the cave peeking through the ground
+			if (y < maxBiomeHeight || (y == maxBiomeHeight && (float)rand() / (float)RAND_MAX) < 0.1f)
+			{
+				// Cave pocket generator
+				float noise1 = CMath::mapRange(
+					generator.fractal(
+						4,
+						(float)(x)*caveScale[0],
+						(float)(y)*caveScale[0],
+						(float)(z)*caveScale[0]
+					),
+					-1.0f,
+					1.0f,
+					0.0f,
+					1.0f
+				);
+				float noise2 = CMath::mapRange(
+					generator.fractal(
+						4,
+						(float)(x)*scale[1],
+						(float)(y)*scale[1],
+						(float)(z)*scale[1]
+					),
+					-1.0f,
+					1.0f,
+					0.0f,
+					1.0f
+				);
+				if (noise1 < 0.3f && noise2 < 0.3f)
+				{
+					return true;
+				}
+
+				// Check if it's a wormy kind of cave
+				float noise3 = CMath::mapRange(
+					generator.fractal(
+						4,
+						(float)(x)*scale[2],
+						(float)(y)*scale[2],
+						(float)(z)*scale[2]
+					),
+					-1.0f,
+					1.0f,
+					0.0f,
+					1.0f
+				);
+				float noise4 = CMath::mapRange(
+					generator.fractal(
+						4,
+						(float)(x)*scale[3],
+						(float)(y)*scale[3],
+						(float)(z)*scale[3]
+					),
+					-1.0f,
+					1.0f,
+					0.0f,
+					1.0f
+				);
+				return noise3 < 0.3f && noise4 < 0.3f;
+			}
+			return false;
+		}
+
 		int16 getHeight(const SimplexNoise& generator, int x, int z, float minBiomeHeight, float maxBiomeHeight)
 		{
 			float normalizedHeight = TerrainGenerator::getNormalizedHeight(generator, x, z);
@@ -81,16 +149,16 @@ namespace Minecraft
 		float getNoise(const SimplexNoise& generator, int x, int z, int noiseLevel)
 		{
 			return CMath::mapRange(
-					generator.fractal(
-						4,
-						(float)(x)*scale[noiseLevel],
-						(float)(z)*scale[noiseLevel]
-					),
-					-1.0f,
-					1.0f,
-					0.0f,
-					1.0f
-				);
+				generator.fractal(
+					4,
+					(float)(x)*scale[noiseLevel],
+					(float)(z)*scale[noiseLevel]
+				),
+				-1.0f,
+				1.0f,
+				0.0f,
+				1.0f
+			);
 		}
 	}
 }

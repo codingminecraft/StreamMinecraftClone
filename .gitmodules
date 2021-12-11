@@ -22,3 +22,6 @@
 [submodule "Minecraft/vendor/enet"]
 	path = Minecraft/vendor/enet
 	url = https://github.com/lsalzman/enet
+[submodule "Minecraft/vendor/FastNoiseLite"]
+	path = Minecraft/vendor/FastNoiseLite
+	url = https://github.com/Auburn/FastNoiseLite

@@ -190,66 +190,78 @@ namespace Minecraft
 
 					for (int y = 0; y < World::ChunkHeight; y++)
 					{
+						bool isCave = TerrainGenerator::getIsCave(generator, x + worldChunkX, y, z + worldChunkZ, maxHeight);
 						const int arrayExpansion = to1DArray(x, y, z);
-						if (y == 0)
+						if (!isCave)
 						{
-							// Bedrock
-							chunk->data[arrayExpansion].id = 7;
-							// Set the first bit of compressed data to false, to let us know
-							// this is not a transparent block
-							chunk->data[arrayExpansion].setTransparent(false);
-							chunk->data[arrayExpansion].setIsBlendable(false);
-							chunk->data[arrayExpansion].setIsLightSource(false);
-						}
-						else if (y < stoneHeight)
-						{
-							// Stone
-							chunk->data[arrayExpansion].id = 6;
-							chunk->data[arrayExpansion].setTransparent(false);
-							chunk->data[arrayExpansion].setIsBlendable(false);
-							chunk->data[arrayExpansion].setIsLightSource(false);
-						}
-						else if (y < maxHeight)
-						{
-							// Dirt
-							chunk->data[arrayExpansion].id = 4;
-							chunk->data[arrayExpansion].setTransparent(false);
-							chunk->data[arrayExpansion].setIsBlendable(false);
-							chunk->data[arrayExpansion].setIsLightSource(false);
-						}
-						else if (y == maxHeight)
-						{
-							if (maxHeight < oceanLevel + 2)
+							if (y == 0)
 							{
-								// Sand
-								chunk->data[arrayExpansion].id = 3;
+								// Bedrock
+								chunk->data[arrayExpansion].id = 7;
+								// Set the first bit of compressed data to false, to let us know
+								// this is not a transparent block
 								chunk->data[arrayExpansion].setTransparent(false);
 								chunk->data[arrayExpansion].setIsBlendable(false);
 								chunk->data[arrayExpansion].setIsLightSource(false);
 							}
-							else
+							else if (y < stoneHeight)
 							{
-								// Grass
-								chunk->data[arrayExpansion].id = 2;
+								// Stone
+								chunk->data[arrayExpansion].id = 6;
 								chunk->data[arrayExpansion].setTransparent(false);
 								chunk->data[arrayExpansion].setIsBlendable(false);
 								chunk->data[arrayExpansion].setIsLightSource(false);
 							}
+							else if (y < maxHeight)
+							{
+								// Dirt
+								chunk->data[arrayExpansion].id = 4;
+								chunk->data[arrayExpansion].setTransparent(false);
+								chunk->data[arrayExpansion].setIsBlendable(false);
+								chunk->data[arrayExpansion].setIsLightSource(false);
+							}
+							else if (y == maxHeight)
+							{
+								if (maxHeight < oceanLevel + 2)
+								{
+									// Sand
+									chunk->data[arrayExpansion].id = 3;
+									chunk->data[arrayExpansion].setTransparent(false);
+									chunk->data[arrayExpansion].setIsBlendable(false);
+									chunk->data[arrayExpansion].setIsLightSource(false);
+								}
+								else
+								{
+									// Grass
+									chunk->data[arrayExpansion].id = 2;
+									chunk->data[arrayExpansion].setTransparent(false);
+									chunk->data[arrayExpansion].setIsBlendable(false);
+									chunk->data[arrayExpansion].setIsLightSource(false);
+								}
+							}
+							else if (y >= minBiomeHeight && y < oceanLevel)
+							{
+								// Water 
+								chunk->data[arrayExpansion].id = 19;
+								chunk->data[arrayExpansion].setTransparent(true);
+								chunk->data[arrayExpansion].setIsBlendable(true);
+								chunk->data[arrayExpansion].setIsLightSource(false);
+							}
+							else if (!chunk->data[arrayExpansion].id)
+							{
+								chunk->data[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
+								chunk->data[arrayExpansion].setTransparent(true);
+								chunk->data[arrayExpansion].setIsBlendable(false);
+								chunk->data[arrayExpansion].setIsLightSource(false);
+							}
 						}
-						else if (y >= minBiomeHeight && y < oceanLevel)
-						{
-							// Water 
-							chunk->data[arrayExpansion].id = 19;
-							chunk->data[arrayExpansion].setTransparent(true);
-							chunk->data[arrayExpansion].setIsBlendable(true);
-							chunk->data[arrayExpansion].setIsLightSource(false);
-						}
-						else if (!chunk->data[arrayExpansion].id)
+						else
 						{
 							chunk->data[arrayExpansion].id = BlockMap::AIR_BLOCK.id;
 							chunk->data[arrayExpansion].setTransparent(true);
 							chunk->data[arrayExpansion].setIsBlendable(false);
 							chunk->data[arrayExpansion].setIsLightSource(false);
+							chunk->data[arrayExpansion].setLightColor(glm::ivec3(255, 255, 255));
 						}
 					}
 				}
