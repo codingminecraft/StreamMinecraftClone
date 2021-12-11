@@ -51,9 +51,8 @@ project "Minecraft"
         "Minecraft/vendor/yamlCpp/src/**.h",
 		"Minecraft/vendor/yamlCpp/src/**.cpp",
 		"Minecraft/vendor/yamlCpp/include/**.h",
-        -- SimpleX stuff
-        "Minecraft/vendor/simplex/src/**.h",
-        "Minecraft/vendor/simplex/src/**.cpp",
+        -- Noise Stuff
+        "Minecraft/vendor/FastNoiseLite/C/**.h",
         -- Optick stuff
         "Minecraft/vendor/optick/src/**.cpp",
         "Minecraft/vendor/optick/src/**.h",
@@ -75,7 +74,7 @@ project "Minecraft"
         "Minecraft/vendor/glm/",
         "Minecraft/vendor/stb/",
         "Minecraft/vendor/yamlCpp/include",
-        "Minecraft/vendor/simplex/src",
+        "Minecraft/vendor/FastNoiseLite/C",
         "Minecraft/vendor/cppUtils/single_include",
         "Minecraft/vendor/freetype/include",
         "Minecraft/vendor/magicEnum/include",

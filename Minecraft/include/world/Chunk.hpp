@@ -68,8 +68,8 @@ namespace Minecraft
 
 	namespace ChunkPrivate
 	{
-		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator);
-		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator);
+		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed);
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed);
 		// Must guarantee at least 16 sub-chunks located at this address
 		void generateRenderData(Pool<SubChunk>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates);
 		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords);

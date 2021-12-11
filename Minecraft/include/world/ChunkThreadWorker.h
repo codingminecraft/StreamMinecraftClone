@@ -59,8 +59,6 @@ namespace Minecraft
 		std::mutex queueMtx;
 		bool doWork;
 		std::atomic<bool> waitingOnCommand = false;
-
-		std::array<SimplexNoise, 5> noiseGenerators;
 	};
 }
 

@@ -54,8 +54,8 @@
 // Yaml
 #include <yaml-cpp/yaml.h>
 
-// Simplex 
-#include <SimplexNoise.h>
+// Fast Noise 
+#include <FastNoiseLite.h>
 
 // Freetype
 #include <freetype/freetype.h>

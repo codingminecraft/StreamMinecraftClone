@@ -31,6 +31,7 @@ namespace Minecraft
 		SetTime,
 		StopNetwork,
 		ReloadShaders,
+		RegenerateWorld,
 		Length
 	};
 
@@ -201,6 +202,9 @@ namespace Minecraft
 				break;
 			case CommandLineType::ReloadShaders:
 				Scene::reloadShaders();
+				break;
+			case CommandLineType::RegenerateWorld:
+				World::regenerateWorld();
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

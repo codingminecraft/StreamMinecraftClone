@@ -31,12 +31,6 @@ namespace Minecraft
 	ChunkThreadWorker::ChunkThreadWorker()
 		: cv(), mtx(), queueMtx(), doWork(true)
 	{
-		noiseGenerators[0] = SimplexNoise();// World::seedAsFloat.load());
-		noiseGenerators[1] = SimplexNoise(World::seedAsFloat.load());
-		noiseGenerators[2] = SimplexNoise(World::seedAsFloat.load());
-		noiseGenerators[3] = SimplexNoise(World::seedAsFloat.load());
-		noiseGenerators[4] = SimplexNoise(World::seedAsFloat.load());
-
 		workerThread = std::thread(&ChunkThreadWorker::threadWorker, this);
 	}
 
@@ -123,7 +117,7 @@ namespace Minecraft
 					}
 					else
 					{
-						ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat, noiseGenerators[0]);
+						ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat);
 						command.chunk->needsToGenerateDecorations = true;
 					}
 					command.chunk->needsToCalculateLighting = true;
@@ -136,7 +130,7 @@ namespace Minecraft
 						return;
 					}
 
-					ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat, noiseGenerators[0]);
+					ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat);
 				}
 				break;
 				case CommandType::CalculateLighting:

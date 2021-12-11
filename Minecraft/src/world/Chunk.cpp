@@ -175,7 +175,7 @@ namespace Minecraft
 		const float maxBiomeHeight = 145.0f;
 		const float minBiomeHeight = 55.0f;
 		const int oceanLevel = 85;
-		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed, const SimplexNoise& generator)
+		void generateTerrain(Chunk* chunk, const glm::ivec2& chunkCoordinates, float seed)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
@@ -185,12 +185,12 @@ namespace Minecraft
 			{
 				for (int z = 0; z < World::ChunkWidth; z++)
 				{
-					int16 maxHeight = TerrainGenerator::getHeight(generator, x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight);
+					int16 maxHeight = TerrainGenerator::getHeight(x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight);
 					int16 stoneHeight = (int16)(maxHeight - 3.0f);
 
 					for (int y = 0; y < World::ChunkHeight; y++)
 					{
-						bool isCave = TerrainGenerator::getIsCave(generator, x + worldChunkX, y, z + worldChunkZ, maxHeight);
+						bool isCave = TerrainGenerator::getIsCave(x + worldChunkX, y, z + worldChunkZ, maxHeight);
 						const int arrayExpansion = to1DArray(x, y, z);
 						if (!isCave)
 						{
@@ -268,7 +268,7 @@ namespace Minecraft
 			}
 		}
 
-		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed, const SimplexNoise& generator)
+		void generateDecorations(const glm::ivec2& lastPlayerLoadPosChunkCoords, float seed)
 		{
 			for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
 			{
@@ -311,7 +311,7 @@ namespace Minecraft
 
 							if (generateTree)
 							{
-								int16 y = TerrainGenerator::getHeight(generator, x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight) + 1;
+								int16 y = TerrainGenerator::getHeight(x + worldChunkX, z + worldChunkZ, minBiomeHeight, maxBiomeHeight) + 1;
 
 								if (y > oceanLevel + 2)
 								{

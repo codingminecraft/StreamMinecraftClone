@@ -33,6 +33,7 @@
 #include "gui/MainHud.h"
 #include "network/Network.h"
 #include "gui/ChunkLoadingScreen.h"
+#include "world/TerrainGenerator.h"
 
 namespace Minecraft
 {
@@ -197,6 +198,7 @@ namespace Minecraft
 				asyncInitThread = std::thread(asyncInit, playerTransform->position, isClient);
 			}
 
+			TerrainGenerator::init("assets/custom/terrainNoise.yaml", seed);
 			reloadShaders();
 			skybox = Cubemap::generateCubemap(
 				"assets/images/sky/dayTop.png",
@@ -219,6 +221,24 @@ namespace Minecraft
 			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");
 			transparentShader.compile("assets/shaders/TransparentShader.glsl");
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
+		}
+
+		void regenerateWorld()
+		{
+			// Free the chunks but don't serialize chunks
+			if (asyncInitThread.joinable())
+			{
+				asyncInitThread.join();
+			}
+
+			TerrainGenerator::free();
+			TerrainGenerator::init("assets/custom/terrainNoise.yaml", seed);
+
+			ChunkManager::free();
+			ChunkManager::init();
+			isLoading = true;
+			glm::vec3 playerPos = glm::vec3(lastPlayerLoadPosition.x, 128.0f, lastPlayerLoadPosition.y);
+			asyncInitThread = std::thread(asyncInit, playerPos, isClient);
 		}
 
 		void free()
@@ -384,7 +404,7 @@ namespace Minecraft
 				// Check chunk radius if needed
 				if (glm::distance2(glm::vec2(playerPosition.x, playerPosition.z), lastPlayerLoadPosition) > World::ChunkWidth * World::ChunkDepth)
 				{
-					lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);;
+					lastPlayerLoadPosition = glm::vec2(playerPosition.x, playerPosition.z);
 					ChunkManager::checkChunkRadius(playerPosition, isClient);
 				}
 			}
