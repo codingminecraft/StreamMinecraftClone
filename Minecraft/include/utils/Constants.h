@@ -21,6 +21,13 @@ namespace Minecraft
 			Front,
 			Back
 		};
+
+		const std::array<glm::ivec3, 4> XZCardinalDirections = {
+			Left,
+			Right,
+			Front,
+			Back
+		};
 	}
 
 	namespace FNormals3

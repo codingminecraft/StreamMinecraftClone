@@ -8,6 +8,8 @@
 #include "network/Network.h"
 #include "core/File.h"
 
+#include <xmmintrin.h>
+
 namespace Minecraft
 {
 	RawMemory Chunk::serialize() const
@@ -385,6 +387,7 @@ namespace Minecraft
 
 		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords)
 		{
+			double startTime = glfwGetTime();
 			for (int i = 0; i < 2; i++)
 			{
 				for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
@@ -397,7 +400,7 @@ namespace Minecraft
 						glm::ivec2 localChunkPos = glm::vec2(lastPlayerLoadPosChunkCoords.x - chunkX, lastPlayerLoadPosChunkCoords.y - chunkZ);
 						bool inRangeOfPlayer =
 							(localChunkPos.x * localChunkPos.x) + (localChunkPos.y * localChunkPos.y) <=
-							((World::ChunkRadius - 1) * (World::ChunkRadius - 1));
+							((World::ChunkRadius) * (World::ChunkRadius));
 						if (!inRangeOfPlayer)
 						{
 							// Skip over all chunks in range radius - 1
@@ -431,6 +434,7 @@ namespace Minecraft
 					}
 				}
 			}
+			g_logger_info("Calculate lighting took %2.3f seconds", glfwGetTime() - startTime);
 		}
 
 		static void calculateChunkSkyBlocks(Chunk* chunk, const glm::ivec2& chunkCoordinates)
@@ -459,10 +463,10 @@ namespace Minecraft
 		static void calculateChunkLighting(Chunk* chunk, const glm::ivec2& chunkCoordinates)
 		{
 			// Propagate any sky blocks that are acting like "sources"
-			bool anySkySources = false;
 			std::queue<glm::ivec3> skyBlocksToUpdate = {};
 			for (int y = World::ChunkHeight - 1; y >= 0; y--)
 			{
+				bool anyBlocksTransparent = false;
 				for (int x = 0; x < World::ChunkDepth; x++)
 				{
 					for (int z = 0; z < World::ChunkWidth; z++)
@@ -473,33 +477,27 @@ namespace Minecraft
 							continue;
 						}
 
+						anyBlocksTransparent = true;
 						if (chunk->data[arrayExpansion].calculatedSkyLightLevel() == 31)
 						{
-							anySkySources = true;
-
 							// If any of the horizontal neighbors is transparent and not a sky block, add this block
 							// as a source
-							for (int i = 0; i < INormals3::CardinalDirections.size(); i++)
+							for (int i = 0; i < INormals3::XZCardinalDirections.size(); i++)
 							{
-								if (INormals3::CardinalDirections[i].y == 0)
+								const glm::highp_ivec3 blockLocalPos = glm::highp_ivec3(x, y, z) + INormals3::CardinalDirections[i];
+								Block block = getBlockInternal(chunk, blockLocalPos.x, blockLocalPos.y, blockLocalPos.z);
+								if (block.isTransparent() && block.calculatedSkyLightLevel() != 31)
 								{
-									glm::ivec3 blockLocalPos = glm::ivec3(x, y, z) + INormals3::CardinalDirections[i];
-									Block block = getBlockInternal(chunk, blockLocalPos.x, blockLocalPos.y, blockLocalPos.z);
-									if (block.calculatedSkyLightLevel() != 31 && block.isTransparent())
-									{
-										skyBlocksToUpdate.push({ x, y, z });
-										break;
-									}
+									skyBlocksToUpdate.push({ x, y, z });
+									break;
 								}
 							}
 						}
 					}
 				}
 
-				if (!anySkySources)
+				if (!anyBlocksTransparent)
 				{
-					// If this horizontal slice of the world had no sky sources, we are done
-					// checking all potential light sources
 					break;
 				}
 			}

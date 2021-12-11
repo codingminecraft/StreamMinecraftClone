@@ -353,9 +353,6 @@ namespace Minecraft
 
 					// Queue the fill command
 					chunkWorker->queueCommand(cmd);
-					// Queue the calculate lighting command
-					cmd.type = CommandType::CalculateLighting;
-					chunkWorker->queueCommand(cmd);
 					// Queue the tesselate command
 					cmd.type = CommandType::TesselateVertices;
 					chunkWorker->queueCommand(cmd);
@@ -397,8 +394,6 @@ namespace Minecraft
 				cmd.removedLightSource = removedLightSource;
 
 				chunkWorker->queueCommand(cmd);
-				// TODO: this probably isn't necessary, find all the unneccessary retesselations and remove them
-				//queueRetesselateChunk(chunkCoordinates, chunk);
 			}
 		}
 
