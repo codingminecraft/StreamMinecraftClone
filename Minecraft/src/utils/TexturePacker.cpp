@@ -58,6 +58,8 @@ namespace Minecraft
 				int channels;
 				unsigned char* rawPixels = stbi_load(image.path().string().c_str(), &width, &height, &channels, 4);
 
+				// Shrink the image height if it's bigger than the normal texture height
+				height = glm::min(height, texHeight);
 				int newX = currentX + width;
 				if (newX >= pngOutputWidth)
 				{

@@ -50,6 +50,7 @@
 // stb
 #include <stb/stb_image.h>
 #include <stb/stb_write.h>
+#include <stb/stb_image_resize.h>
 
 // Yaml
 #include <yaml-cpp/yaml.h>
