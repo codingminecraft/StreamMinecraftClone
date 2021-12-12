@@ -139,6 +139,7 @@ namespace Minecraft
 			button.text = "Create World";
 			if (Gui::textureButton(button))
 			{
+				g_memory_zeroMem(worldSaveTitle, sizeof(char) * 128);
 				Scene::changeScene(SceneType::SinglePlayerGame);
 			}
 

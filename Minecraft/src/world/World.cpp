@@ -263,6 +263,10 @@ namespace Minecraft
 			TerrainGenerator::free();
 
 			registry->clear();
+
+			seed = UINT32_MAX;
+			seedAsFloat = FLT_MAX;
+			savePath = "";
 		}
 
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
