@@ -150,6 +150,7 @@ namespace Minecraft
 			defaultButton.text = "Save and Exit";
 			if (Gui::textureButton(defaultButton))
 			{
+				isPaused = false;
 				Scene::changeScene(SceneType::MainMenu);
 			}
 

@@ -183,6 +183,7 @@ namespace Minecraft
 
 				if (dumpScreenshot)
 				{
+					std::string filepath = screenshotName;
 					if (screenshotName == "")
 					{
 						time_t rawtime;
@@ -194,6 +195,7 @@ namespace Minecraft
 
 						strftime(buffer, sizeof(buffer), "%d-%m-%Y %H.%M.%S", timeinfo);
 						screenshotName = std::string(buffer);
+						filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
 					}
 
 					uint8* pixels = (uint8*)g_memory_allocate(sizeof(uint8) * mainFramebuffer.width * mainFramebuffer.height * 4);
@@ -217,8 +219,8 @@ namespace Minecraft
 
 					glReadPixels(startX, startY, outputWidth, outputHeight, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
 					stbi_flip_vertically_on_write(true);
-					std::string filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
 					stbi_write_png(filepath.c_str(), outputWidth, outputHeight, 4, (void*)pixels, sizeof(uint8) * outputWidth * 4);
+					g_logger_info("Screenshot saved to: %s", filepath.c_str());
 					g_memory_free(pixels);
 					dumpScreenshot = false;
 				}

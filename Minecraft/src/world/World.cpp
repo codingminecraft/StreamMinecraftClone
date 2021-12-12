@@ -248,6 +248,8 @@ namespace Minecraft
 				asyncInitThread.join();
 			}
 
+			Application::takeScreenshot((savePath + "/worldIcon.png").c_str());
+
 			// Force any connections that might have been opened to close
 			Network::free();
 

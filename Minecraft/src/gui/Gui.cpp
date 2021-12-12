@@ -333,7 +333,7 @@ namespace Minecraft
 			return res;
 		}
 
-		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, bool isSelected)
+		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, const Sprite& icon, bool isSelected)
 		{
 			WindowState& windowState = getCurrentWindow();
 			if (elementExceedsWindowHeight(windowState, size))
@@ -341,8 +341,6 @@ namespace Minecraft
 				return false;
 			}
 
-			// TODO: Get the world data image thing and store it in here
-			const Sprite* sprite = nullptr;
 			guiStyle.color = "#ffffff"_hex;
 
 			bool res = false;
@@ -353,12 +351,16 @@ namespace Minecraft
 				res = true;
 			}
 
-			// TODO: Draw world image path
-			//Renderer::drawTexture2D(*sprite, buttonPosition, button.size, guiStyle, -1);
-
 			glm::vec2 imageSize = glm::vec2(size.y - elementPadding.y * 2.0f, size.y - elementPadding.y * 2.0f);
 			glm::vec2 imagePos = buttonPosition + elementPadding;
-			Renderer::drawFilledSquare2D(imagePos, imageSize, Styles::defaultStyle);
+			if (!icon.texture.isNull())
+			{
+				Renderer::drawTexture2D(icon, imagePos, imageSize, guiStyle, 0.0f);
+			}
+			else
+			{
+				Renderer::drawFilledSquare2D(imagePos, imageSize, Styles::defaultStyle);
+			}
 
 			g_logger_assert(worldDataPath != nullptr, "Invalid world data path. Cannot be null.");
 			g_logger_assert(defaultFont != nullptr, "Invalid default font. Cannot be null.");
@@ -538,7 +540,7 @@ namespace Minecraft
 			if (window.nextElementSameLine)
 			{
 				nextPos = window.cursorPos + glm::vec2(elementSize.x, 0) + glm::vec2(elementPadding.x, 0);
-				
+
 			}
 			else
 			{
