@@ -337,8 +337,8 @@ namespace Minecraft
 				c2.lockedToCamera = !c2.lockedToCamera;
 				Tag& t1 = registry->getComponent<Tag>(playerId);
 				Tag& t2 = registry->getComponent<Tag>(randomEntity);
-				t1.type = c1.lockedToCamera ? TagType::Player : TagType::None;
-				t2.type = c2.lockedToCamera ? TagType::Player : TagType::None;
+				t1.type = c1.lockedToCamera ? TagType::Player : TagType::RandomEntity;
+				t2.type = c2.lockedToCamera ? TagType::Player : TagType::RandomEntity;
 			}
 
 			if (doDaylightCycle)

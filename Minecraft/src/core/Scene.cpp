@@ -43,7 +43,7 @@ namespace Minecraft
 
 			const char* packedTexturesFilepath = "assets/generated/packedTextures.png";
 			const char* packedItemTexturesFilepath = "assets/generated/packedItemTextures.png";
-			TexturePacker::packTextures("assets/images/block", "assets/generated/textureFormat.yaml", packedTexturesFilepath, "Blocks");
+			TexturePacker::packTextures("assets/images/block", "assets/generated/textureFormat.yaml", packedTexturesFilepath, "Blocks", true);
 			TexturePacker::packTextures("assets/images/item", "assets/generated/itemTextureFormat.yaml", packedItemTexturesFilepath, "Items");
 			BlockMap::loadBlocks("assets/generated/textureFormat.yaml", "assets/generated/itemTextureFormat.yaml", "assets/custom/blockFormats.yaml");
 			BlockMap::uploadTextureCoordinateMapToGpu();
@@ -71,13 +71,14 @@ namespace Minecraft
 			// Generate all the cube item pictures and pack them into a texture
 			const char* blockItemOutput = "assets/generated/blockItems/";
 			BlockMap::generateBlockItemPictures("assets/custom/blockFormats.yaml", blockItemOutput);
-			TexturePacker::packTextures(blockItemOutput, "assets/generated/blockItemTextureFormat.yaml", "assets/generated/packedBlockItemsTextures.png", "BlockItems", 64, 64);
+			TexturePacker::packTextures(blockItemOutput, "assets/generated/blockItemTextureFormat.yaml", "assets/generated/packedBlockItemsTextures.png", "BlockItems", false, 64, 64);
 			BlockMap::loadBlockItemTextures("assets/generated/blockItemTextureFormat.yaml");
 			blockItemTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::Nearest)
+				.setMinFilter(FilterMode::LinearMipmapNearest)
 				.setFilepath("assets/generated/packedBlockItemsTextures.png")
+				.generateMipmapFromFile()
 				.generateTextureObject()
 				.bindTextureObject()
 				.generate(true);

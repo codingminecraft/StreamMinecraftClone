@@ -80,6 +80,7 @@ namespace Minecraft
 		ByteFormat format;
 		ColorChannel swizzleFormat[4];
 		bool generateMipmap;
+		bool generateMipmapFromFile;
 
 		char* path;
 
@@ -111,6 +112,7 @@ namespace Minecraft
 		TextureBuilder& generateTextureObject();
 		TextureBuilder& setTextureObject(uint32 textureObjectId);
 		TextureBuilder& generateMipmap();
+		TextureBuilder& generateMipmapFromFile();
 		TextureBuilder& bindTextureObject();
 
 		Texture generate(bool generateFromFilepath = false);

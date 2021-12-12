@@ -1,4 +1,5 @@
 #include "renderer/Texture.h"
+#include "core/File.h"
 
 namespace Minecraft
 {
@@ -117,6 +118,12 @@ namespace Minecraft
 	TextureBuilder& TextureBuilder::generateMipmap()
 	{
 		texture.generateMipmap = true;
+		return *this;
+	}
+
+	TextureBuilder& TextureBuilder::generateMipmapFromFile()
+	{
+		texture.generateMipmapFromFile = true;
 		return *this;
 	}
 
@@ -478,6 +485,25 @@ namespace Minecraft
 			if (texture.generateMipmap)
 			{
 				glGenerateMipmap(textureType);
+			}
+
+			if (texture.generateMipmapFromFile)
+			{
+				for (int i = 0; i < 40; i++)
+				{
+					std::string mipFile = std::string(texture.path) + ".mip." + std::to_string(i + 1) + ".png";
+
+					if (!File::isFile(mipFile.c_str()))
+					{
+						break;
+					}
+
+					int mipChannels;
+					int width, height;
+					unsigned char* mipPixels = stbi_load(texture.path, &width, &height, &channels, 0);
+					glTexImage2D(textureType, i + 1, internalFormat, width, height, 0, externalFormat, GL_UNSIGNED_BYTE, mipPixels);
+					stbi_image_free(mipPixels);
+				}
 			}
 
 			stbi_image_free(pixels);
