@@ -18,6 +18,8 @@ namespace Minecraft
 		Window& getWindow();
 
 		Framebuffer& getMainFramebuffer();
+
+		extern float deltaTime;
 	}
 }
 

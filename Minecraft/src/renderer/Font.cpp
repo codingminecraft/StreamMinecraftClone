@@ -83,6 +83,30 @@ namespace Minecraft
 		return glm::vec2();
 	}
 
+	std::string Font::getStringThatFitsIn(const std::string& originalString, float scale, float maxSizeX) const
+	{
+		float width = 0;
+
+		for (int i = originalString.length() - 1; i >= 0; i--)
+		{
+			char c = originalString[i];
+			RenderableChar renderableChar = getCharInfo(c);
+			float charWidth = renderableChar.charSize.x * scale;
+
+			char prevC = i > 0 ? originalString[i - 1] : '\0';
+			width += getKerning(prevC, c) * scale;
+			width += renderableChar.advance.x * scale;
+
+			if (width >= maxSizeX)
+			{
+				g_logger_assert(i != originalString.length() - 1, "Invalid string width. This input box can't fit this string.");
+				return originalString.substr(i + 1, originalString.length() - (i + 1));
+			}
+		}
+
+		return originalString;
+	}
+
 	namespace Fonts
 	{
 		static bool initialized = false;

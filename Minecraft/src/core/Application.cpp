@@ -21,9 +21,7 @@ namespace Minecraft
 {
 	namespace Application
 	{
-		static Ecs::Registry& getRegistry();
-		static void freeWindow();
-		static void freeRegistry();
+		float deltaTime = 0.016f;
 
 		// Internal variables
 		static Framebuffer mainFramebuffer;
@@ -32,6 +30,11 @@ namespace Minecraft
 		static std::string screenshotName = "";
 
 		static Shader screenShader;
+
+		// Internal functions
+		static Ecs::Registry& getRegistry();
+		static void freeWindow();
+		static void freeRegistry();
 
 		void init()
 		{
@@ -119,7 +122,7 @@ namespace Minecraft
 			{
 
 				double currentTime = glfwGetTime();
-				double deltaTime = currentTime - previousTime;
+				deltaTime = currentTime - previousTime;
 
 				//if (Input::keyBeginPress(GLFW_KEY_F8))
 				//{

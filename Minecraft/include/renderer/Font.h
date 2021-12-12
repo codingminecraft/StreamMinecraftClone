@@ -38,6 +38,7 @@ namespace Minecraft
 		float getKerning(char leftChar, char rightChar) const;
 		glm::vec2 getSize(const std::string& str, float scale = 1.0f) const;
 		glm::vec2 getVertSize(const std::string& str, float scale = 1.0f) const;
+		std::string getStringThatFitsIn(const std::string& originalString, float scale, float maxSizeX) const;
 	};
 
 	namespace Fonts

@@ -3,6 +3,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
+#include "core/Application.h"
 
 namespace Minecraft
 {
@@ -37,6 +38,7 @@ namespace Minecraft
 		static glm::vec2 elementPadding;
 		static Font* defaultFont;
 		static float defaultTextScale;
+		static const float keyHoldDelayTime = 0.05f;
 
 		// Internal functions
 		static WidgetState mouseInAABB(const glm::vec2& position, const glm::vec2& size);
@@ -151,6 +153,13 @@ namespace Minecraft
 
 			std::string inputText = std::string(inputBuffer);
 			glm::vec2 inputTextStrSize = defaultFont->getSize(inputText, scale);
+			glm::vec2 sizeOfPipeChar = defaultFont->getSize("|", scale);
+			if (inputTextStrSize.x >= (inputBoxSize.x - sizeOfPipeChar.x - textBoxPadding))
+			{
+				// Figure out how many chars fit in the line
+				inputText = defaultFont->getStringThatFitsIn(inputText, scale, inputBoxSize.x - sizeOfPipeChar.x - textBoxPadding);
+				inputTextStrSize = defaultFont->getSize(inputText, scale);
+			}
 			float inputCursorPosX = textBoxPadding;
 			if (inputText.length() > 0)
 			{
@@ -195,27 +204,42 @@ namespace Minecraft
 					}
 
 					res = placedNullChar;
-					if (!placedNullChar) 
+					if (!placedNullChar)
 					{
 						g_logger_error("Ran out of room in input buffer, terminating string early.");
 						inputBuffer[inputBufferLength - 1] = '\0';
 					}
 				}
-				if (Input::keyBeginPress(GLFW_KEY_BACKSPACE))
+
+				static float backspaceDelayTimeLeft = 0.0f;
+				static bool backspacePressedLastFrame = false;
+				if (Input::isKeyPressed(GLFW_KEY_BACKSPACE))
 				{
-					for (int i = 0; i < inputBufferLength; i++)
+					if (backspaceDelayTimeLeft <= 0.0f)
 					{
-						if (inputBuffer[i] == '\0')
+						backspaceDelayTimeLeft = keyHoldDelayTime * (backspacePressedLastFrame ? 1.0f : 6.0f);
+						for (int i = 0; i < inputBufferLength; i++)
 						{
-							if (i > 0)
+							if (inputBuffer[i] == '\0')
 							{
-								inputBuffer[i - 1] = '\0';
+								if (i > 0)
+								{
+									inputBuffer[i - 1] = '\0';
+								}
+								break;
 							}
-							break;
 						}
+						backspacePressedLastFrame = true;
 					}
 					res = true;
 				}
+				else
+				{
+					backspacePressedLastFrame = false;
+				}
+				backspaceDelayTimeLeft -= Application::deltaTime;
+
+
 			}
 
 			Gui::advanceCursorPastElement(windowState, inputBoxSize);
