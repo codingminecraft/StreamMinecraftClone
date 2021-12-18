@@ -154,7 +154,7 @@ namespace Minecraft
 				break;
 				case CommandType::TesselateVertices:
 				{
-					ChunkPrivate::generateRenderData(command.subChunks, command.chunk, command.chunk->chunkCoords);
+					ChunkPrivate::generateRenderData(command.subChunks, command.chunk, command.chunk->chunkCoords, command.isRetesselating);
 				}
 				break;
 				case CommandType::SaveBlockData:

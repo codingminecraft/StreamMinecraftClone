@@ -26,6 +26,7 @@ namespace Minecraft
 		CommandType type;
 		glm::vec3 blockThatUpdated;
 		bool removedLightSource;
+		bool isRetesselating;
 		void* clientChunkData;
 	};
 

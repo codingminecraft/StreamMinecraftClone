@@ -814,7 +814,7 @@ namespace Minecraft
 			}
 		}
 
-		void generateRenderData(Pool<SubChunk>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates)
+		void generateRenderData(Pool<SubChunk>* subChunks, const Chunk* chunk, const glm::ivec2& chunkCoordinates, bool isRetesselation)
 		{
 			const int worldChunkX = chunkCoordinates.x * 16;
 			const int worldChunkZ = chunkCoordinates.y * 16;
@@ -971,18 +971,36 @@ namespace Minecraft
 									: i == (int)CUBE_FACE::BOTTOM
 									? blockFormat.colorBottomByBiome
 									: blockFormat.colorSideByBiome;
-								loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
-									verts[vertIndices[i][0]],
-									verts[vertIndices[i][1]],
-									verts[vertIndices[i][2]],
-									verts[vertIndices[i][3]],
-									*textures[i],
-									(CUBE_FACE)i,
-									colorByBiome,
-									smoothLightVertex[i],
-									smoothSkyLightVertex[i],
-									lightColors[i]);
-								currentSubChunk->numVertsUsed += 6;
+								if (isRetesselation)
+								{
+									loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
+										verts[vertIndices[i][0]],
+										verts[vertIndices[i][1]],
+										verts[vertIndices[i][2]],
+										verts[vertIndices[i][3]],
+										*textures[i],
+										(CUBE_FACE)i,
+										colorByBiome,
+										glm::u8vec4(0),
+										glm::u8vec4(0),
+										lightColors[i]);
+									currentSubChunk->numVertsUsed += 6;
+								}
+								else
+								{
+									loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
+										verts[vertIndices[i][0]],
+										verts[vertIndices[i][1]],
+										verts[vertIndices[i][2]],
+										verts[vertIndices[i][3]],
+										*textures[i],
+										(CUBE_FACE)i,
+										colorByBiome,
+										smoothLightVertex[i],
+										smoothSkyLightVertex[i],
+										lightColors[i]);
+									currentSubChunk->numVertsUsed += 6;
+								}
 							}
 						}
 					}

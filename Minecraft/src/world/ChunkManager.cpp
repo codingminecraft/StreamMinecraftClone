@@ -410,6 +410,7 @@ namespace Minecraft
 				cmd.type = CommandType::TesselateVertices;
 				cmd.subChunks = subChunks;
 				cmd.chunk = chunk;
+				cmd.isRetesselating = true;
 
 				// Update the sub-chunks that are about to be deleted
 				bool needsToBeRetesselated = false;
@@ -847,15 +848,15 @@ namespace Minecraft
 						needsWork = true;
 						glm::ivec2 lastLocalPos = lastPlayerPosChunkCoords - position;
 						bool retesselateThisChunk =
-							(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 1) * (World::ChunkRadius - 1))
+							(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 2) * (World::ChunkRadius - 2))
 							&& retesselateEdges;
-						if (!retesselateThisChunk)
+						if (retesselateThisChunk)
 						{
-							ChunkManager::queueCreateChunk(position);
+							ChunkManager::queueRetesselateChunk(position);
 						}
 						else
 						{
-							ChunkManager::queueRetesselateChunk(position);
+							ChunkManager::queueCreateChunk(position);
 						}
 					}
 				}
@@ -864,8 +865,8 @@ namespace Minecraft
 			ChunkManager::queueGenerateDecorations(playerPosChunkCoords);
 			ChunkManager::queueCalculateLighting(playerPosChunkCoords);
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
-
 			ChunkManager::patchChunkPointers();
+
 			if (needsWork)
 			{
 				chunkWorker->beginWork();
