@@ -21,6 +21,8 @@
 #include "core/Scene.h"
 #include "core/Window.h"
 
+#include "utils/Constants.h"
+
 namespace Minecraft
 {
 	enum class GameMode : uint8
@@ -64,6 +66,8 @@ namespace Minecraft
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
 		static void updateInventory(float dt, Inventory& inventory);
 
+		static Model stick;
+
 		void init()
 		{
 			blockHighlight = Styles::defaultStyle;
@@ -75,6 +79,8 @@ namespace Minecraft
 			sideSprite = &BlockMap::getTextureFormat("oak_log");
 			topSprite = &BlockMap::getTextureFormat("oak_log_top");
 			bottomSprite = &BlockMap::getTextureFormat("oak_log_top");
+
+			stick = Vertices::getItemModel("stick");
 		}
 
 		void update(Ecs::Registry& registry, float dt)
@@ -186,6 +192,7 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
+			Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
 				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);

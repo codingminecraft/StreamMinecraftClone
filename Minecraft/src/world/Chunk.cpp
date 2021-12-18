@@ -971,23 +971,23 @@ namespace Minecraft
 									: i == (int)CUBE_FACE::BOTTOM
 									? blockFormat.colorBottomByBiome
 									: blockFormat.colorSideByBiome;
-								if (isRetesselation)
-								{
-									loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
-										verts[vertIndices[i][0]],
-										verts[vertIndices[i][1]],
-										verts[vertIndices[i][2]],
-										verts[vertIndices[i][3]],
-										*textures[i],
-										(CUBE_FACE)i,
-										colorByBiome,
-										glm::u8vec4(0),
-										glm::u8vec4(0),
-										lightColors[i]);
-									currentSubChunk->numVertsUsed += 6;
-								}
-								else
-								{
+								//if (isRetesselation)
+								//{
+								//	loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
+								//		verts[vertIndices[i][0]],
+								//		verts[vertIndices[i][1]],
+								//		verts[vertIndices[i][2]],
+								//		verts[vertIndices[i][3]],
+								//		*textures[i],
+								//		(CUBE_FACE)i,
+								//		colorByBiome,
+								//		glm::u8vec4(0),
+								//		glm::u8vec4(0),
+								//		lightColors[i]);
+								//	currentSubChunk->numVertsUsed += 6;
+								//}
+								//else
+								//{
 									loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
 										verts[vertIndices[i][0]],
 										verts[vertIndices[i][1]],
@@ -1000,7 +1000,7 @@ namespace Minecraft
 										smoothSkyLightVertex[i],
 										lightColors[i]);
 									currentSubChunk->numVertsUsed += 6;
-								}
+								//}
 							}
 						}
 					}

@@ -302,15 +302,9 @@ namespace Minecraft
 				randomEntity = registry->find(TagType::RandomEntity);
 			}
 
-			// Update all systems
-			Network::update(dt);
-			KeyHandler::update(dt);
-			Physics::update(*registry, dt);
-			PlayerController::update(*registry, dt);
-			CharacterSystem::update(*registry, dt);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry, dt);
-
+			// Draw cubemap and update camera
 			Camera& camera = Scene::getCamera();
 			glm::mat4 projectionMatrix = camera.calculateProjectionMatrix(*registry);
 			glm::mat4 viewMatrix = camera.calculateViewMatrix(*registry);
@@ -318,6 +312,13 @@ namespace Minecraft
 
 			// Render cubemap
 			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
+
+			// Update all systems
+			Network::update(dt);
+			KeyHandler::update(dt); 
+			Physics::update(*registry, dt);
+			PlayerController::update(*registry, dt);
+			CharacterSystem::update(*registry, dt);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;

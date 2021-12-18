@@ -158,6 +158,7 @@ namespace Minecraft
 
 		void reloadShaders()
 		{
+			Renderer::reloadShaders();
 			switch (currentScene)
 			{
 			case SceneType::SinglePlayerGame:

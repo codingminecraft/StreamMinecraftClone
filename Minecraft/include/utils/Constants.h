@@ -4,6 +4,13 @@
 
 namespace Minecraft
 {
+	struct VoxelVertex;
+	struct Model
+	{
+		const VoxelVertex* vertices;
+		int verticesLength;
+	};
+
 	namespace INormals3
 	{
 		const glm::ivec3 Up = glm::ivec3(0, 1, 0);
@@ -85,6 +92,8 @@ namespace Minecraft
 
 		void init();
 		void free();
+
+		Model getItemModel(const std::string& itemName);
 	}
 
 	namespace Player

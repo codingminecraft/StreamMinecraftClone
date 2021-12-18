@@ -15,6 +15,12 @@ namespace Minecraft
 	struct TextureFormat;
 	class Frustum;
 
+	struct VoxelVertex
+	{
+		glm::vec3 position;
+		glm::u8vec4 color;
+	};
+
 	struct DrawArraysIndirectCommand
 	{
 		uint32 count;
@@ -29,8 +35,11 @@ namespace Minecraft
 		void free();
 		void render();
 
+		void reloadShaders();
+
 		void flushBatches2D();
 		void flushBatches3D();
+		void flushVoxelBatches();
 		void flushBatches3D(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix);
 
 		void setShader2D(const Shader& shader);
@@ -48,6 +57,7 @@ namespace Minecraft
 		void drawString(const std::string& string, const Font& font, const glm::vec2& position, float scale, const Style& style, int zIndex = 0);
 
 		// 3D Rendering stuff
+		void draw3DModel(const glm::vec3& position, const glm::vec3& scale, float rotation, const VoxelVertex* vertices, int verticesLength);
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style);
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style);
 		void drawTexturedCube(const glm::vec3& center, const glm::vec3& size, const TextureFormat& sideSprite, const TextureFormat& topSprite, const TextureFormat& bottomSprite, float rotation = 0.0f);
