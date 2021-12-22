@@ -2,11 +2,30 @@
 #include "world/Chunk.hpp"
 #include "world/World.h"
 #include "world/BlockMap.h"
+#include "core/Application.h"
+#include "core/GlobalThreadPool.h"
 #include "network/Network.h"
 #include "utils/DebugStats.h"
 
 namespace Minecraft
 {
+	// Internal functions
+	static void freeChunkCmd(void* fillChunkCmd, size_t dataSize);
+	static void clientLoadChunk(void* fillChunkCmd, size_t dataSize);
+	static void generateTerrain(void* fillChunkCmd, size_t dataSize);
+	static void generateDecorations(FillChunkCommand* fillChunkCmd);
+	static void calculateLighting(FillChunkCommand* fillChunkCmd);
+	static void recalculateLighting(void* fillChunkCmd, size_t dataSize);
+	static void tesselateVertices(void* fillChunkCmd, size_t dataSize);
+	static void saveBlockData(void* fillChunkCmd, size_t dataSize);
+	static bool isSynchronous(FillChunkCommand* command);
+
+	// Internal members
+	static uint32 asyncCounter = 0;
+	static uint32 totalCommandCount = 0;
+	static uint32 totalCommandsDone = 0;
+	static std::mutex asyncCounterMtx;
+
 	bool CompareFillChunkCommand::operator()(const FillChunkCommand& a, const FillChunkCommand& b) const
 	{
 		if (a.type != b.type)
@@ -65,7 +84,7 @@ namespace Minecraft
 				}
 			}
 
-			FillChunkCommand command;
+			FillChunkCommand* command = (FillChunkCommand*)g_memory_allocate(sizeof(FillChunkCommand));
 			bool processCommand = false;
 			{
 				std::lock_guard<std::mutex> queueLock(queueMtx);
@@ -75,110 +94,63 @@ namespace Minecraft
 					// If we are stopping the thread worker, then only process save commands
 					do
 					{
-						command = commands.top();
+						g_memory_copyMem(command, (void*)&commands.top(), sizeof(FillChunkCommand));
 						commands.pop();
-						processCommand = (!doWork && command.type == CommandType::SaveBlockData) || doWork;
-					} while (!doWork && command.type != CommandType::SaveBlockData && commands.size() > 0);
+						processCommand = (!doWork && command->type == CommandType::SaveBlockData) || doWork;
+					} while (!doWork && command->type != CommandType::SaveBlockData && commands.size() > 0);
 				}
+			}
+
+			if (isSynchronous(command))
+			{
+				std::unique_lock<std::mutex> lock(mtx);
+				cv.wait(lock, [&] { return (!doWork || !commands.empty()) && asyncCounter != 0; });
+			}
+			else
+			{
+				std::lock_guard<std::mutex> lock(asyncCounterMtx);
+				asyncCounter++;
 			}
 
 			if (processCommand)
 			{
-				switch (command.type)
+				switch (command->type)
 				{
+				case CommandType::SaveBlockData:
+					// SYNCHRONOUS for now, once we switch to unlimited height, this can become asynchronous
+					//Application::getGlobalThreadPool().queueTask(saveBlockData, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					saveBlockData(command, sizeof(FillChunkCommand));
+					freeChunkCmd(command, sizeof(FillChunkCommand));
+					break;
 				case CommandType::ClientLoadChunk:
-				{
-					g_logger_assert(command.clientChunkData != nullptr, "Invalid client data sent to the chunk.");
-					g_memory_copyMem(command.chunk->data, command.clientChunkData,
-						sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
-					g_memory_free(command.clientChunkData);
-					for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
-					{
-						BlockFormat format = BlockMap::getBlock(command.chunk->data[i].id);
-						command.chunk->data[i].setTransparent(format.isTransparent);
-						command.chunk->data[i].setIsLightSource(format.isLightSource);
-						command.chunk->data[i].setIsBlendable(format.isBlendable);
-					}
-					command.chunk->needsToGenerateDecorations = false;
-					command.chunk->needsToCalculateLighting = true;
+					Application::getGlobalThreadPool().queueTask(clientLoadChunk, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					break;
+				case CommandType::GenerateTerrain:
+					Application::getGlobalThreadPool().queueTask(generateTerrain, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					break;
+				case CommandType::GenerateDecorations:
+					// SYNCHRONOUS
+					generateDecorations(command);
+					freeChunkCmd(command, sizeof(FillChunkCommand));
+					break;
+				case CommandType::CalculateLighting:
+					// SYNCHRONOUS
+					calculateLighting(command);
+					freeChunkCmd(command, sizeof(FillChunkCommand));
+					break;
+				case CommandType::RecalculateLighting:
+					Application::getGlobalThreadPool().queueTask(recalculateLighting, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					break;
+				case CommandType::TesselateVertices:
+					Application::getGlobalThreadPool().queueTask(tesselateVertices, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					break;
 				}
-				case CommandType::GenerateTerrain:
-				{
-					if (Network::isNetworkEnabled())
-					{
-						return;
-					}
 
-					if (ChunkPrivate::exists(World::chunkSavePath, command.chunk->chunkCoords))
-					{
-						ChunkPrivate::deserialize(*command.chunk, World::chunkSavePath);
-						command.chunk->needsToGenerateDecorations = false;
-					}
-					else
-					{
-						ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat);
-						command.chunk->needsToGenerateDecorations = true;
-					}
-					command.chunk->needsToCalculateLighting = true;
-				}
-				break;
-				case CommandType::GenerateDecorations:
-				{
-					if (Network::isNetworkEnabled())
-					{
-						return;
-					}
-
-					ChunkPrivate::generateDecorations(command.playerPosChunkCoords, World::seedAsFloat);
-				}
-				break;
-				case CommandType::CalculateLighting:
-				{
-					ChunkPrivate::calculateLighting(command.playerPosChunkCoords);
-				}
-				break;
-				case CommandType::RecalculateLighting:
-				{
-					robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
-					ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource, chunksToRetesselate);
-					for (Chunk* chunk : chunksToRetesselate)
-					{
-						// TODO: I should probably do all this from within the thread...
-						ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
-						//command.chunk = chunk;
-						//command.type = CommandType::TesselateVertices;
-						//queueCommand(command);
-					}
-				}
-				break;
-				case CommandType::TesselateVertices:
-				{
-					ChunkPrivate::generateRenderData(command.subChunks, command.chunk, command.chunk->chunkCoords, command.isRetesselating);
-				}
-				break;
-				case CommandType::SaveBlockData:
-				{
-					// Unload all sub-chunks
-					for (int i = 0; i < (int)command.subChunks->size(); i++)
-					{
-						if ((*command.subChunks)[i]->state == SubChunkState::Uploaded && (*command.subChunks)[i]->chunkCoordinates == command.chunk->chunkCoords)
-						{
-							(*command.subChunks)[i]->state = SubChunkState::Unloaded;
-							(*command.subChunks)[i]->numVertsUsed = 0;
-							command.subChunks->freePool(i);
-							DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (World::MaxVertsPerSubChunk * sizeof(Vertex));
-						}
-					}
-
-					// Serialize block data
-					ChunkPrivate::serialize(World::chunkSavePath, *command.chunk);
-
-					// Tell the chunk manager we are done
-					command.chunk->state = ChunkState::Unloading;
-				}
-				break;
-				}
+				Application::getGlobalThreadPool().beginWork(false);
+			}
+			else
+			{
+				g_memory_free(command);
 			}
 		}
 	}
@@ -188,6 +160,8 @@ namespace Minecraft
 		command.playerPosChunkCoords = playerPosChunkCoords.load();
 		{
 			std::lock_guard<std::mutex> lockGuard(queueMtx);
+			std::lock_guard<std::mutex> lockGuard2(asyncCounterMtx);
+			totalCommandCount++;
 			commands.push(command);
 		}
 	}
@@ -211,8 +185,142 @@ namespace Minecraft
 
 	float ChunkThreadWorker::percentDone()
 	{
-		std::lock_guard<std::mutex> lock(this->queueMtx);
-		static float initialSize = (float)this->commands.size();
-		return this->commands.size() == 0 ? 1.0f : (initialSize - (float)this->commands.size()) / initialSize;
+		std::lock_guard<std::mutex> lock(asyncCounterMtx);
+		static float initialSize = (float)totalCommandCount;
+		return (float)totalCommandsDone >= initialSize ? 1.0f : 1.0f - ((initialSize - (float)totalCommandsDone) / initialSize);
+	}
+
+	static bool isSynchronous(FillChunkCommand* command)
+	{
+		switch (command->type)
+		{
+		case CommandType::CalculateLighting:
+		case CommandType::GenerateDecorations:
+			return true;
+		}
+
+		return false;
+	}
+
+	static void clientLoadChunk(void* fillChunkCmd, size_t dataSize)
+	{
+		g_logger_assert(dataSize == sizeof(FillChunkCommand), "Invalid data size sent to task 'clientLoadChunk'.\nExpected '%zu', but got '%zu'", sizeof(FillChunkCommand), dataSize);
+		FillChunkCommand& command = *(FillChunkCommand*)fillChunkCmd;
+
+		g_logger_assert(command.clientChunkData != nullptr, "Invalid client data sent to the chunk.");
+		g_memory_copyMem(command.chunk->data, command.clientChunkData,
+			sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
+		g_memory_free(command.clientChunkData);
+		for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
+		{
+			BlockFormat format = BlockMap::getBlock(command.chunk->data[i].id);
+			command.chunk->data[i].setTransparent(format.isTransparent);
+			command.chunk->data[i].setIsLightSource(format.isLightSource);
+			command.chunk->data[i].setIsBlendable(format.isBlendable);
+		}
+		command.chunk->needsToGenerateDecorations = false;
+		command.chunk->needsToCalculateLighting = true;
+	}
+
+	static void generateTerrain(void* fillChunkCmd, size_t dataSize)
+	{
+		g_logger_assert(dataSize == sizeof(FillChunkCommand), "Invalid data size sent to task 'generateTerrain'.\nExpected '%zu', but got '%zu'", sizeof(FillChunkCommand), dataSize);
+		FillChunkCommand& command = *(FillChunkCommand*)fillChunkCmd;
+
+		if (Network::isNetworkEnabled())
+		{
+			return;
+		}
+
+		if (ChunkPrivate::exists(World::chunkSavePath, command.chunk->chunkCoords))
+		{
+			ChunkPrivate::deserialize(*command.chunk, World::chunkSavePath);
+			command.chunk->needsToGenerateDecorations = false;
+		}
+		else
+		{
+			ChunkPrivate::generateTerrain(command.chunk, command.chunk->chunkCoords, World::seedAsFloat);
+			command.chunk->needsToGenerateDecorations = true;
+		}
+		command.chunk->needsToCalculateLighting = true;
+	}
+
+	static void generateDecorations(FillChunkCommand* fillChunkCmd)
+	{
+		if (Network::isNetworkEnabled())
+		{
+			return;
+		}
+
+		ChunkPrivate::generateDecorations(fillChunkCmd->playerPosChunkCoords, World::seedAsFloat);
+	}
+
+	static void calculateLighting(FillChunkCommand* fillChunkCmd)
+	{
+		ChunkPrivate::calculateLighting(fillChunkCmd->playerPosChunkCoords);
+	}
+
+	static void recalculateLighting(void* fillChunkCmd, size_t dataSize)
+	{
+		g_logger_assert(dataSize == sizeof(FillChunkCommand), "Invalid data size sent to task 'clientLoadChunk'.\nExpected '%zu', but got '%zu'", sizeof(FillChunkCommand), dataSize);
+		FillChunkCommand& command = *(FillChunkCommand*)fillChunkCmd;
+
+		robin_hood::unordered_flat_set<Chunk*> chunksToRetesselate = {};
+		ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource, chunksToRetesselate);
+		for (Chunk* chunk : chunksToRetesselate)
+		{
+			// TODO: I should probably do all this from within the thread...
+			ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
+			//command.chunk = chunk;
+			//command.type = CommandType::TesselateVertices;
+			//queueCommand(command);
+		}
+	}
+
+	static void tesselateVertices(void* fillChunkCmd, size_t dataSize)
+	{
+		g_logger_assert(dataSize == sizeof(FillChunkCommand), "Invalid data size sent to task 'clientLoadChunk'.\nExpected '%zu', but got '%zu'", sizeof(FillChunkCommand), dataSize);
+		FillChunkCommand& command = *(FillChunkCommand*)fillChunkCmd;
+
+		ChunkPrivate::generateRenderData(command.subChunks, command.chunk, command.chunk->chunkCoords, command.isRetesselating);
+	}
+
+	static void saveBlockData(void* fillChunkCmd, size_t dataSize)
+	{
+		g_logger_assert(dataSize == sizeof(FillChunkCommand), "Invalid data size sent to task 'clientLoadChunk'.\nExpected '%zu', but got '%zu'", sizeof(FillChunkCommand), dataSize);
+		FillChunkCommand& command = *(FillChunkCommand*)fillChunkCmd;
+
+		// Unload all sub-chunks
+		for (int i = 0; i < (int)command.subChunks->size(); i++)
+		{
+			if ((*command.subChunks)[i]->state == SubChunkState::Uploaded && (*command.subChunks)[i]->chunkCoordinates == command.chunk->chunkCoords)
+			{
+				(*command.subChunks)[i]->state = SubChunkState::Unloaded;
+				(*command.subChunks)[i]->numVertsUsed = 0;
+				command.subChunks->freePool(i);
+				DebugStats::totalChunkRamUsed = DebugStats::totalChunkRamUsed - (World::MaxVertsPerSubChunk * sizeof(Vertex));
+			}
+		}
+
+		// Serialize block data
+		ChunkPrivate::serialize(World::chunkSavePath, *command.chunk);
+
+		// Tell the chunk manager we are done
+		command.chunk->state = ChunkState::Unloading;
+	}
+
+	static void freeChunkCmd(void* fillChunkCmd, size_t dataSize)
+	{
+		{
+			std::lock_guard<std::mutex> lock(asyncCounterMtx);
+			asyncCounter--;
+			totalCommandsDone++;
+			if (asyncCounter == 0)
+			{
+				// Wake up the conditional variable if needed
+				ChunkManager::beginWork();
+			}
+		}
+		g_memory_free(fillChunkCmd);
 	}
 }

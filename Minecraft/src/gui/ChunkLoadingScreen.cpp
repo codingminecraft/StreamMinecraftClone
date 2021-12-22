@@ -93,5 +93,10 @@ namespace Minecraft
 			);
 			Renderer::drawString(text, *defaultFont, strPos, fontSize, Styles::defaultStyle);
 		}
+
+		void free()
+		{
+			dirtTextureSprite.texture.destroy();
+		}
 	}
 }

@@ -8,6 +8,8 @@ namespace Minecraft
 		void init();
 
 		void update(float dt, float percentLoaded);
+
+		void free();
 	}
 }
 

@@ -423,11 +423,7 @@ namespace Minecraft
 					}
 				}
 
-				if (needsToBeRetesselated)
-				{
-					chunkWorker->queueCommand(cmd);
-					chunkWorker->beginWork();
-				}
+				chunkWorker->queueCommand(cmd);
 			}
 		}
 
@@ -584,7 +580,7 @@ namespace Minecraft
 			{
 				// TODO: Make this thread-safe somehow or something
 				// or make sure no threads access this
-				//std::lock_guard<std::mutex> lock(chunkMtx);
+				std::lock_guard<std::mutex> lock(chunkMtx);
 				const robin_hood::unordered_map<glm::ivec2, Chunk>::iterator& iter = chunks.find(chunkCoords);
 				if (iter != chunks.end())
 				{

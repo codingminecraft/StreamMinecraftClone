@@ -4,6 +4,7 @@
 #include "core/Ecs.h"
 #include "core/Scene.h"
 #include "core/AppData.h"
+#include "core/GlobalThreadPool.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
 #include "renderer/Framebuffer.h"
@@ -30,6 +31,7 @@ namespace Minecraft
 		static std::string screenshotName = "";
 
 		static Shader screenShader;
+		static GlobalThreadPool* globalThreadPool;
 
 		// Internal functions
 		static Ecs::Registry& getRegistry();
@@ -48,6 +50,7 @@ namespace Minecraft
 			}
 
 			// Initialize all other subsystems
+			globalThreadPool = new GlobalThreadPool(std::thread::hardware_concurrency());
 			AppData::init();
 			Ecs::Registry& registry = getRegistry();
 			Renderer::init(registry);
@@ -238,12 +241,17 @@ namespace Minecraft
 			mainFramebuffer.destroy();
 
 			// Free all resources
+			// Important: Scene gets freed first so that it queues all saving tasks to the global thread pool.
+			// Then we can free the global thread pool which will finish those tasks
+			Scene::free();
+			globalThreadPool->free();
+			delete globalThreadPool;
+
 			Vertices::free();
 			GuiElements::free();
 			getRegistry().free();
 			Window& window = getWindow();
 			window.destroy();
-			Scene::free();
 			Renderer::free();
 			Window::free();
 
@@ -261,6 +269,11 @@ namespace Minecraft
 		Framebuffer& getMainFramebuffer()
 		{
 			return mainFramebuffer;
+		}
+
+		GlobalThreadPool& getGlobalThreadPool()
+		{
+			return *globalThreadPool;
 		}
 
 		void takeScreenshot(const char* filename, bool mustBeSquare)

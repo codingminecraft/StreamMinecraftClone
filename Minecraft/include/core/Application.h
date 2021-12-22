@@ -6,6 +6,7 @@ namespace Minecraft
 {
 	struct Window;
 	struct Framebuffer;
+	class GlobalThreadPool;
 
 	namespace Application
 	{
@@ -16,8 +17,8 @@ namespace Minecraft
 		void takeScreenshot(const char* filename = "", bool mustBeSquare = false);
 
 		Window& getWindow();
-
 		Framebuffer& getMainFramebuffer();
+		GlobalThreadPool& getGlobalThreadPool();
 
 		extern float deltaTime;
 	}

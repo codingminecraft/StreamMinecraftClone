@@ -192,7 +192,7 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
-			Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
+			//Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
 				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);

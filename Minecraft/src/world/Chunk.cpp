@@ -844,7 +844,7 @@ namespace Minecraft
 						bool currentBlockIsWater = blockId == 19;
 
 						// TODO: SIMDify this section
-						static glm::ivec3 verts[8];
+						glm::ivec3 verts[8];
 						verts[0] = glm::ivec3(
 							x,
 							y,

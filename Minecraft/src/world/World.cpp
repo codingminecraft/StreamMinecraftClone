@@ -263,6 +263,7 @@ namespace Minecraft
 			ChunkManager::free();
 			MainHud::free();
 			TerrainGenerator::free();
+			ChunkLoadingScreen::free();
 
 			registry->clear();
 
