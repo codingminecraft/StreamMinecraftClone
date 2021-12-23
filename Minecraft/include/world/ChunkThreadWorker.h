@@ -47,6 +47,7 @@ namespace Minecraft
 		void queueCommand(FillChunkCommand& command);
 
 		void beginWork(bool notifyAll = true);
+		void wakeupCv2();
 		void setPlayerPosChunkCoords(const glm::ivec2& playerPosChunkCoords);
 
 		float percentDone();
@@ -56,6 +57,7 @@ namespace Minecraft
 		std::thread workerThread;
 		std::atomic<glm::ivec2> playerPosChunkCoords;
 		std::condition_variable cv;
+		std::condition_variable cv2;
 		std::mutex mtx;
 		std::mutex queueMtx;
 		bool doWork;

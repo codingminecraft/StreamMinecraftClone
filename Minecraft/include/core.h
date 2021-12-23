@@ -66,9 +66,11 @@
 #include <magic_enum.hpp>
 
 // Optick
-//#define OPTICK_ENABLE_GPU_D3D12 0
-//#define OPTICK_ENABLE_GPU_VULKAN 0
-//#include <optick.h>
+#ifdef _USE_OPTICK
+#define OPTICK_ENABLE_GPU_D3D12 0
+#define OPTICK_ENABLE_GPU_VULKAN 0
+#include <optick.h>
+#endif
 
 // User defined literals
 glm::vec4 operator""_hex(const char* hexColor, size_t length);

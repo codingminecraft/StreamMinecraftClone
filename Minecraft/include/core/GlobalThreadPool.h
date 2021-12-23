@@ -22,6 +22,7 @@ namespace Minecraft
 		void* data;
 		size_t dataSize;
 		Priority priority;
+		const char* taskName;
 	};
 
 	struct CompareThreadTask
@@ -40,6 +41,7 @@ namespace Minecraft
 		void processLoop(int threadIndex);
 		void queueTask(
 			TaskFunction function, 
+			const char* taskName = "Default",
 			void* data = nullptr, 
 			size_t dataSize = 0, 
 			Priority priority = Priority::None, 

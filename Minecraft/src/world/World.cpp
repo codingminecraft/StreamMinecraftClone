@@ -274,6 +274,10 @@ namespace Minecraft
 
 		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
 		{
+#ifdef _USE_OPTICK
+			OPTICK_EVENT();
+#endif
+
 			//static float slowLoading = 0.0f;
 			if (isLoading)
 			{

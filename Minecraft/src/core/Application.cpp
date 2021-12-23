@@ -127,21 +127,10 @@ namespace Minecraft
 				double currentTime = glfwGetTime();
 				deltaTime = currentTime - previousTime;
 
-				//if (Input::keyBeginPress(GLFW_KEY_F8))
-				//{
-				//	static bool capturing = false;
-				//	if (!capturing)
-				//	{
-				//		capturing = true;
-				//		OPTICK_START_CAPTURE();
-				//	}
-				//	else
-				//	{
-				//		capturing = false;
-				//		OPTICK_STOP_CAPTURE();
-				//		OPTICK_SAVE_CAPTURE("c:/tmp/optickCapture.opt");
-				//	}
-				//}
+#ifdef _USE_OPTICK
+				OPTICK_FRAME("Main Thread");
+				OPTICK_EVENT();
+#endif
 
 				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
 				{

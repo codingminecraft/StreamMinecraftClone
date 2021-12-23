@@ -399,7 +399,6 @@ namespace Minecraft
 
 		void calculateLighting(const glm::ivec2& lastPlayerLoadPosChunkCoords)
 		{
-			double startTime = glfwGetTime();
 			for (int i = 0; i < 2; i++)
 			{
 				for (int chunkZ = lastPlayerLoadPosChunkCoords.y - World::ChunkRadius; chunkZ <= lastPlayerLoadPosChunkCoords.y + World::ChunkRadius; chunkZ++)
@@ -446,7 +445,6 @@ namespace Minecraft
 					}
 				}
 			}
-			g_logger_info("Calculate lighting took %2.3f seconds", glfwGetTime() - startTime);
 		}
 
 		static void calculateChunkSkyBlocks(Chunk* chunk, const glm::ivec2& chunkCoordinates)

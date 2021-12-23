@@ -39,6 +39,11 @@ namespace Minecraft
 
 	void GlobalThreadPool::processLoop(int threadIndex)
 	{
+#ifdef _USE_OPTICK
+		std::string threadName = "GlobalThread_" + std::to_string(threadIndex);
+		OPTICK_THREAD(threadName.c_str());
+#endif
+
 		bool shouldContinue = true;
 		while (shouldContinue)
 		{
@@ -66,7 +71,12 @@ namespace Minecraft
 
 			if (task.fn)
 			{
-				task.fn(task.data, task.dataSize);
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT_DYNAMIC(task.taskName);
+#endif
+					task.fn(task.data, task.dataSize);
+				}
 				if (task.callback)
 				{
 					task.callback(task.data, task.dataSize);
@@ -75,18 +85,19 @@ namespace Minecraft
 		}
 	}
 
-	void GlobalThreadPool::queueTask(TaskFunction function, void* data, size_t dataSize, Priority priority, ThreadCallback callback)
+	void GlobalThreadPool::queueTask(TaskFunction function, const char* taskName, void* data, size_t dataSize, Priority priority, ThreadCallback callback)
 	{
-		static std::atomic<uint64> counter = 0;
+		static uint64 counter = 0;
 		ThreadTask task;
 		task.fn = function;
 		task.data = data;
 		task.dataSize = dataSize;
 		task.priority = priority;
 		task.callback = callback;
-		task.counter = counter++;
+		task.taskName = taskName;
 		{
 			std::lock_guard<std::mutex> lockGuard(queueMtx);
+			task.counter = counter++;
 			tasks.push(task);
 		}
 	}

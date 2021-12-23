@@ -56,6 +56,10 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
+#ifdef _USE_OPTICK
+			OPTICK_EVENT();
+#endif
+
 			static float accumulatedDeltaTime = 0.0f;
 			accumulatedDeltaTime += dt;
 

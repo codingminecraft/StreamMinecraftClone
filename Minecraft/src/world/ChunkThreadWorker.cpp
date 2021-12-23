@@ -21,10 +21,12 @@ namespace Minecraft
 	static bool isSynchronous(FillChunkCommand* command);
 
 	// Internal members
-	static uint32 asyncCounter = 0;
+	static uint32 barrierSyncCounter = 0;
+	static uint32 barrierSyncPoint = 0;
+	// Used for tracking progress
 	static uint32 totalCommandCount = 0;
 	static uint32 totalCommandsDone = 0;
-	static std::mutex asyncCounterMtx;
+	static std::mutex barrierMtx;
 
 	bool CompareFillChunkCommand::operator()(const FillChunkCommand& a, const FillChunkCommand& b) const
 	{
@@ -66,6 +68,10 @@ namespace Minecraft
 
 	void ChunkThreadWorker::threadWorker()
 	{
+#ifdef _USE_OPTICK
+		OPTICK_THREAD("ChunkThreadWorker");
+#endif
+
 		bool shouldContinue = true;
 		while (shouldContinue)
 		{
@@ -104,12 +110,21 @@ namespace Minecraft
 			if (isSynchronous(command))
 			{
 				std::unique_lock<std::mutex> lock(mtx);
-				cv.wait(lock, [&] { return (!doWork || !commands.empty()) && asyncCounter != 0; });
+				{
+					std::lock_guard<std::mutex> barrierLockTmp(barrierMtx);
+					g_logger_info("Waiting until we hit '%d'", barrierSyncPoint);
+				}
+				cv2.wait(lock, [&] { return !doWork || barrierSyncCounter >= barrierSyncPoint; });
+
+				std::lock_guard<std::mutex> barrierLock(barrierMtx);
+				g_logger_info("We hit SyncPoint: '%d' SyncCounter: '%d'", barrierSyncPoint, barrierSyncCounter);
+				barrierSyncCounter = 0;
+				barrierSyncPoint = 0;
 			}
 			else
 			{
-				std::lock_guard<std::mutex> lock(asyncCounterMtx);
-				asyncCounter++;
+				std::lock_guard<std::mutex> lock(barrierMtx);
+				barrierSyncPoint++;
 			}
 
 			if (processCommand)
@@ -117,33 +132,60 @@ namespace Minecraft
 				switch (command->type)
 				{
 				case CommandType::SaveBlockData:
+				{
 					// SYNCHRONOUS for now, once we switch to unlimited height, this can become asynchronous
 					//Application::getGlobalThreadPool().queueTask(saveBlockData, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					saveBlockData(command, sizeof(FillChunkCommand));
 					freeChunkCmd(command, sizeof(FillChunkCommand));
 					break;
+				}
 				case CommandType::ClientLoadChunk:
-					Application::getGlobalThreadPool().queueTask(clientLoadChunk, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					Application::getGlobalThreadPool().queueTask(clientLoadChunk, "ClientLoadChunk", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					break;
 				case CommandType::GenerateTerrain:
-					Application::getGlobalThreadPool().queueTask(generateTerrain, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT("GenerateTerrain");
+#endif
+					Application::getGlobalThreadPool().queueTask(generateTerrain, "GenerateTerrain", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					break;
+				}
 				case CommandType::GenerateDecorations:
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT("GenerateDecorations");
+#endif
 					// SYNCHRONOUS
 					generateDecorations(command);
 					freeChunkCmd(command, sizeof(FillChunkCommand));
 					break;
+				}
 				case CommandType::CalculateLighting:
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT("CalculateLighting");
+#endif
 					// SYNCHRONOUS
 					calculateLighting(command);
 					freeChunkCmd(command, sizeof(FillChunkCommand));
 					break;
+				}
 				case CommandType::RecalculateLighting:
-					Application::getGlobalThreadPool().queueTask(recalculateLighting, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT("RecalculateLighting");
+#endif
+					Application::getGlobalThreadPool().queueTask(recalculateLighting, "RecalculateLighting", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					break;
+				}
 				case CommandType::TesselateVertices:
-					Application::getGlobalThreadPool().queueTask(tesselateVertices, command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+				{
+#ifdef _USE_OPTICK
+					OPTICK_EVENT("TesselateVertices");
+#endif
+					Application::getGlobalThreadPool().queueTask(tesselateVertices, "TesselateVertices", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
 					break;
+				}
 				}
 
 				Application::getGlobalThreadPool().beginWork(false);
@@ -160,7 +202,7 @@ namespace Minecraft
 		command.playerPosChunkCoords = playerPosChunkCoords.load();
 		{
 			std::lock_guard<std::mutex> lockGuard(queueMtx);
-			std::lock_guard<std::mutex> lockGuard2(asyncCounterMtx);
+			std::lock_guard<std::mutex> lockGuard2(barrierMtx);
 			totalCommandCount++;
 			commands.push(command);
 		}
@@ -178,6 +220,11 @@ namespace Minecraft
 		}
 	}
 
+	void ChunkThreadWorker::wakeupCv2()
+	{
+		cv2.notify_all();
+	}
+
 	void ChunkThreadWorker::setPlayerPosChunkCoords(const glm::ivec2& playerPosChunkCoords)
 	{
 		this->playerPosChunkCoords = playerPosChunkCoords;
@@ -185,7 +232,7 @@ namespace Minecraft
 
 	float ChunkThreadWorker::percentDone()
 	{
-		std::lock_guard<std::mutex> lock(asyncCounterMtx);
+		std::lock_guard<std::mutex> lock(barrierMtx);
 		static float initialSize = (float)totalCommandCount;
 		return (float)totalCommandsDone >= initialSize ? 1.0f : 1.0f - ((initialSize - (float)totalCommandsDone) / initialSize);
 	}
@@ -311,15 +358,21 @@ namespace Minecraft
 
 	static void freeChunkCmd(void* fillChunkCmd, size_t dataSize)
 	{
+		bool startWork = false;
 		{
-			std::lock_guard<std::mutex> lock(asyncCounterMtx);
-			asyncCounter--;
+			std::lock_guard<std::mutex> lock(barrierMtx);
+			barrierSyncCounter++;
 			totalCommandsDone++;
-			if (asyncCounter == 0)
+			if (barrierSyncCounter >= barrierSyncPoint)
 			{
-				// Wake up the conditional variable if needed
-				ChunkManager::beginWork();
+				startWork = true;
 			}
+		}
+
+		if (startWork)
+		{
+			// Wake up the conditional variable if needed
+			ChunkManager::wakeUpCv2();
 		}
 		g_memory_free(fillChunkCmd);
 	}

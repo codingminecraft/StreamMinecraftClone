@@ -4,6 +4,8 @@ workspace "Minecraft"
     configurations {
         "Debug",
         "Release",
+        "OptickDebug",
+        "OptickRelease",
         "Dist"
     }
 
@@ -128,11 +130,23 @@ project "Minecraft"
             "copy /y \"Minecraft\\vendor\\freetype\\release dll\\win64\\freetype.lib\" \"%{cfg.targetdir}\\freetype.lib\""
         }
 
+        -- Debug build options
         filter { "configurations:Debug", "system:windows" }
             buildoptions "/MTd"
+        filter { "configurations:OptickDebug", "system:windows" }
+            buildoptions "/MTd"
 
+        -- Release build options
         filter { "configurations:Release", "system:windows" }
             buildoptions "/MT"
+        filter { "configurations:OptickRelease", "system:windows" }
+            buildoptions "/MT"
+
+        -- Optick stuff
+        filter { "configurations:OptickDebug", "system:windows" }
+            defines { "_USE_OPTICK" }
+        filter { "configurations:OptickRelease", "system:windows" }
+            defines { "_USE_OPTICK" }   
     
     filter { "system:linux" }
         buildoptions {
@@ -150,11 +164,11 @@ project "Minecraft"
             "Minecraft/vendor/GLFW/**.c"
         }
 
-    filter { "configurations:Debug" }
+    filter { "configurations:Debug", "configurations:OptickDebug" }
         runtime "Debug"
         symbols "on"
 
-    filter { "configurations:Release" }
+    filter { "configurations:Release", "configurations:OptickRelease" }
         defines {" _RELEASE" }
         runtime "Release"
         optimize "on"

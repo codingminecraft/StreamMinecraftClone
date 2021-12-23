@@ -596,16 +596,25 @@ namespace Minecraft
 			for (auto& pair : chunks)
 			{
 				Chunk& chunk = pair.second;
-				chunk.topNeighbor = getChunk(chunk.chunkCoords + INormals2::Up);
-				chunk.bottomNeighbor = getChunk(chunk.chunkCoords + INormals2::Down);
-				chunk.leftNeighbor = getChunk(chunk.chunkCoords + INormals2::Left);
-				chunk.rightNeighbor = getChunk(chunk.chunkCoords + INormals2::Right);
+				auto iter1 = chunks.find(chunk.chunkCoords + INormals2::Up);
+				chunk.topNeighbor = iter1 == chunks.end() ? nullptr : &iter1->second;
+				auto iter2 = chunks.find(chunk.chunkCoords + INormals2::Down);
+				chunk.bottomNeighbor = iter2 == chunks.end() ? nullptr : &iter2->second;
+				auto iter3 = chunks.find(chunk.chunkCoords + INormals2::Left);
+				chunk.leftNeighbor = iter3 == chunks.end() ? nullptr : &iter3->second;
+				auto iter4 = chunks.find(chunk.chunkCoords + INormals2::Right);
+				chunk.rightNeighbor = iter4 == chunks.end() ? nullptr : &iter4->second;
 			}
 		}
 
 		void beginWork()
 		{
 			chunkWorker->beginWork();
+		}
+
+		void wakeUpCv2()
+		{
+			chunkWorker->wakeupCv2();
 		}
 
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum)
@@ -769,6 +778,10 @@ namespace Minecraft
 
 		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient)
 		{
+#ifdef _USE_OPTICK
+			OPTICK_EVENT();
+#endif
+
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
 			chunkWorker->setPlayerPosChunkCoords(playerPosChunkCoords);
 			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
@@ -861,10 +874,10 @@ namespace Minecraft
 			ChunkManager::queueGenerateDecorations(playerPosChunkCoords);
 			ChunkManager::queueCalculateLighting(playerPosChunkCoords);
 			lastPlayerPosChunkCoords = playerPosChunkCoords;
-			ChunkManager::patchChunkPointers();
 
 			if (needsWork)
 			{
+				patchChunkPointers();
 				chunkWorker->beginWork();
 			}
 		}
