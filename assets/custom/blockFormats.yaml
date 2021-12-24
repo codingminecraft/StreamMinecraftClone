@@ -112,6 +112,7 @@ glass:
   bottom: glass
   isSolid: true
   isTransparent: true
+  isBlendable: true
 sea_lantern:
   id: 16
   side: sea_lantern

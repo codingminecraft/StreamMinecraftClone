@@ -228,7 +228,10 @@ namespace Minecraft
 	float ChunkThreadWorker::percentDone()
 	{
 		std::lock_guard<std::mutex> lock(barrierMtx);
-		static float initialSize = (float)totalCommandCount;
+		if (initialSize == -1.0f)
+		{
+			initialSize = (float)totalCommandCount;
+		}
 		return (float)totalCommandsDone >= initialSize ? 1.0f : 1.0f - ((initialSize - (float)totalCommandsDone) / initialSize);
 	}
 

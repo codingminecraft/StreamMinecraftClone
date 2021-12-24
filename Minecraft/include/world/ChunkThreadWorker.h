@@ -62,6 +62,7 @@ namespace Minecraft
 		std::mutex queueMtx;
 		bool doWork;
 		std::atomic<bool> waitingOnCommand = false;
+		float initialSize = -1.0f;
 	};
 }
 

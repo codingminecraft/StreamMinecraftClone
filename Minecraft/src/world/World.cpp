@@ -464,6 +464,7 @@ namespace Minecraft
 
 				// Write data
 				fwrite(&seed, sizeof(uint32), 1, fp);
+				fwrite(&worldTime, sizeof(int), 1, fp);
 				// TODO: This will fail for serialization/deserialization on 64->32 bit systems or vice versa
 				RawMemory serializedRegistry = registry->serialize();
 				fwrite(&serializedRegistry.size, sizeof(size_t), 1, fp);
@@ -491,6 +492,7 @@ namespace Minecraft
 
 				// Read data
 				fread(&seed, sizeof(uint32), 1, fp);
+				fread(&worldTime, sizeof(int), 1, fp);
 				// TODO: This will fail for serialization/deserialization on 64->32 bit systems or vice versa
 				RawMemory registryData = { 0, 0 };
 				fread(&registryData.size, sizeof(size_t), 1, fp);

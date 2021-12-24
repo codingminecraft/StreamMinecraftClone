@@ -78,7 +78,7 @@ namespace Minecraft
 
 					transform.position += rb.velocity * physicsUpdateRate;
 					rb.velocity += rb.acceleration * physicsUpdateRate;
-					if (!rb.isSensor)
+					if (rb.useGravity)
 					{
 						rb.velocity -= gravity * physicsUpdateRate;
 					}
