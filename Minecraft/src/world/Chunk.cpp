@@ -1078,46 +1078,32 @@ namespace Minecraft
 		{
 			if (!chunk)
 			{
-				//return BlockMap::NULL_BLOCK;
-				static Block b = BlockMap::NULL_BLOCK;
-				b.id = 23;
-				return b;
+				return BlockMap::NULL_BLOCK;
 			}
 
 			if (x >= World::ChunkDepth || x < 0 || z >= World::ChunkWidth || z < 0)
 			{
 				if (x >= World::ChunkDepth)
 				{
-					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Up);
-					//return getBlockInternal(chunk->topNeighbor, x - World::ChunkDepth, y, z);
-					return getBlockInternal(neighbor, x - World::ChunkDepth, y, z);
+					return getBlockInternal(chunk->topNeighbor, x - World::ChunkDepth, y, z);
 				}
 				else if (x < 0)
 				{
-					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Down);
-					//return getBlockInternal(chunk->bottomNeighbor, World::ChunkDepth + x, y, z);
-					return getBlockInternal(neighbor, World::ChunkDepth + x, y, z);
+					return getBlockInternal(chunk->bottomNeighbor, World::ChunkDepth + x, y, z);
 				}
 
 				if (z >= World::ChunkWidth)
 				{
-					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Right);
-					//return getBlockInternal(chunk->rightNeighbor, x, y, z - World::ChunkWidth);
-					return getBlockInternal(neighbor, x, y, z - World::ChunkWidth);
+					return getBlockInternal(chunk->rightNeighbor, x, y, z - World::ChunkWidth);
 				}
 				else if (z < 0)
 				{
-					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Left);
-					//return getBlockInternal(chunk->leftNeighbor, x, y, World::ChunkWidth + z);
-					return getBlockInternal(neighbor, x, y, World::ChunkWidth + z);
+					return getBlockInternal(chunk->leftNeighbor, x, y, World::ChunkWidth + z);
 				}
 			}
 			else if (y >= World::ChunkHeight || y < 0)
 			{
-				//return BlockMap::NULL_BLOCK;
-				static Block b = BlockMap::NULL_BLOCK;
-				b.id = 23;
-				return b;
+				return BlockMap::NULL_BLOCK;
 			}
 
 			int index = to1DArray(x, y, z);
