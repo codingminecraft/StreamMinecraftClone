@@ -185,6 +185,8 @@ namespace Minecraft
 
 				DebugStats::playerPos = transform.position;
 				DebugStats::playerOrientation = transform.orientation;
+
+				MainHud::update(dt, inventory);
 			}
 		}
 
@@ -283,6 +285,8 @@ namespace Minecraft
 				controller.controllerRunSpeed *= 2.0f;
 				gameMode = GameMode::Spectator;
 				rb.isSensor = true;
+				MainHud::hotbarVisible = false;
+				MainHud::notify("Game Mode Spectator");
 			}
 
 			if (!CommandLine::isActive && Input::keyBeginPress(GLFW_KEY_E))
@@ -293,8 +297,6 @@ namespace Minecraft
 					: CursorMode::Locked;
 				Application::getWindow().setCursorMode(mode);
 			}
-
-			MainHud::update(dt, inventory);
 		}
 
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
@@ -328,6 +330,8 @@ namespace Minecraft
 				controller.controllerRunSpeed /= 2.0f;
 				gameMode = GameMode::Survival;
 				rb.isSensor = false;
+				MainHud::hotbarVisible = true;
+				MainHud::notify("Game Mode Survival");
 			}
 		}
 

@@ -11,10 +11,13 @@ namespace Minecraft
 
 		void update(float dt, Inventory& playerInventory);
 
+		void notify(const std::string& message);
+
 		void free();
 
 		extern bool viewingCraftScreen;
 		extern bool isPaused;
+		extern bool hotbarVisible;
 	}
 }
 
