@@ -11,7 +11,7 @@ namespace Minecraft
 
 	namespace TexturePacker
 	{
-		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName, int texWidth = 32, int texHeight = 32);
+		void packTextures(const char* filepath, const char* configFilepath, const char* outputFilepath, const char* yamlKeyName, bool generateMips = false, int texWidth = 32, int texHeight = 32);
 	}
 }
 

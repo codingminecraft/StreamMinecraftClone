@@ -141,13 +141,10 @@ namespace Minecraft
 					Network::sendClient(event.peer, NetworkEventType::PatchChunkNeighbors, nullptr, 0);
 					Network::sendClient(event.peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
 
-					g_logger_warning("TODO: Need to send client all the entities in the world...");
-					//Ecs::Registry* registry = Scene::getRegistry();
-					//auto view = registry->view<>();
-					//for (auto entity : view)
-					//{
-					//	if (registry->hasComponent<Transform>()
-					//}
+					Ecs::Registry* registry = Scene::getRegistry();
+					RawMemory entityMemory = registry->serialize();
+					Network::sendClient(event.peer, NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
+					g_memory_free(entityMemory.data);
 					enet_host_flush(server);
 					break;
 				}

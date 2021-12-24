@@ -7,6 +7,7 @@
 #include "input/Input.h"
 #include "world/BlockMap.h"
 #include "core/Application.h"
+#include "core/Scene.h"
 #include "core/Window.h"
 #include "gameplay/PlayerController.h"
 #include "world/ChunkManager.h"
@@ -20,16 +21,17 @@ namespace Minecraft
 		int length;
 	};
 
-	enum CommandLineType : uint8
+	enum class CommandLineType : uint8
 	{
 		None,
-		GivePlayer,
+		Give,
 		Screenshot,
 		GenerateCubemap,
-		DebugLight,
 		DoDaylightCycle,
 		SetTime,
 		StopNetwork,
+		ReloadShaders,
+		RegenerateWorld,
 		Length
 	};
 
@@ -40,7 +42,6 @@ namespace Minecraft
 		static void parseCommand(const char* command, int length);
 		static void executeCommand(CommandLineType type, CommandStringView* args, int argsLength);
 		static void executeGivePlayer(CommandStringView* args, int argsLength);
-		static void executeDebugLight(CommandStringView* args, int argsLength);
 		static void executeDoDaylightCycle(CommandStringView* args, int argsLength);
 		static void executeSetTime(CommandStringView* args, int argsLength);
 
@@ -84,7 +85,7 @@ namespace Minecraft
 						}
 					}
 
-					buffer[0] = '\0';
+					g_memory_zeroMem(buffer.data(), 512 * sizeof(char));
 				}
 
 				Gui::endWindow();
@@ -103,7 +104,7 @@ namespace Minecraft
 			for (int i = 0; i < (int)CommandLineType::Length; i++)
 			{
 				auto enumName = magic_enum::enum_name((CommandLineType)i);
-				if (enumName[0] == command[0])
+				if (isCharIgnoreCase(enumName[0], command[0]))
 				{
 					bool match = true;
 					int commandTypeLength = 1;
@@ -117,7 +118,7 @@ namespace Minecraft
 							break;
 						}
 
-						if (strIndex < enumName.length() && enumName[strIndex] != command[strIndex])
+						if (strIndex < enumName.length() && !isCharIgnoreCase(enumName[strIndex], command[strIndex]))
 						{
 							match = false;
 							break;
@@ -180,7 +181,7 @@ namespace Minecraft
 		{
 			switch (type)
 			{
-			case CommandLineType::GivePlayer:
+			case CommandLineType::Give:
 				executeGivePlayer(args, argsLength);
 				break;
 			case CommandLineType::Screenshot:
@@ -190,9 +191,6 @@ namespace Minecraft
 				Application::getWindow().setSize(2160, 2160);
 				PlayerController::generateCubemap = true;
 				break;
-			case CommandLineType::DebugLight:
-				executeDebugLight(args, argsLength);
-				break;
 			case CommandLineType::DoDaylightCycle:
 				executeDoDaylightCycle(args, argsLength);
 				break;
@@ -201,6 +199,12 @@ namespace Minecraft
 				break;
 			case CommandLineType::StopNetwork:
 				Network::free();
+				break;
+			case CommandLineType::ReloadShaders:
+				Scene::reloadShaders();
+				break;
+			case CommandLineType::RegenerateWorld:
+				World::regenerateWorld();
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
@@ -237,28 +241,6 @@ namespace Minecraft
 			else
 			{
 				g_logger_warning("Invalid block name '%s' in command SetInventorySlot", blockName.c_str());
-			}
-		}
-
-		static void executeDebugLight(CommandStringView* args, int argsLength)
-		{
-			if (argsLength != 1)
-			{
-				g_logger_warning("DebugLight expects 1 argument.");
-				return;
-			}
-
-			bool val;
-			if (!parseBoolean(args[0].string, args[0].length, &val))
-			{
-				g_logger_warning("DebugLight expects 'true' or 'false'.");
-				return;
-			}
-
-			ChunkManager::doStepLogic = val;
-			if (val)
-			{
-				g_logger_info("Debug Lighting turned on. Run command DebugStepLight to step the lighting calculations by one. Run DebugLight false to turn debugging off.");
 			}
 		}
 

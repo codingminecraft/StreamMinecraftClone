@@ -48,8 +48,10 @@ namespace Minecraft
 		void init();
 		void free();
 		void serialize();
+
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks();
 
+		float percentWorkDone();
 		Block getBlock(const glm::vec3& worldPosition);
 		void setBlock(const glm::vec3& worldPosition, Block newBlock);
 		void removeBlock(const glm::vec3& worldPosition);
@@ -59,6 +61,7 @@ namespace Minecraft
 
 		void patchChunkPointers();
 		void beginWork();
+		void wakeUpCv2();
 
 		void queueClientLoadChunk(void* chunkData, const glm::ivec2& chunkCoordinates, ChunkState state);
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
@@ -66,11 +69,9 @@ namespace Minecraft
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates);
 		void queueSaveChunk(const glm::ivec2& chunkCoordinates);
 		void queueRecalculateLighting(const glm::ivec2& chunkCoordinates, const glm::vec3& blockPositionThatUpdated, bool removedLightSource);
-		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr, bool doImmediately = false);
+		void queueRetesselateChunk(const glm::ivec2& chunkCoordinates, Chunk* chunk = nullptr);
 		void render(const glm::vec3& playerPosition, const glm::ivec2& playerPositionInChunkCoords, Shader& opaqueShader, Shader& transparentShader, const Frustum& cameraFrustum);
-		void checkChunkRadius(const glm::vec3& playerPosition);
-
-		extern bool doStepLogic;
+		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient=false);
 	}
 }
 

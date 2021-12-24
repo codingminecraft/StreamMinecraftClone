@@ -14,7 +14,7 @@ namespace Minecraft
 	namespace BlockMap
 	{
 		Block NULL_BLOCK = {
-			0,
+			NULL_BLOCK_ID,
 			0,
 			0,
 			0
@@ -27,14 +27,14 @@ namespace Minecraft
 			0
 		};
 
-		static robin_hood::unordered_map<std::string, int> nameToIdMap;
-		static robin_hood::unordered_node_map<int16, BlockFormat> blockFormats;
+		static robin_hood::unordered_flat_map<std::string, int> nameToIdMap;
+		static robin_hood::unordered_flat_map<int16, BlockFormat> blockFormats;
 		static std::vector<CraftingRecipe> craftingRecipes;
 		// TODO: Ensure that these maps never change throughout a gameplay cycle
 		// unless a resource pack is loaded
-		static robin_hood::unordered_map<std::string, TextureFormat> textureFormatMap;
-		static robin_hood::unordered_map<std::string, TextureFormat> itemTextureFormatMap;
-		static robin_hood::unordered_map<std::string, TextureFormat> blockItemTextureMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> textureFormatMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> itemTextureFormatMap;
+		static robin_hood::unordered_flat_map<std::string, TextureFormat> blockItemTextureMap;
 
 		static uint32 texCoordsTextureId;
 		static uint32 texCoordsBufferId;
@@ -274,7 +274,7 @@ namespace Minecraft
 			{
 				if (largeRecipe.second["outputCount"])
 				{
-					int16 outputCount = largeRecipe.second["outputCount"].as<int16>();
+					uint8 outputCount = largeRecipe.second["outputCount"].as<uint8>();
 					std::string outputName = largeRecipe.first.as<std::string>();
 					int outputId = getBlockId(outputName);
 					g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
@@ -283,7 +283,7 @@ namespace Minecraft
 					{
 						if (subRecipe.first.as<std::string>() != "outputCount")
 						{
-							int maxWidth = subRecipe.second[0].size();
+							int maxWidth = (int)subRecipe.second[0].size();
 							int rowIndex = 0;
 
 							CraftingRecipe resultRecipe;
@@ -398,7 +398,7 @@ namespace Minecraft
 		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath)
 		{
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
-			// FIXME: bug!
+			
 			if (File::isDir(outputPath))
 			{
 				// Only regenerate the block item pictures if the file is out of date
@@ -463,7 +463,8 @@ namespace Minecraft
 						const TextureFormat& sideSprite = getTextureFormat(side);
 						const TextureFormat& topSprite = getTextureFormat(top);
 						const TextureFormat& bottomSprite = getTextureFormat(bottom);
-						Renderer::clearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+						glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 						Renderer::drawTexturedCube(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f), sideSprite, topSprite, bottomSprite);
 
 						Renderer::flushBatches3D(projectionMatrix, viewMatrix);
@@ -483,26 +484,6 @@ namespace Minecraft
 
 			glViewport(0, 0, Application::getWindow().width, Application::getWindow().height);
 		}
-	}
-
-	bool operator==(const Block& a, const Block& b)
-	{
-		return a.id == b.id;
-	}
-
-	bool operator!=(const Block& a, const Block& b)
-	{
-		return !(a == b);
-	}
-
-	bool Block::isLightSource() const
-	{
-		return BlockMap::getBlock(id).isLightSource;
-	}
-
-	bool Block::isTransparent() const
-	{
-		return BlockMap::getBlock(id).isTransparent;
 	}
 
 	bool Block::isItemOnly() const

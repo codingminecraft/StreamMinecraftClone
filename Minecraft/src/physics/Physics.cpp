@@ -56,6 +56,10 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
+#ifdef _USE_OPTICK
+			OPTICK_EVENT();
+#endif
+
 			static float accumulatedDeltaTime = 0.0f;
 			accumulatedDeltaTime += dt;
 
@@ -74,7 +78,7 @@ namespace Minecraft
 
 					transform.position += rb.velocity * physicsUpdateRate;
 					rb.velocity += rb.acceleration * physicsUpdateRate;
-					if (!rb.isSensor)
+					if (rb.useGravity)
 					{
 						rb.velocity -= gravity * physicsUpdateRate;
 					}

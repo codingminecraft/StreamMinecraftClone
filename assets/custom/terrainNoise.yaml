@@ -1,0 +1,71 @@
+# NOTE: If you don't want to use a particular value, like if you want fractal to be None
+# Just don't include that section
+
+# Noise types available are: 
+# [ OpenSimplex2, OpenSimplex2s Cellular, Perlin, ValueCubic, Value ]
+
+# Fractal types available are:
+# [ None, FBM, Ridged, PingPong ]
+# NOTE: FBM is Fractal Brownian Motion
+
+# NOTE: The weight is how much of an effect the particular generator has in the combined noise
+
+generator0:
+  weight: 1.0
+  general:
+    noiseType: "OpenSimplex2"
+    frequency: 0.005
+  fractal:
+    fractalType: "FBM"
+    octaves: 4
+    lacunarity: 1.6
+    gain: 0.50
+    weightedStrength: 0.00
+
+generator1:
+  weight: 0.2
+  general:
+    noiseType: "OpenSimplex2"
+    frequency: 0.02
+  fractal:
+    fractalType: "FBM"
+    octaves: 4
+    lacunarity: 1.6
+    gain: 0.50
+    weightedStrength: 0.00
+
+generator2:
+  weight: 0.03
+  general:
+    noiseType: "OpenSimplex2"
+    frequency: 0.1
+  fractal:
+    fractalType: "FBM"
+    octaves: 4
+    lacunarity: 1.6
+    gain: 0.50
+    weightedStrength: 0.00
+
+generator3:
+  weight: 0.0
+  general:
+    noiseType: "OpenSimplex2"
+    frequency: 0.015
+  fractal:
+    fractalType: "FBM"
+    octaves: 4
+    lacunarity: 2.00
+    gain: 0.50
+    weightedStrength: 0.00
+
+generator4:
+  weight: 0.0
+  general:
+    noiseType: "OpenSimplex2"
+    frequency: 0.004
+  fractal:
+    fractalType: "FBM"
+    octaves: 4
+    lacunarity: 2.00
+    gain: 0.50
+    weightedStrength: 0.00

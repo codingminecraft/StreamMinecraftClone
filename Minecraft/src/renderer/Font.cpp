@@ -83,6 +83,56 @@ namespace Minecraft
 		return glm::vec2();
 	}
 
+	std::string Font::getStringThatFitsIn(const std::string& originalString, float scale, float maxSizeX, bool leftToRight) const
+	{
+		float width = 0;
+
+		int i = (leftToRight ? 0 : originalString.length() - 1);
+		while (true)
+		{
+			char c = originalString[i];
+			RenderableChar renderableChar = getCharInfo(c);
+			float charWidth = renderableChar.charSize.x * scale;
+
+			char prevC = i > 0 ? originalString[i - 1] : '\0';
+			char nextC = i < originalString.length() - 1 ? originalString[i + 1] : '\0';
+			width += (leftToRight ? (getKerning(c, nextC) * scale) : (getKerning(prevC, c) * scale));
+			width += renderableChar.advance.x * scale;
+
+			if (width >= maxSizeX)
+			{
+				g_logger_assert(i != originalString.length() - 1, "Invalid string width. This input box can't fit this string.");
+				if (leftToRight)
+				{
+					return originalString.substr(0, i);
+				}
+				else
+				{
+					return originalString.substr(i + 1, originalString.length() - (i + 1));
+				}
+			}
+
+			if (leftToRight)
+			{
+				i++;
+				if (i >= originalString.length())
+				{
+					break;
+				}
+			}
+			else
+			{
+				i--;
+				if (i < 0)
+				{
+					break;
+				}
+			}
+		}
+
+		return originalString;
+	}
+
 	namespace Fonts
 	{
 		static bool initialized = false;
@@ -278,7 +328,7 @@ namespace Minecraft
 						// Copy the glyph data to our bitmap
 						uint32 bufferX = x + currentX;
 						uint32 bufferY = font.texture.height - (currentY + 1 + y);
-						g_logger_assert(bufferX < (uint32)font.texture.width && bufferY < (uint32)font.texture.height, "Invalid bufferX, bufferY. Out of bounds greater than tex size.");
+						g_logger_assert(bufferX < (uint32)font.texture.width&& bufferY < (uint32)font.texture.height, "Invalid bufferX, bufferY. Out of bounds greater than tex size.");
 						fontBuffer[bufferX + (bufferY * font.texture.width)] =
 							font.fontFace->glyph->bitmap.buffer[x + (y * font.fontFace->glyph->bitmap.width)];
 					}

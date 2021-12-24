@@ -18,8 +18,9 @@ namespace Minecraft
 	namespace MainHud
 	{
 		// External variables
-		extern bool viewingCraftScreen = false;
-		extern bool isPaused = false;
+		bool viewingCraftScreen = false;
+		bool isPaused = false;
+		bool hotbarVisible = true;
 
 		// Internal variables
 		static const Sprite* blockCursorSprite = nullptr;
@@ -39,6 +40,8 @@ namespace Minecraft
 		// Inventory Slot Sizes are 24x24 pixels
 		static const glm::vec2 craftingSlotSize = glm::vec2(21.0f, 21.0f) * (1.0f / craftingInventoryPixelSize) * craftingInventorySize;
 
+		static const float hotbarYPos = -1.48f;
+
 		static std::array<glm::vec2, Player::numTotalSlots> slotPositions;
 		static std::array<glm::vec2, 10> craftingSlotPositions;
 		// We do +9 for the crafting slots
@@ -47,10 +50,17 @@ namespace Minecraft
 
 		static Style hoverStyle;
 
+		static char* notificationMessage;
+		static uint32 notificationMessageLength;
+		static float timeToNotificationFadeout;
+		static const float notificationDisplayTime = 1.0f;
+
 		// Internal functions
 		static void initSlotPositions();
 		static void updatePauseScreen();
+		static void updateNotificationMessage(float dt);
 		static void updateCraftingScreen(Inventory& inventory);
+		static void drawHotbar(const Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
 		static bool decrementMouseItem(InventorySlot& mouseItem, InventorySlot& inventorySlot);
 		static bool updateSlot(InventorySlot& inventorySlot, bool isDraggingRightClick, bool& isHoldingItem, InventorySlot& mouseItem, const glm::vec2& slotPosition, InventorySlot& draggedSlot, bool isCraftingOutput = false);
@@ -58,6 +68,10 @@ namespace Minecraft
 
 		void init()
 		{
+			notificationMessage = nullptr;
+			notificationMessageLength = 0;
+			timeToNotificationFadeout = 0;
+
 			viewingCraftScreen = false;
 			isPaused = false;
 
@@ -97,8 +111,114 @@ namespace Minecraft
 				Renderer::drawFilledSquare2D(glm::vec2(-3.0f, -1.5f), glm::vec2(6.0f, 3.0f), hoverStyle, -5);
 			}
 
+			if (hotbarVisible)
+			{
+				drawHotbar(inventory);
+			}
+
+			// Draw the crafting screen
+			if (viewingCraftScreen)
+			{
+				updateCraftingScreen(inventory);
+			}
+
+			if (isPaused)
+			{
+				updatePauseScreen();
+			}
+
+			if (notificationMessage)
+			{
+				updateNotificationMessage(dt);
+			}
+		}
+
+		void notify(const std::string& message)
+		{
+			if (notificationMessage != nullptr)
+			{
+				g_memory_free(notificationMessage);
+			}
+
+			notificationMessageLength = (uint32)message.length();
+			notificationMessage = (char*)g_memory_allocate(sizeof(char) * (notificationMessageLength + 1));
+			std::strcpy(notificationMessage, message.c_str());
+			notificationMessage[notificationMessageLength] = '\0';
+			timeToNotificationFadeout = notificationDisplayTime;
+		}
+
+		void free()
+		{
+			blockCursorSprite = nullptr;
+			regularInventorySlot = nullptr;
+			selectedInventorySlot = nullptr;
+
+			if (notificationMessage)
+			{
+				g_memory_free(notificationMessage);
+			}
+		}
+
+		static void updatePauseScreen()
+		{
+			Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));
+
+			Gui::advanceCursor(glm::vec2(0.0f, 1.0f));
+			Gui::centerNextElement();
+			defaultButton.text = "Save and Exit";
+			if (Gui::textureButton(defaultButton))
+			{
+				isPaused = false;
+				Scene::changeScene(SceneType::MainMenu);
+			}
+
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+			Gui::centerNextElement();
+			defaultButton.text = "Start LAN Server";
+			// TODO: Re-enable me once multiplayer is working good
+			//if (Gui::textureButton(defaultButton, Network::isLanServer()))
+			if (Gui::textureButton(defaultButton, true))
+			{
+				Network::free();
+				Network::init(true, "127.0.0.1", 8080);
+			}
+
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+			Gui::centerNextElement();
+			defaultButton.text = "Settings";
+			if (Gui::textureButton(defaultButton))
+			{
+				g_logger_info("OPENING SETTINGS");
+			}
+
+			Gui::endWindow();
+		}
+
+		static void updateNotificationMessage(float dt)
+		{
+			if (timeToNotificationFadeout >= 0)
+			{
+				float fadeOutStart = notificationDisplayTime * 0.5f;
+				float alphaLevel = timeToNotificationFadeout >= (notificationDisplayTime - fadeOutStart)
+					? 1.0f
+					: timeToNotificationFadeout / (notificationDisplayTime - fadeOutStart);
+				float yPos = hotbarYPos + inventorySlotSize.y + 0.1f;
+				float fontScale = 0.0015f;
+				const std::string messageStr = std::string(notificationMessage);
+				glm::vec2 messageStrSize = defaultFont->getSize(messageStr, fontScale);
+				float xPos = -messageStrSize.x / 2.0f;
+				static Style notificationStyle = Styles::defaultStyle;
+				notificationStyle.color.a = alphaLevel;
+				Renderer::drawString(messageStr, *defaultFont, glm::vec2(xPos, yPos), fontScale, notificationStyle, 1);
+			}
+
+			timeToNotificationFadeout -= dt;
+		}
+
+		static void drawHotbar(const Inventory& inventory)
+		{
 			float startXPosition = -(Player::numHotbarSlots * inventorySlotSize.x) / 2.0f;
-			glm::vec2 currentSlotPosition = glm::vec2(startXPosition, -1.48f);
+			glm::vec2 currentSlotPosition = glm::vec2(startXPosition, hotbarYPos);
 
 			// Draw the hotbar
 			for (int i = 0; i < Player::numHotbarSlots; i++)
@@ -121,56 +241,6 @@ namespace Minecraft
 				}
 				currentSlotPosition.x += inventorySlotSize.x;
 			}
-
-			// Draw the crafting screen
-			if (viewingCraftScreen)
-			{
-				updateCraftingScreen(inventory);
-			}
-
-			if (isPaused)
-			{
-				updatePauseScreen();
-			}
-		}
-
-		void free()
-		{
-			blockCursorSprite = nullptr;
-			regularInventorySlot = nullptr;
-			selectedInventorySlot = nullptr;
-		}
-
-		static void updatePauseScreen()
-		{
-			Gui::beginWindow(glm::vec2(-1.5f, 1.5f), glm::vec2(3.0f, 3.0f));
-
-			Gui::advanceCursor(glm::vec2(0.0f, 1.0f));
-			Gui::centerNextElement();
-			defaultButton.text = "Save and Exit";
-			if (Gui::textureButton(defaultButton))
-			{
-				Scene::changeScene(SceneType::MainMenu);
-			}
-
-			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
-			Gui::centerNextElement();
-			defaultButton.text = "Start LAN Server";
-			if (Gui::textureButton(defaultButton, Network::isLanServer()))
-			{
-				Network::free();
-				Network::init(true, "127.0.0.1", 8080);
-			}
-
-			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
-			Gui::centerNextElement();
-			defaultButton.text = "Settings";
-			if (Gui::textureButton(defaultButton))
-			{
-				g_logger_info("OPENING SETTINGS");
-			}
-
-			Gui::endWindow();
 		}
 
 		static void updateCraftingScreen(Inventory& inventory)

@@ -15,7 +15,7 @@ namespace Minecraft
 		{
 			static char buffer[FILENAME_MAX];
 			strcpy(buffer, directoryName);
-			buffer[strlen(directoryName) + 1] = '\0';
+			buffer[strlen(directoryName)] = '\0';
 
 			SHFILEOPSTRUCTA op = {
 				NULL,
@@ -130,6 +130,8 @@ namespace Minecraft
 #include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
+#include <pwd.h>
+
 
 namespace Minecraft
 {
@@ -215,9 +217,19 @@ namespace Minecraft
 			{
 				if (!isFile(directoryName)) 
 				{
-					if (mkdir(directoryName,  0700) != 0)
+					if (mkdir(directoryName,  0777) != 0)
 					{
-						g_logger_error("Make directory '%s' failed with error code: %d", directoryName, errno);
+						const char* error = errno == EACCES ? "Search permission is denied."
+							: errno == EEXIST ? "The named file exists." 
+							: errno == ELOOP ? "A loop exists in the symbolic link."
+							: errno == EMLINK ? "EMLINK"
+							: errno == ENAMETOOLONG ? "ENAMETOOLONG"
+							: errno == ENOENT ? "ENOENT"
+							: errno == ENOSPC ? "ENOSPC"
+							: errno == ENOTDIR ? "ENOTDIR"
+							: errno == EROFS ? "EROFS"
+							: "Unknown";
+						g_logger_error("Make directory '%s' failed with error code: %s:%d", directoryName, error, errno);
 						return false;
 					}
 					return true;
@@ -238,7 +250,14 @@ namespace Minecraft
 
 		std::string getSpecialAppFolder()
 		{
-			return std::string("/usr/games");
+			const char* homedir;
+
+			if ((homedir = getenv("HOME")) == NULL) 
+			{
+				homedir = getpwuid(getuid())->pw_dir;
+			}
+
+			return homedir;
 		}
 
 		FileTime getFileTimes(const char* fileOrDirName)

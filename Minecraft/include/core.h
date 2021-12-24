@@ -10,6 +10,7 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/integer.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
@@ -50,12 +51,13 @@
 // stb
 #include <stb/stb_image.h>
 #include <stb/stb_write.h>
+#include <stb/stb_image_resize.h>
 
 // Yaml
 #include <yaml-cpp/yaml.h>
 
-// Simplex 
-#include <SimplexNoise.h>
+// Fast Noise 
+#include <FastNoiseLite.h>
 
 // Freetype
 #include <freetype/freetype.h>
@@ -64,11 +66,42 @@
 #include <magic_enum.hpp>
 
 // Optick
-//#define OPTICK_ENABLE_GPU_D3D12 0
-//#define OPTICK_ENABLE_GPU_VULKAN 0
-//#include <optick.h>
+#ifdef _USE_OPTICK
+#define OPTICK_ENABLE_GPU_D3D12 0
+#define OPTICK_ENABLE_GPU_VULKAN 0
+#include <optick.h>
+#endif
 
 // User defined literals
 glm::vec4 operator""_hex(const char* hexColor, size_t length);
+
+struct RawMemory
+{
+	uint8* data;
+	size_t size;
+	size_t offset;
+
+	void init(size_t initialSize);
+	void free();
+	void shrinkToFit();
+	void resetReadWriteCursor();
+
+	void writeDangerous(const uint8* data, size_t dataSize);
+	void readDangerous(uint8* data, size_t dataSize);
+
+	template<typename T>
+	void write(const T* data)
+	{
+		writeDangerous((uint8*)data, sizeof(T));
+	}
+
+	template<typename T>
+	void read(T* data)
+	{
+		readDangerous((uint8*)data, sizeof(T));
+	}
+
+	void setCursor(size_t offset);
+};
 
 #endif

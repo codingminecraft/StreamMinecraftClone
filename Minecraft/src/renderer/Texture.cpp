@@ -1,4 +1,5 @@
 #include "renderer/Texture.h"
+#include "core/File.h"
 
 namespace Minecraft
 {
@@ -66,8 +67,11 @@ namespace Minecraft
 
 	TextureBuilder& TextureBuilder::setFilepath(const char* filepath)
 	{
-		texture.path = (char*)g_memory_allocate(sizeof(char) * (std::strlen(filepath) + 1));
+		int strLength = (int)std::strlen(filepath);
+		g_logger_assert(strLength > 0, "Bad filepath?");
+		texture.path = (char*)g_memory_allocate(sizeof(char) * (strLength + 1));
 		std::strcpy(texture.path, filepath);
+		texture.path[strLength] = '\0';
 		return *this;
 	}
 
@@ -114,6 +118,12 @@ namespace Minecraft
 	TextureBuilder& TextureBuilder::generateMipmap()
 	{
 		texture.generateMipmap = true;
+		return *this;
+	}
+
+	TextureBuilder& TextureBuilder::generateMipmapFromFile()
+	{
+		texture.generateMipmapFromFile = true;
 		return *this;
 	}
 
@@ -475,6 +485,24 @@ namespace Minecraft
 			if (texture.generateMipmap)
 			{
 				glGenerateMipmap(textureType);
+			}
+
+			if (texture.generateMipmapFromFile)
+			{
+				for (int i = 0; i < 40; i++)
+				{
+					std::string mipFile = std::string(texture.path) + ".mip." + std::to_string(i + 1) + ".png";
+
+					if (!File::isFile(mipFile.c_str()))
+					{
+						break;
+					}
+
+					int width, height;
+					unsigned char* mipPixels = stbi_load(texture.path, &width, &height, &channels, 0);
+					glTexImage2D(textureType, i + 1, internalFormat, width, height, 0, externalFormat, GL_UNSIGNED_BYTE, mipPixels);
+					stbi_image_free(mipPixels);
+				}
 			}
 
 			stbi_image_free(pixels);

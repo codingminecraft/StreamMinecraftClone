@@ -21,6 +21,8 @@
 #include "core/Scene.h"
 #include "core/Window.h"
 
+#include "utils/Constants.h"
+
 namespace Minecraft
 {
 	enum class GameMode : uint8
@@ -45,7 +47,7 @@ namespace Minecraft
 
 	namespace PlayerController
 	{
-		extern bool generateCubemap = false;
+		bool generateCubemap = false;
 		static CubemapSide sideGenerating = CubemapSide::Left;
 
 		// Internal members
@@ -61,8 +63,11 @@ namespace Minecraft
 
 		// Internal functions
 		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
+		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
 		static void updateInventory(float dt, Inventory& inventory);
+
+		static Model stick;
 
 		void init()
 		{
@@ -75,6 +80,8 @@ namespace Minecraft
 			sideSprite = &BlockMap::getTextureFormat("oak_log");
 			topSprite = &BlockMap::getTextureFormat("oak_log_top");
 			bottomSprite = &BlockMap::getTextureFormat("oak_log_top");
+
+			stick = Vertices::getItemModel("stick");
 		}
 
 		void update(Ecs::Registry& registry, float dt)
@@ -82,6 +89,17 @@ namespace Minecraft
 			if (playerId == Ecs::nullEntity || registry.getComponent<Tag>(playerId).type != TagType::Player)
 			{
 				playerId = registry.find(TagType::Player);
+				if (gameMode == GameMode::Survival)
+				{
+					if (registry.hasComponent<CharacterController>(playerId) && registry.hasComponent<Rigidbody>(playerId))
+					{
+						CharacterController& controller = registry.getComponent<CharacterController>(playerId);
+						Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
+						controller.controllerBaseSpeed = 4.4f;
+						controller.controllerRunSpeed = 6.2f;
+						rb.useGravity = true;
+					}
+				}
 			}
 
 			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
@@ -147,6 +165,9 @@ namespace Minecraft
 				case GameMode::Survival:
 					updateSurvival(dt, transform, controller, rb, inventory);
 					break;
+				case GameMode::Creative:
+					updateCreative(dt, transform, controller, rb, inventory);
+					break;
 				case GameMode::Spectator:
 					updateSpectator(dt, transform, controller, rb);
 					break;
@@ -179,6 +200,8 @@ namespace Minecraft
 
 				DebugStats::playerPos = transform.position;
 				DebugStats::playerOrientation = transform.orientation;
+
+				MainHud::update(dt, inventory);
 			}
 		}
 
@@ -186,6 +209,7 @@ namespace Minecraft
 		{
 			blockPlaceDebounce -= dt;
 
+			//Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
 				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
@@ -193,6 +217,7 @@ namespace Minecraft
 				{
 					glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
 					DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
+					DebugStats::airBlockLookingAt = ChunkManager::getBlock(res.point + (res.hitNormal * 0.1f));
 
 					// TODO: Clean this garbage up
 					Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
@@ -271,8 +296,10 @@ namespace Minecraft
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
 			{
-				gameMode = GameMode::Spectator;
-				rb.isSensor = true;
+				controller.controllerBaseSpeed = 4.4f;
+				controller.controllerRunSpeed = 6.2f;
+				gameMode = GameMode::Creative;
+				MainHud::notify("Game Mode Creative");
 			}
 
 			if (!CommandLine::isActive && Input::keyBeginPress(GLFW_KEY_E))
@@ -283,8 +310,144 @@ namespace Minecraft
 					: CursorMode::Locked;
 				Application::getWindow().setCursorMode(mode);
 			}
+		}
 
-			MainHud::update(dt, inventory);
+		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		{
+			static float doubleJumpDebounce = 0.0f;
+			const float doubleJumpDebounceTime = 0.5f;
+			blockPlaceDebounce -= dt;
+			doubleJumpDebounce -= dt;
+
+			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
+			{
+				RaycastStaticResult res = Physics::raycastStatic(transform.position + controller.cameraOffset, transform.forward, 5.0f);
+				if (res.hit)
+				{
+					glm::vec3 blockLookingAtPos = res.point - (res.hitNormal * 0.1f);
+					DebugStats::blockLookingAt = ChunkManager::getBlock(blockLookingAtPos);
+					DebugStats::airBlockLookingAt = ChunkManager::getBlock(res.point + (res.hitNormal * 0.1f));
+
+					Renderer::drawBox(res.blockCenter, res.blockSize + glm::vec3(0.005f, 0.005f, 0.005f), blockHighlight);
+
+					if (Input::isMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && blockPlaceDebounce <= 0)
+					{
+						static Block newBlock{
+							0, 0, 0, 0
+						};
+						newBlock.id = inventory.hotbar[inventory.currentHotbarSlot].blockId;
+
+						if (newBlock != BlockMap::NULL_BLOCK && newBlock != BlockMap::AIR_BLOCK && !newBlock.isItemOnly())
+						{
+							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
+							ChunkManager::setBlock(worldPos, newBlock);
+							blockPlaceDebounce = blockPlaceDebounceTime;
+						}
+					}
+					else if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && blockPlaceDebounce <= 0)
+					{
+						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
+						ChunkManager::removeBlock(worldPos);
+						blockPlaceDebounce = blockPlaceDebounceTime;
+					}
+				}
+				else
+				{
+					DebugStats::blockLookingAt = BlockMap::NULL_BLOCK;
+				}
+
+				controller.viewAxis.x = Input::deltaMouseX;
+				controller.viewAxis.y = Input::deltaMouseY;
+				controller.isRunning = Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL);
+
+				controller.movementAxis.x =
+					Input::isKeyPressed(GLFW_KEY_W)
+					? 1.0f
+					: Input::isKeyPressed(GLFW_KEY_S)
+					? -1.0f
+					: 0.0f;
+				if (!rb.useGravity)
+				{
+					controller.inMiddleOfJump = false;
+					controller.movementAxis.y =
+						Input::isKeyPressed(GLFW_KEY_SPACE)
+						? 1.0f
+						: Input::isKeyPressed(GLFW_KEY_LEFT_SHIFT)
+						? -1.0f
+						: 0.0f;
+				}
+				controller.movementAxis.z =
+					Input::isKeyPressed(GLFW_KEY_D)
+					? 1.0f
+					: Input::isKeyPressed(GLFW_KEY_A)
+					? -1.0f
+					: 0.0f;
+
+				if (rb.onGround)
+				{
+					if (Input::keyBeginPress(GLFW_KEY_SPACE))
+					{
+						controller.applyJumpForce = true;
+						doubleJumpDebounce = doubleJumpDebounceTime;
+					}
+				}
+				else if (!rb.onGround && doubleJumpDebounce < 0 && !rb.useGravity)
+				{
+					if (Input::keyBeginPress(GLFW_KEY_SPACE))
+					{
+						doubleJumpDebounce = doubleJumpDebounceTime;
+					}
+				}
+				else if (doubleJumpDebounce >= 0)
+				{
+					// They just double tapped spacebar
+					if (Input::keyBeginPress(GLFW_KEY_SPACE))
+					{
+						controller.applyJumpForce = false;
+						controller.inMiddleOfJump = false;
+						rb.useGravity = !rb.useGravity;
+						if (!rb.useGravity)
+						{
+							rb.zeroForces();
+							controller.controllerBaseSpeed *= 2.0f;
+							controller.controllerRunSpeed *= 2.0f;
+						}
+						else
+						{
+							controller.controllerBaseSpeed /= 2.0f;
+							controller.controllerRunSpeed /= 2.0f;
+						}
+						doubleJumpDebounce = -1.0f;
+					}
+				}
+
+				updateInventory(dt, inventory);
+			}
+
+			if (Input::keyBeginPress(GLFW_KEY_F4))
+			{
+				if (rb.useGravity)
+				{
+					controller.controllerBaseSpeed *= 2.0f;
+					controller.controllerRunSpeed *= 2.0f;
+					rb.isSensor = true;
+					rb.useGravity = false;
+					rb.zeroForces();
+					controller.inMiddleOfJump = false;
+				}
+				gameMode = GameMode::Spectator;
+				MainHud::hotbarVisible = false;
+				MainHud::notify("Game Mode Spectator");
+			}
+
+			if (!CommandLine::isActive && Input::keyBeginPress(GLFW_KEY_E))
+			{
+				MainHud::viewingCraftScreen = !MainHud::viewingCraftScreen;
+				CursorMode mode = MainHud::viewingCraftScreen
+					? CursorMode::Normal
+					: CursorMode::Locked;
+				Application::getWindow().setCursorMode(mode);
+			}
 		}
 
 		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
@@ -314,8 +477,13 @@ namespace Minecraft
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
 			{
+				controller.controllerBaseSpeed /= 2.0f;
+				controller.controllerRunSpeed /= 2.0f;
 				gameMode = GameMode::Survival;
 				rb.isSensor = false;
+				rb.useGravity = true;
+				MainHud::hotbarVisible = true;
+				MainHud::notify("Game Mode Survival");
 			}
 		}
 

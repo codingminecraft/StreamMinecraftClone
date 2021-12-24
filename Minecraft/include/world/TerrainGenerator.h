@@ -6,11 +6,13 @@ namespace Minecraft
 {
 	namespace TerrainGenerator
 	{
-		void outputNoiseToTextures();
+		void init(const char* terrainNoiseConfig, int seed);
+		void free();
 
-		int16 getHeight(const SimplexNoise& generator, int x, int z, float minBiomeHeight, float maxBiomeHeight);
-		float getNormalizedHeight(const SimplexNoise& generator, int x, int z);
-		float getNoise(const SimplexNoise& generator, int x, int z, int noiseLevel);
+		bool getIsCave(int x, int y, int z, int16 maxBiomeHeight);
+		int16 getHeight(int x, int z, float minBiomeHeight, float maxBiomeHeight);
+		float getNormalizedHeight(int x, int z);
+		float getNoise(int x, int z, int noiseLevel);
 	}
 }
 

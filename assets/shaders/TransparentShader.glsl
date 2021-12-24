@@ -122,8 +122,6 @@ uniform int uChunkRadius;
 uniform bool uIsDay;
 uniform vec3 uTint;
 
-vec3 lightColor = vec3(0.3, 0.3, 0.3);
-
 void faceToNormal(in uint face, out vec3 normal)
 {
 	switch(face)
@@ -158,12 +156,19 @@ void main()
 	float diff = max(dot(normal, lightDir), 0.0);
 
 	vec4 objectColor = texture(uTexture, fTexCoords);
+
+	// Is this very bad for performance??
+	if (objectColor.a < 0.3) 
+	{
+		discard;
+	}
+
 	float sunlightIntensity = uSunDirection.y * 0.96f;
 	float skyLevel = max(float(fSkyLightLevel) * sunlightIntensity, 7.0f);
 	float combinedLightLevel = max(skyLevel, float(fLightLevel));
 
 	float baseLightColor = .04;
-	float lightIntensity = pow(combinedLightLevel / 31.0, 1.4) + baseLightColor;
+	float lightIntensity = pow(clamp(combinedLightLevel / 31.0, 0.006, 1.0f), 1.4) + baseLightColor;
 	vec4 lightColor = vec4(vec3(lightIntensity), 1.0) * vec4(fLightColor, 1.0);
 
 	vec4 fragColor = (lightColor * vec4(fColor, 1.0)) * objectColor * vec4(uTint, 1.0);

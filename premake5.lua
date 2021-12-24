@@ -4,6 +4,8 @@ workspace "Minecraft"
     configurations {
         "Debug",
         "Release",
+        "OptickDebug",
+        "OptickRelease",
         "Dist"
     }
 
@@ -51,9 +53,8 @@ project "Minecraft"
         "Minecraft/vendor/yamlCpp/src/**.h",
 		"Minecraft/vendor/yamlCpp/src/**.cpp",
 		"Minecraft/vendor/yamlCpp/include/**.h",
-        -- SimpleX stuff
-        "Minecraft/vendor/simplex/src/**.h",
-        "Minecraft/vendor/simplex/src/**.cpp",
+        -- Noise Stuff
+        "Minecraft/vendor/FastNoiseLite/C/**.h",
         -- Optick stuff
         "Minecraft/vendor/optick/src/**.cpp",
         "Minecraft/vendor/optick/src/**.h",
@@ -75,7 +76,7 @@ project "Minecraft"
         "Minecraft/vendor/glm/",
         "Minecraft/vendor/stb/",
         "Minecraft/vendor/yamlCpp/include",
-        "Minecraft/vendor/simplex/src",
+        "Minecraft/vendor/FastNoiseLite/C",
         "Minecraft/vendor/cppUtils/single_include",
         "Minecraft/vendor/freetype/include",
         "Minecraft/vendor/magicEnum/include",
@@ -85,7 +86,8 @@ project "Minecraft"
     }
 
     defines {
-        "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS"
+        "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS",
+        "_OPENGL"
         --"ENET_FEATURE_ADDRESS_MAPPING"
     }
 
@@ -128,11 +130,23 @@ project "Minecraft"
             "copy /y \"Minecraft\\vendor\\freetype\\release dll\\win64\\freetype.lib\" \"%{cfg.targetdir}\\freetype.lib\""
         }
 
+        -- Debug build options
         filter { "configurations:Debug", "system:windows" }
             buildoptions "/MTd"
+        filter { "configurations:OptickDebug", "system:windows" }
+            buildoptions "/MTd"
 
+        -- Release build options
         filter { "configurations:Release", "system:windows" }
             buildoptions "/MT"
+        filter { "configurations:OptickRelease", "system:windows" }
+            buildoptions "/MT"
+
+        -- Optick stuff
+        filter { "configurations:OptickDebug", "system:windows" }
+            defines { "_USE_OPTICK" }
+        filter { "configurations:OptickRelease", "system:windows" }
+            defines { "_USE_OPTICK" }   
     
     filter { "system:linux" }
         buildoptions {
@@ -150,11 +164,11 @@ project "Minecraft"
             "Minecraft/vendor/GLFW/**.c"
         }
 
-    filter { "configurations:Debug" }
+    filter { "configurations:Debug", "configurations:OptickDebug" }
         runtime "Debug"
         symbols "on"
 
-    filter { "configurations:Release" }
+    filter { "configurations:Release", "configurations:OptickRelease" }
         defines {" _RELEASE" }
         runtime "Release"
         optimize "on"

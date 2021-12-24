@@ -4,6 +4,7 @@
 
 namespace Minecraft
 {
+	const uint16 NULL_BLOCK_ID = 0;
 	struct Sprite;
 	struct Texture;
 
@@ -18,11 +19,46 @@ namespace Minecraft
 		uint16 id;
 		uint16 lightLevel;
 		int16 lightColor;
-		int16 padding;
 
-		bool isLightSource() const;
-		bool isTransparent() const;
+		// Bit 1 isTransparent
+		// Bit 2 isBlendable
+		// Bit 3 isLightSource
+		int16 compressedData;
+
 		bool isItemOnly() const;
+
+		inline bool isTransparent() const
+		{
+			return (compressedData & 0b1);
+		}
+
+		inline void setTransparent(bool transparent)
+		{
+			compressedData |= transparent ? 0b1 : 0;
+		}
+
+		inline bool isBlendable() const
+		{
+			return (compressedData & 0b10);
+		}
+
+		inline void setIsBlendable(bool isBlendable)
+		{
+			compressedData |= isBlendable ? 0b10 : 0;
+		}
+
+		// TODO: This doesn't work for some reason
+		inline void setIsLightSource(bool isLightSource)
+		{
+			compressedData |= isLightSource ? 0b100 : 0;
+		}
+
+		inline bool isLightSource() const
+		{
+			return (compressedData & 0b100);
+		}
+
+		//bool isLightSource() const;
 
 		inline bool isLightPassable() const 
 		{
@@ -54,10 +90,50 @@ namespace Minecraft
 		{
 			return (lightLevel & 0x3e0) >> 5;
 		}
+
+		inline void setLightColor(const glm::ivec3& color)
+		{
+			// Convert from number between 0-255 to number between 0-7
+			lightColor =
+				(( ((int)((float)color.r / 255.0f) * 7) << 0) & 0x7)  | 
+				(( ((int)((float)color.g / 255.0f) * 7) << 3) & 0x38) | 
+				(( ((int)((float)color.b / 255.0f) * 7) << 6) & 0x1C0); 
+		}
+
+		inline glm::ivec3 getLightColor() const
+		{
+			// Convert from number between 0-7 to number between 0-255
+			return glm::ivec3(
+				(int)(((float)((lightColor & 0x7)   >> 0) / 7.0f) * 255.0f),  // R
+				(int)(((float)((lightColor & 0x38)  >> 3) / 7.0f) * 255.0f),  // G
+				(int)(((float)((lightColor & 0x1C0) >> 6) / 7.0f) * 255.0f)   // B
+			);
+		}
+
+		inline glm::ivec3 getCompressedLightColor() const
+		{
+			return glm::ivec3(
+				((lightColor & 0x7) >> 0),  // R
+				((lightColor & 0x38) >> 3), // G
+				((lightColor & 0x1C0) >> 6) // B
+			);
+		}
+
+		inline bool isNull() const
+		{
+			return id == NULL_BLOCK_ID;
+		}
 	};
 
-	bool operator==(const Block& a, const Block& b);
-	bool operator!=(const Block& a, const Block& b);
+	inline bool operator==(const Block& a, const Block& b)
+	{
+		return a.id == b.id;
+	}
+
+	inline bool operator!=(const Block& a, const Block& b)
+	{
+		return a.id != b.id;
+	}
 
 	struct TextureFormat;
 	struct BlockFormat
@@ -87,7 +163,7 @@ namespace Minecraft
 		// 9 is the max crafting size
 		uint16 blockIds[9];
 		int16 output;
-		int16 outputCount;
+		uint8 outputCount;
 	};
 
 	struct TextureFormat

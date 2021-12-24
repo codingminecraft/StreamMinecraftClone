@@ -24,10 +24,12 @@ namespace Minecraft
 		static std::vector<Batch<RenderVertex2D>> batches2D;
 		static Batch<RenderVertexLine> batch3DLines;
 		static Batch<RenderVertex3D> batch3DRegular;
+		static Batch<VoxelVertex> batch3DVoxels;
 
 		static Shader shader2D;
 		static Shader line3DShader;
 		static Shader regular3DShader;
+		static Shader batch3DVoxelsShader;
 
 		static Ecs::Registry* registry;
 		static const Camera* camera;
@@ -71,6 +73,7 @@ namespace Minecraft
 			shader2D.compile("assets/shaders/DebugShader2D.glsl");
 			line3DShader.compile("assets/shaders/DebugShader3D.glsl");
 			regular3DShader.compile("assets/shaders/RegularShader3D.glsl");
+			batch3DVoxelsShader.compile("assets/shaders/VoxelShader.glsl");
 
 			batch3DLines.init(
 				{
@@ -90,6 +93,12 @@ namespace Minecraft
 					{3, 3, AttributeType::Float, offsetof(RenderVertex3D, normal)}
 				}
 			);
+			batch3DVoxels.init(
+				{
+					{0, 3, AttributeType::Float, offsetof(VoxelVertex, position)},
+					{1, 1, AttributeType::Uint, offsetof(VoxelVertex, color)},
+				}
+			);
 			g_logger_info("Initializing the 3D debug batch3DLines succeeded.");
 		}
 
@@ -100,16 +109,32 @@ namespace Minecraft
 				batch2D.free();
 			}
 			batch3DLines.free();
+			batch3DRegular.free();
+			batch3DVoxels.free();
 
 			shader2D.destroy();
 			line3DShader.destroy();
 			regular3DShader.destroy();
+			batch3DVoxelsShader.destroy();
 		}
 
 		void render()
 		{
 			flushBatches3D();
 			flushBatches2D();
+			flushVoxelBatches();
+		}
+
+		void reloadShaders()
+		{
+			shader2D.destroy();
+			line3DShader.destroy();
+			regular3DShader.destroy();
+			batch3DVoxelsShader.destroy();
+			shader2D.compile("assets/shaders/DebugShader2D.glsl");
+			line3DShader.compile("assets/shaders/DebugShader3D.glsl");
+			regular3DShader.compile("assets/shaders/RegularShader3D.glsl");
+			batch3DVoxelsShader.compile("assets/shaders/VoxelShader.glsl");
 		}
 
 		void flushBatches2D()
@@ -185,6 +210,24 @@ namespace Minecraft
 			DebugStats::numDrawCalls += 2;
 		}
 
+		void flushVoxelBatches()
+		{
+			if (batch3DVoxels.numVertices <= 0)
+			{
+				return;
+			}
+
+			glEnable(GL_CULL_FACE);
+
+			batch3DVoxelsShader.bind();
+			batch3DVoxelsShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
+			batch3DVoxelsShader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+
+			batch3DVoxels.flush();
+
+			DebugStats::numDrawCalls += 1;
+		}
+
 		void flushBatches3D(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix)
 		{
 			regular3DShader.bind();
@@ -220,12 +263,6 @@ namespace Minecraft
 		void setCameraFrustum(const Frustum& cameraFrustumRef)
 		{
 			cameraFrustum = &cameraFrustumRef;
-		}
-
-		void clearColor(const glm::vec4& color)
-		{
-			glClearColor(color.r, color.g, color.b, color.a);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
 
 		// =========================================================
@@ -389,6 +426,21 @@ namespace Minecraft
 		// =========================================================
 		// Draw 3D Functions
 		// ===================================================
+		void draw3DModel(const glm::vec3& position, const glm::vec3& scale, float rotation, const VoxelVertex* vertices, int verticesLength)
+		{
+			for (int i = 0; i < verticesLength; i++)
+			{
+				if (batch3DVoxels.numVertices + 1 > _Batch::maxBatchSize)
+				{
+					flushVoxelBatches();
+				}
+
+				VoxelVertex vertex = vertices[i];
+				vertex.position += position;
+				batch3DVoxels.addVertex(vertex);
+			}
+		}
+
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style)
 		{
 			if (batch3DLines.numVertices + 6 >= _Batch::maxBatchSize)
@@ -512,7 +564,7 @@ namespace Minecraft
 				&sideSprite,
 				&topSprite, &bottomSprite, &sideSprite, &sideSprite
 			};
-			const glm::mat4 transformMatrix = 
+			const glm::mat4 transformMatrix =
 				glm::rotate(
 					glm::translate(glm::mat4(1.0f), center),
 					glm::radians(rotation),

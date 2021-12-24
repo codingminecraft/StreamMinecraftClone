@@ -30,9 +30,8 @@ namespace Minecraft
 				}
 
 				rb.velocity.x = 0;
-				if (rb.isSensor)
+				if (!rb.useGravity)
 				{
-					// TODO: Change this
 					rb.velocity.y = 0;
 				}
 				rb.velocity.z = 0;
@@ -45,9 +44,8 @@ namespace Minecraft
 					rb.velocity.x = forward.x * controller.movementAxis.x;
 					rb.velocity.z = forward.z * controller.movementAxis.x;
 				}
-				if (rb.isSensor && controller.movementAxis.y)
+				if (!rb.useGravity && controller.movementAxis.y)
 				{
-					// TODO: Change this
 					rb.velocity.y += controller.movementAxis.y;
 				}
 				if (controller.movementAxis.z)
@@ -56,14 +54,15 @@ namespace Minecraft
 					rb.velocity.z += right.z * controller.movementAxis.z;
 				}
 
-				if (glm::abs(rb.velocity.x) > 0 || glm::abs(rb.velocity.z) > 0)
+				if (glm::abs(rb.velocity.x) > 0 || glm::abs(rb.velocity.z) > 0 || (glm::abs(rb.velocity.y) > 0 && !rb.useGravity))
 				{
 					float denominator = glm::inversesqrt(rb.velocity.x * rb.velocity.x + rb.velocity.z * rb.velocity.z);
-					rb.velocity.x *= denominator * speed;
-					if (rb.isSensor && glm::abs(rb.velocity.y) > 0)
+					if (!rb.useGravity && glm::abs(rb.velocity.y) > 0)
 					{
+						denominator = glm::inversesqrt(rb.velocity.x * rb.velocity.x + rb.velocity.z * rb.velocity.z + rb.velocity.y * rb.velocity.y);
 						rb.velocity.y *= denominator * speed;
 					}
+					rb.velocity.x *= denominator * speed;
 					rb.velocity.z *= denominator * speed;
 				}
 

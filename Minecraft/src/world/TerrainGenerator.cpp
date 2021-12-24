@@ -2,95 +2,271 @@
 #include "core/File.h"
 #include "core/AppData.h"
 #include "utils/CMath.h"
+#include "utils/YamlExtended.h"
 
 namespace Minecraft
 {
+	struct WeightedNoise
+	{
+		fnl_state state;
+		float weight;
+	};
+
 	namespace TerrainGenerator
 	{
-		const int numNoise = 5;
-		const float scale[numNoise] = { 0.002f, 0.005f, 0.04f , 0.015f, 0.004f };
-		const float weights[numNoise] = { 0.6f, 0.2f, 0.05f, 0.1f, 0.05f };
+		// Internal variables
+		static std::array<WeightedNoise, 5> terrainNoiseGenerators;
 
-		void outputNoiseToTextures()
+		// Internal functions
+		static fnl_noise_type toFnlNoiseType(const std::string& noiseTypeAsString);
+		static fnl_fractal_type toFnlFractalType(const std::string& fractalTypeAsString);
+
+		void init(const char* terrainNoiseConfig, int seed)
 		{
-			const int textureWidth = 512;
-			const int textureHeight = 512;
-			File::createDirIfNotExists("assets/generated/terrainTextures");
-
-			SimplexNoise generator = SimplexNoise();
-
-			const int numTextures = numNoise;
-			uint8* textures = (uint8*)g_memory_allocate(sizeof(uint8) * textureWidth * textureHeight * numTextures);
-			uint8* textureData[numTextures];
-			uint8* finalTexture = (uint8*)g_memory_allocate(sizeof(uint8) * textureWidth * textureHeight);
-			for (int i = 0; i < numTextures; i++)
+			for (int i = 0; i < terrainNoiseGenerators.size(); i++)
 			{
-				textureData[i] = textures + textureWidth * textureHeight * i;
+				terrainNoiseGenerators[i].state = fnlCreateState();
+				// Offset the seed for each noise generator, that way the 
+				// values aren't correlated
+				terrainNoiseGenerators[i].state.seed = seed + (i * 7);
 			}
 
-			for (int x = 0; x < textureWidth; x++)
+			YAML::Node terrainNoise = YamlExtended::readFile(terrainNoiseConfig);
+			int numGenerators = 0;
+			for (auto generator : terrainNoise)
 			{
-				for (int z = 0; z < textureHeight; z++)
+				// TODO: Increase error checking here so it doesn't crash on bad input configuration files
+				bool isWellDefined = generator.second["general"].IsDefined();
+				if (isWellDefined)
 				{
-					for (int i = 0; i < numTextures; i++)
+					if (generator.second["general"])
 					{
-						float noise = getNoise(generator, x, z, i);
-						textureData[i][x + (z * textureWidth)] = (uint8)(noise * 255.0f);
+						// Parse General section
+						g_logger_info("Parsing terrain noise generator '%s'", generator.first.as<std::string>().c_str());
+						const YAML::Node& generalSection = generator.second["general"];
+						std::string noiseTypeAsString = generalSection["noiseType"].as<std::string>();
+						fnl_noise_type noiseType = toFnlNoiseType(noiseTypeAsString);
+						float frequency = generalSection["frequency"].as<float>();
+						terrainNoiseGenerators[numGenerators].state.noise_type = noiseType;
+						terrainNoiseGenerators[numGenerators].state.frequency = frequency;
+
+						if (generator.second["weight"].IsDefined())
+						{
+							terrainNoiseGenerators[numGenerators].weight = generator.second["weight"].as<float>();
+						}
+						else
+						{
+							g_logger_error("No weight was defined for noise generator '%s'. Defaulting to weight of 0.0f", generator.first.as<std::string>().c_str());
+							terrainNoiseGenerators[numGenerators].weight = 0.0f;
+						}
+					}
+					else
+					{
+						g_logger_error("All noise generators must have a general section. Ignoring generator '%s'", generator.first.as<std::string>().c_str());
 					}
 
-					float normalizedHeight = getNormalizedHeight(generator, x, z);
-					finalTexture[x + (z * textureWidth)] = (uint8)(normalizedHeight * 255.0f);
+					if (generator.second["fractal"])
+					{
+						const YAML::Node& fractalSection = generator.second["fractal"];
+						std::string fractalTypeAsString = fractalSection["fractalType"].as<std::string>();
+						fnl_fractal_type type = toFnlFractalType(fractalTypeAsString);
+						int octaves = fractalSection["octaves"].as<int>();
+						float lacunarity = fractalSection["lacunarity"].as<float>();
+						float gain = fractalSection["gain"].as<float>();
+						float weightedStrength = fractalSection["weightedStrength"].as<float>();
+						
+						terrainNoiseGenerators[numGenerators].state.fractal_type = type;
+						terrainNoiseGenerators[numGenerators].state.octaves = octaves;
+						terrainNoiseGenerators[numGenerators].state.lacunarity = lacunarity;
+						terrainNoiseGenerators[numGenerators].state.gain = gain;
+						terrainNoiseGenerators[numGenerators].state.weighted_strength = weightedStrength;
+					}
+					else
+					{
+						terrainNoiseGenerators[numGenerators].state.fractal_type = fnl_fractal_type::FNL_FRACTAL_NONE;
+					}
+
+					// Increase generator index
+					numGenerators++;
+					if (numGenerators >= terrainNoiseGenerators.size())
+					{
+						g_logger_warning("Only support up to 5 generators right now. Ignoring the rest of the generators in '%s'", terrainNoiseConfig);
+						break;
+					}
 				}
 			}
 
-			for (int i = 0; i < numTextures; i++)
-			{
-				std::string outPath = std::string("assets/generated/terrainTextures/noise") + std::to_string(i) + std::string(".png");
-				stbi_write_png(outPath.c_str(), textureWidth, textureHeight, 1, textureData[i], sizeof(uint8) * textureWidth);
-			}
-
-			stbi_write_png("assets/generated/terrainTextures/combinedNoise.png", textureWidth, textureHeight, 1, finalTexture, sizeof(uint8) * textureWidth);
-
-			g_memory_free(textures);
-			g_memory_free(finalTexture);
+			g_logger_info("Go to https://github.com/Auburn/FastNoiseLite/releases to download an executable to experiment with different types of noises.\n"
+				"If you are happy with what you create, you can just input that noise value into the configuration file.");
 		}
 
-		int16 getHeight(const SimplexNoise& generator, int x, int z, float minBiomeHeight, float maxBiomeHeight)
+		void free()
 		{
-			float normalizedHeight = TerrainGenerator::getNormalizedHeight(generator, x, z);
+		}
+
+		bool getIsCave(int x, int y, int z, int16 maxBiomeHeight)
+		{
+			// If we're at ground level, only 10% chance of the cave peeking through the ground
+			//if (y < maxBiomeHeight || (y == maxBiomeHeight && (float)rand() / (float)RAND_MAX) < 0.1f)
+			//{
+			//	// Cave pocket generator
+			//	float noise1 = CMath::mapRange(
+			//		generator.fractal(
+			//			4,
+			//			(float)(x)*caveScale[0],
+			//			(float)(y)*caveScale[0],
+			//			(float)(z)*caveScale[0]
+			//		),
+			//		-1.0f,
+			//		1.0f,
+			//		0.0f,
+			//		1.0f
+			//	);
+			//	float noise2 = CMath::mapRange(
+			//		generator.fractal(
+			//			4,
+			//			(float)(x)*scale[1],
+			//			(float)(y)*scale[1],
+			//			(float)(z)*scale[1]
+			//		),
+			//		-1.0f,
+			//		1.0f,
+			//		0.0f,
+			//		1.0f
+			//	);
+			//	if (noise1 < 0.3f && noise2 < 0.3f)
+			//	{
+			//		return true;
+			//	}
+
+			//	// Check if it's a wormy kind of cave
+			//	float noise3 = CMath::mapRange(
+			//		generator.fractal(
+			//			4,
+			//			(float)(x)*scale[2],
+			//			(float)(y)*scale[2],
+			//			(float)(z)*scale[2]
+			//		),
+			//		-1.0f,
+			//		1.0f,
+			//		0.0f,
+			//		1.0f
+			//	);
+			//	float noise4 = CMath::mapRange(
+			//		generator.fractal(
+			//			4,
+			//			(float)(x)*scale[3],
+			//			(float)(y)*scale[3],
+			//			(float)(z)*scale[3]
+			//		),
+			//		-1.0f,
+			//		1.0f,
+			//		0.0f,
+			//		1.0f
+			//	);
+			//	return noise3 < 0.3f && noise4 < 0.3f;
+			//}
+			return false;
+		}
+
+		int16 getHeight(int x, int z, float minBiomeHeight, float maxBiomeHeight)
+		{
+			float normalizedHeight = TerrainGenerator::getNormalizedHeight(x, z);
 			return (int16)CMath::mapRange(normalizedHeight, 0.0f, 1.0f, minBiomeHeight, maxBiomeHeight);
 		}
 
-		float getNormalizedHeight(const SimplexNoise& generator, int x, int z)
+		float getNormalizedHeight(int x, int z)
 		{
-			float noise[numNoise];
-			for (int i = 0; i < numNoise; i++)
+			std::array<float, terrainNoiseGenerators.size()> noise;
+			for (int i = 0; i < noise.size(); i++)
 			{
-				noise[i] = getNoise(generator, x, z, i);
+				noise[i] = getNoise(x, z, i);
 			}
 
 			float blendedNoise = 0.0f;
-			for (int i = 0; i < numNoise; i++)
+			float weightSums = 0.0f;
+			for (int i = 0; i < noise.size(); i++)
 			{
-				blendedNoise += noise[i] * weights[i];
+				blendedNoise += noise[i] * terrainNoiseGenerators[i].weight;
+				weightSums += terrainNoiseGenerators[i].weight;
 			}
+
+			// Divide by the weight of the sums to normalize the value again
+			blendedNoise /= weightSums;
+
+			// Raise it to a power to flatten valleys and increase mountains
+			blendedNoise = glm::pow(blendedNoise, 1.19f);
 
 			return blendedNoise;
 		}
 
-		float getNoise(const SimplexNoise& generator, int x, int z, int noiseLevel)
+		float getNoise(int x, int z, int noiseLevel)
 		{
 			return CMath::mapRange(
-					generator.fractal(
-						4,
-						(float)(x)*scale[noiseLevel],
-						(float)(z)*scale[noiseLevel]
-					),
-					-1.0f,
-					1.0f,
-					0.0f,
-					1.0f
-				);
+				fnlGetNoise2D(
+					&terrainNoiseGenerators[noiseLevel].state,
+					(float)(x),
+					(float)(z)
+				),
+				-1.0f,
+				1.0f,
+				0.0f,
+				1.0f
+			);
+		}
+
+		static fnl_noise_type toFnlNoiseType(const std::string& noiseTypeAsString)
+		{
+			if (noiseTypeAsString == "OpenSimplex2")
+			{
+				return fnl_noise_type::FNL_NOISE_OPENSIMPLEX2;
+			}
+			else if (noiseTypeAsString == "OpenSimplex2s")
+			{
+				return fnl_noise_type::FNL_NOISE_OPENSIMPLEX2S;
+			}
+			else if (noiseTypeAsString == "Cellular")
+			{
+				return fnl_noise_type::FNL_NOISE_CELLULAR;
+			}
+			else if (noiseTypeAsString == "Perlin")
+			{
+				return fnl_noise_type::FNL_NOISE_PERLIN;
+			}
+			else if (noiseTypeAsString == "ValueCubic")
+			{
+				return fnl_noise_type::FNL_NOISE_VALUE_CUBIC;
+			}
+			else if (noiseTypeAsString == "Value")
+			{
+				return fnl_noise_type::FNL_NOISE_VALUE;
+			}
+
+			g_logger_error("Unknown noise type '%s'. Defaulting to OpenSimplex2 noise type.", noiseTypeAsString.c_str());
+			return fnl_noise_type::FNL_NOISE_OPENSIMPLEX2;
+		}
+
+		static fnl_fractal_type toFnlFractalType(const std::string& fractalTypeAsString)
+		{
+			if (fractalTypeAsString == "FBM")
+			{
+				return fnl_fractal_type::FNL_FRACTAL_FBM;
+			}
+			else if (fractalTypeAsString == "Ridged")
+			{
+				return fnl_fractal_type::FNL_FRACTAL_RIDGED;
+			}
+			else if (fractalTypeAsString == "PingPong")
+			{
+				return fnl_fractal_type::FNL_FRACTAL_PINGPONG;
+			}
+			else if (fractalTypeAsString == "None")
+			{
+				return fnl_fractal_type::FNL_FRACTAL_NONE;
+			}
+
+			g_logger_error("Unknown fractal type '%s'. Defaulting to fractal type 'None'", fractalTypeAsString.c_str());
+			return fnl_fractal_type::FNL_FRACTAL_NONE;
 		}
 	}
 }

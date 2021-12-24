@@ -64,6 +64,7 @@ oak_leaves:
   bottom: oak_leaves
   isSolid: true
   isTransparent: true
+  isBlendable: true
   colorTopByBiome: true
   colorSideByBiome: true 
   colorBottomByBiome: true
@@ -111,6 +112,7 @@ glass:
   bottom: glass
   isSolid: true
   isTransparent: true
+  isBlendable: true
 sea_lantern:
   id: 16
   side: sea_lantern

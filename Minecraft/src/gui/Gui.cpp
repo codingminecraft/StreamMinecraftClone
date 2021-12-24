@@ -3,6 +3,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
+#include "core/Application.h"
 
 namespace Minecraft
 {
@@ -37,6 +38,7 @@ namespace Minecraft
 		static glm::vec2 elementPadding;
 		static Font* defaultFont;
 		static float defaultTextScale;
+		static const float keyHoldDelayTime = 0.05f;
 
 		// Internal functions
 		static WidgetState mouseInAABB(const glm::vec2& position, const glm::vec2& size);
@@ -45,6 +47,7 @@ namespace Minecraft
 		static WindowState& getCurrentWindow();
 		static void advanceCursorPastElement(WindowState& window, const glm::vec2& elementSize);
 		static glm::vec2 getElementPosition(WindowState& window, const glm::vec2& elementSize);
+		static bool elementExceedsWindowHeight(WindowState& window, const glm::vec2& elementSize);
 
 		void init()
 		{
@@ -98,6 +101,11 @@ namespace Minecraft
 		void image(const Sprite& sprite, const glm::vec2& size)
 		{
 			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, size))
+			{
+				return;
+			}
+
 			glm::vec2 spritePosition = getElementPosition(windowState, size);
 			Renderer::drawTexture2D(sprite, spritePosition, size, Styles::defaultStyle);
 			advanceCursorPastElement(windowState, size);
@@ -120,6 +128,7 @@ namespace Minecraft
 
 		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool drawOutline, bool isFocused, int zIndex)
 		{
+			// TODO: Add window overrun support (scroll support)
 			WindowState& windowState = getCurrentWindow();
 			sameLine();
 			const float textBoxPadding = 0.02f;
@@ -151,6 +160,13 @@ namespace Minecraft
 
 			std::string inputText = std::string(inputBuffer);
 			glm::vec2 inputTextStrSize = defaultFont->getSize(inputText, scale);
+			glm::vec2 sizeOfPipeChar = defaultFont->getSize("|", scale);
+			if (inputTextStrSize.x >= (inputBoxSize.x - sizeOfPipeChar.x - textBoxPadding))
+			{
+				// Figure out how many chars fit in the line
+				inputText = defaultFont->getStringThatFitsIn(inputText, scale, inputBoxSize.x - sizeOfPipeChar.x - textBoxPadding, false);
+				inputTextStrSize = defaultFont->getSize(inputText, scale);
+			}
 			float inputCursorPosX = textBoxPadding;
 			if (inputText.length() > 0)
 			{
@@ -195,27 +211,42 @@ namespace Minecraft
 					}
 
 					res = placedNullChar;
-					if (!placedNullChar) 
+					if (!placedNullChar)
 					{
 						g_logger_error("Ran out of room in input buffer, terminating string early.");
 						inputBuffer[inputBufferLength - 1] = '\0';
 					}
 				}
-				if (Input::keyBeginPress(GLFW_KEY_BACKSPACE))
+
+				static float backspaceDelayTimeLeft = 0.0f;
+				static bool backspacePressedLastFrame = false;
+				if (Input::isKeyPressed(GLFW_KEY_BACKSPACE))
 				{
-					for (int i = 0; i < inputBufferLength; i++)
+					if (backspaceDelayTimeLeft <= 0.0f)
 					{
-						if (inputBuffer[i] == '\0')
+						backspaceDelayTimeLeft = keyHoldDelayTime * (backspacePressedLastFrame ? 1.0f : 6.0f);
+						for (int i = 0; i < inputBufferLength; i++)
 						{
-							if (i > 0)
+							if (inputBuffer[i] == '\0')
 							{
-								inputBuffer[i - 1] = '\0';
+								if (i > 0)
+								{
+									inputBuffer[i - 1] = '\0';
+								}
+								break;
 							}
-							break;
 						}
+						backspacePressedLastFrame = true;
 					}
 					res = true;
 				}
+				else
+				{
+					backspacePressedLastFrame = false;
+				}
+				backspaceDelayTimeLeft -= Application::deltaTime;
+
+
 			}
 
 			Gui::advanceCursorPastElement(windowState, inputBoxSize);
@@ -224,7 +255,12 @@ namespace Minecraft
 
 		bool button(const Button& button)
 		{
+			// TODO: Add window overrun support (scroll support)
 			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, button.size))
+			{
+				return false;
+			}
 
 			bool res = false;
 			glm::vec2 buttonPosition = getElementPosition(windowState, button.size);
@@ -258,6 +294,10 @@ namespace Minecraft
 		bool textureButton(const TexturedButton& button, bool isDisabled)
 		{
 			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, button.size))
+			{
+				return false;
+			}
 
 			const Sprite* sprite = nullptr;
 			guiStyle.color = "#ffffff"_hex;
@@ -293,12 +333,14 @@ namespace Minecraft
 			return res;
 		}
 
-		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, bool isSelected)
+		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, const Sprite& icon, bool isSelected)
 		{
 			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, size))
+			{
+				return false;
+			}
 
-			// TODO: Get the world data image thing and store it in here
-			const Sprite* sprite = nullptr;
 			guiStyle.color = "#ffffff"_hex;
 
 			bool res = false;
@@ -309,18 +351,28 @@ namespace Minecraft
 				res = true;
 			}
 
-			// TODO: Draw world image path
-			//Renderer::drawTexture2D(*sprite, buttonPosition, button.size, guiStyle, -1);
-
 			glm::vec2 imageSize = glm::vec2(size.y - elementPadding.y * 2.0f, size.y - elementPadding.y * 2.0f);
 			glm::vec2 imagePos = buttonPosition + elementPadding;
-			Renderer::drawFilledSquare2D(imagePos, imageSize, Styles::defaultStyle);
+			if (!icon.texture.isNull())
+			{
+				Renderer::drawTexture2D(icon, imagePos, imageSize, guiStyle, 0);
+			}
+			else
+			{
+				Renderer::drawFilledSquare2D(imagePos, imageSize, Styles::defaultStyle);
+			}
 
 			g_logger_assert(worldDataPath != nullptr, "Invalid world data path. Cannot be null.");
 			g_logger_assert(defaultFont != nullptr, "Invalid default font. Cannot be null.");
 			glm::vec2 strSize = defaultFont->getSize(worldDataPath, defaultTextScale);
 			glm::vec2 textPos = imagePos + imageSize + glm::vec2(elementPadding.x, -(size.y - (strSize.y * 0.5f)));
-			Renderer::drawString(worldDataPath, *defaultFont, textPos, defaultTextScale, guiStyle);
+			std::string sanitizedWorldDataPath = std::string(worldDataPath);
+			float maxSize = size.x - defaultFont->getSize("...", defaultTextScale).x - imageSize.x - (elementPadding.x * 2.0f);
+			if (strSize.x >= maxSize)
+			{
+				sanitizedWorldDataPath = defaultFont->getStringThatFitsIn(sanitizedWorldDataPath, defaultTextScale, maxSize) + "...";
+			}
+			Renderer::drawString(sanitizedWorldDataPath, *defaultFont, textPos, defaultTextScale, guiStyle);
 
 
 			if (isSelected)
@@ -337,6 +389,10 @@ namespace Minecraft
 		bool slider(const Slider& slider, float* value)
 		{
 			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, slider.size))
+			{
+				return false;
+			}
 
 			const glm::vec2& sliderPosition = getElementPosition(windowState, slider.size);
 			const glm::vec2& sliderSize = slider.size;
@@ -473,6 +529,28 @@ namespace Minecraft
 			}
 
 			return window.cursorPos + window.position - glm::vec2(0, elementSize.y);
+		}
+
+		static bool elementExceedsWindowHeight(WindowState& window, const glm::vec2& elementSize)
+		{
+			window.lastElementPosition = window.cursorPos - elementPadding;
+			window.lastElementSize = elementSize + elementPadding;
+
+			glm::vec2 nextPos;
+			if (window.nextElementSameLine)
+			{
+				nextPos = window.cursorPos + glm::vec2(elementSize.x, 0) + glm::vec2(elementPadding.x, 0);
+
+			}
+			else
+			{
+				nextPos = glm::vec2(0, window.cursorPos.y) + elementPadding + elementSize.y;
+			}
+
+			return false;// nextPos.x >= (window.size.x + window.cursorPos.x) ||
+				//nextPos.y >= (window.size.y + window.cursorPos.y) ||
+				//nextPos.x < window.cursorPos.x ||
+				//nextPos.y < window.cursorPos.y;
 		}
 	}
 }

@@ -7,8 +7,8 @@ namespace Minecraft
 {
 	struct InventorySlot
 	{
-		int16 blockId;
-		int8 count;
+		uint16 blockId;
+		uint8 count;
 
 		bool operator==(InventorySlot other) const
 		{

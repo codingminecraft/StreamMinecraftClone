@@ -43,12 +43,18 @@ namespace Minecraft
 				"assets/images/menuSkybox/Right.png",
 				"assets/images/menuSkybox/Front.png",
 				"assets/images/menuSkybox/Back.png");
-			cubemapShader.compile("assets/shaders/Cubemap.glsl");
+			reloadShaders();
 			viewAxis = glm::normalize(glm::vec3(0.1f, 1.0f, -0.1f));
 			viewRotation = 0.0f;
 
 			CreateWorldMenu::init();
 			g_logger_info("Initialized main menu scene.");
+		}
+
+		void reloadShaders()
+		{
+			cubemapShader.destroy();
+			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 		}
 
 		void update(float dt)
@@ -87,7 +93,9 @@ namespace Minecraft
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
 				Gui::centerNextElement();
 				button.text = "Join LAN Server";
-				if (Gui::textureButton(button))
+				// TODO: Reenable me once multiplayer is working good
+				//if (Gui::textureButton(button))
+				if (Gui::textureButton(button, true))
 				{
 					Scene::changeScene(SceneType::LocalLanGame);
 				}

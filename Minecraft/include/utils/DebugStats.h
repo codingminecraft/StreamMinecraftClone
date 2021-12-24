@@ -14,6 +14,7 @@ namespace Minecraft
 		extern std::atomic<float> totalChunkRamUsed;
 		extern float totalChunkRamAvailable;
 		extern Block blockLookingAt;
+		extern Block airBlockLookingAt;
 
 		void render();
 	}

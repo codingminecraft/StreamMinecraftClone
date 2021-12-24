@@ -42,8 +42,10 @@ namespace Minecraft
 
 	void Shader::compile(const char* shaderFilepath)
 	{
-		filepath = (char*)g_memory_allocate(sizeof(char) * (std::strlen(shaderFilepath) + 1));
+		int strLength = (int)std::strlen(shaderFilepath);
+		filepath = (char*)g_memory_allocate(sizeof(char) * (strLength + 1));
 		std::strcpy(filepath, shaderFilepath);
+		filepath[strLength] = '\0';
 		g_logger_info("Compiling shader: %s", filepath);
 		std::string fileSource = ReadFile(filepath);
 
@@ -157,7 +159,7 @@ namespace Minecraft
 				glGetActiveUniform(program, i, maxCharLength, &length, &size, &type, charBuffer);
 				GLint varLocation = glGetUniformLocation(program, charBuffer);
 				mAllShaderVariableLocations[{
-					std::string(charBuffer),
+					std::string(charBuffer, length),
 						varLocation,
 						program
 				}] = varLocation;
@@ -180,6 +182,7 @@ namespace Minecraft
 		if (programId != UINT32_MAX)
 		{
 			glDeleteProgram(programId);
+			programId = UINT32_MAX;
 		}
 
 		if (filepath != nullptr)

@@ -4,6 +4,7 @@
 #include "core/Ecs.h"
 #include "core/Scene.h"
 #include "core/AppData.h"
+#include "core/GlobalThreadPool.h"
 #include "renderer/Renderer.h"
 #include "renderer/Font.h"
 #include "renderer/Framebuffer.h"
@@ -21,9 +22,7 @@ namespace Minecraft
 {
 	namespace Application
 	{
-		static Ecs::Registry& getRegistry();
-		static void freeWindow();
-		static void freeRegistry();
+		float deltaTime = 0.016f;
 
 		// Internal variables
 		static Framebuffer mainFramebuffer;
@@ -32,6 +31,12 @@ namespace Minecraft
 		static std::string screenshotName = "";
 
 		static Shader screenShader;
+		static GlobalThreadPool* globalThreadPool;
+
+		// Internal functions
+		static Ecs::Registry& getRegistry();
+		static void freeWindow();
+		static void freeRegistry();
 
 		void init()
 		{
@@ -45,6 +50,7 @@ namespace Minecraft
 			}
 
 			// Initialize all other subsystems
+			globalThreadPool = new GlobalThreadPool(std::thread::hardware_concurrency());
 			AppData::init();
 			Ecs::Registry& registry = getRegistry();
 			Renderer::init(registry);
@@ -119,23 +125,12 @@ namespace Minecraft
 			{
 
 				double currentTime = glfwGetTime();
-				double deltaTime = currentTime - previousTime;
+				deltaTime = (float)(currentTime - previousTime);
 
-				//if (Input::keyBeginPress(GLFW_KEY_F8))
-				//{
-				//	static bool capturing = false;
-				//	if (!capturing)
-				//	{
-				//		capturing = true;
-				//		OPTICK_START_CAPTURE();
-				//	}
-				//	else
-				//	{
-				//		capturing = false;
-				//		OPTICK_STOP_CAPTURE();
-				//		OPTICK_SAVE_CAPTURE("c:/tmp/optickCapture.opt");
-				//	}
-				//}
+#ifdef _USE_OPTICK
+				OPTICK_FRAME("Main Thread");
+				OPTICK_EVENT();
+#endif
 
 				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
 				{
@@ -146,9 +141,14 @@ namespace Minecraft
 					glViewport(0, 0, getWindow().width, getWindow().height);
 				}
 
+				// TODO: You're trying to debug the black screen because of the glClear framebuffer thing
 				mainFramebuffer.bind();
 				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
 				glDrawBuffers(3, mainDrawBuffer);
+				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+				glClearBufferfv(GL_COLOR, 0, zeroFillerVec);
+				float one = 1;
+				glClearBufferfv(GL_DEPTH, 0, &one);
 				Scene::update(deltaTime);
 
 				// Unbind all framebuffers and render the composited image
@@ -175,6 +175,7 @@ namespace Minecraft
 
 				if (dumpScreenshot)
 				{
+					std::string filepath = screenshotName;
 					if (screenshotName == "")
 					{
 						time_t rawtime;
@@ -186,6 +187,7 @@ namespace Minecraft
 
 						strftime(buffer, sizeof(buffer), "%d-%m-%Y %H.%M.%S", timeinfo);
 						screenshotName = std::string(buffer);
+						filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
 					}
 
 					uint8* pixels = (uint8*)g_memory_allocate(sizeof(uint8) * mainFramebuffer.width * mainFramebuffer.height * 4);
@@ -209,8 +211,8 @@ namespace Minecraft
 
 					glReadPixels(startX, startY, outputWidth, outputHeight, GL_RGBA, GL_UNSIGNED_BYTE, (void*)pixels);
 					stbi_flip_vertically_on_write(true);
-					std::string filepath = AppData::screenshotsPath + "/" + screenshotName + ".png";
 					stbi_write_png(filepath.c_str(), outputWidth, outputHeight, 4, (void*)pixels, sizeof(uint8) * outputWidth * 4);
+					g_logger_info("Screenshot saved to: %s", filepath.c_str());
 					g_memory_free(pixels);
 					dumpScreenshot = false;
 				}
@@ -228,12 +230,17 @@ namespace Minecraft
 			mainFramebuffer.destroy();
 
 			// Free all resources
+			// Important: Scene gets freed first so that it queues all saving tasks to the global thread pool.
+			// Then we can free the global thread pool which will finish those tasks
+			Scene::free();
+			globalThreadPool->free();
+			delete globalThreadPool;
+
 			Vertices::free();
 			GuiElements::free();
 			getRegistry().free();
 			Window& window = getWindow();
 			window.destroy();
-			Scene::free();
 			Renderer::free();
 			Window::free();
 
@@ -251,6 +258,11 @@ namespace Minecraft
 		Framebuffer& getMainFramebuffer()
 		{
 			return mainFramebuffer;
+		}
+
+		GlobalThreadPool& getGlobalThreadPool()
+		{
+			return *globalThreadPool;
 		}
 
 		void takeScreenshot(const char* filename, bool mustBeSquare)
