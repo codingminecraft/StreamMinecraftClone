@@ -355,7 +355,7 @@ namespace Minecraft
 			glm::vec2 imagePos = buttonPosition + elementPadding;
 			if (!icon.texture.isNull())
 			{
-				Renderer::drawTexture2D(icon, imagePos, imageSize, guiStyle, 0.0f);
+				Renderer::drawTexture2D(icon, imagePos, imageSize, guiStyle, 0);
 			}
 			else
 			{

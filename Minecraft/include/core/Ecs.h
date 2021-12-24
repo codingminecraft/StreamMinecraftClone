@@ -441,7 +441,7 @@ namespace Minecraft
 					return nullptr;
 				}
 
-				return componentSets[componentId].get(id);
+				return componentSets[componentId].get(Internal::getEntityIndex(id));
 			}
 
 			uint8* addOrGetComponentById(EntityId id, int32 componentId)

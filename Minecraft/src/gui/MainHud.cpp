@@ -135,12 +135,12 @@ namespace Minecraft
 
 		void notify(const std::string& message)
 		{
-			if (notificationMessage == nullptr)
+			if (notificationMessage != nullptr)
 			{
 				g_memory_free(notificationMessage);
 			}
 
-			notificationMessageLength = message.length();
+			notificationMessageLength = (uint32)message.length();
 			notificationMessage = (char*)g_memory_allocate(sizeof(char) * (notificationMessageLength + 1));
 			std::strcpy(notificationMessage, message.c_str());
 			notificationMessage[notificationMessageLength] = '\0';

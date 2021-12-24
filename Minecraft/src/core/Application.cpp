@@ -125,7 +125,7 @@ namespace Minecraft
 			{
 
 				double currentTime = glfwGetTime();
-				deltaTime = currentTime - previousTime;
+				deltaTime = (float)(currentTime - previousTime);
 
 #ifdef _USE_OPTICK
 				OPTICK_FRAME("Main Thread");

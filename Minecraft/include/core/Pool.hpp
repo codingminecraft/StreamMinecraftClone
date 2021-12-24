@@ -32,7 +32,7 @@ namespace Minecraft
 			freeListSize = numPools;
 			freeListStart = 0;
 			freeList = (T**)g_memory_allocate(sizeof(T*) * numPools);
-			for (int i = 0; i < numPools; i++)
+			for (uint32 i = 0; i < numPools; i++)
 			{
 				freeList[i] = data + (_poolSize * i);
 			}
@@ -57,13 +57,13 @@ namespace Minecraft
 
 		T* operator[](int poolIndex)
 		{
-			g_logger_assert(poolIndex >= 0 && poolIndex < numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
+			g_logger_assert(poolIndex >= 0 && poolIndex < (int)numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
 			return data + (_poolSize * poolIndex);
 		}
 
 		const T* operator[](int poolIndex) const
 		{
-			g_logger_assert(poolIndex >= 0 && poolIndex < numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
+			g_logger_assert(poolIndex >= 0 && poolIndex < (int)numPools, "Pool index '%d' out of bounds in pool with size '%d'.", poolIndex, numPools);
 			return data + (_poolSize * poolIndex);
 		}
 
@@ -95,7 +95,7 @@ namespace Minecraft
 		void freePool(T* pool)
 		{
 			g_logger_assert(pool >= data && pool <= data + (_poolSize * numPools), "Data '%zu' does not exist in this pool.", pool);
-			uint32 poolIndex = (pool - data) / _poolSize;
+			uint32 poolIndex = (uint32)((pool - data) / _poolSize);
 			freePool(poolIndex);
 		}
 

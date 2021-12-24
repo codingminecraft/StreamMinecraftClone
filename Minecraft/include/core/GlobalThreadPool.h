@@ -38,7 +38,7 @@ namespace Minecraft
 
 		void free();
 
-		void processLoop(int threadIndex);
+		void processLoop(uint32 threadIndex);
 		void queueTask(
 			TaskFunction function, 
 			const char* taskName = "Default",

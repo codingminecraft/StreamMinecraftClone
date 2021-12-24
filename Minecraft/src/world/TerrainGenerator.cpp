@@ -79,7 +79,7 @@ namespace Minecraft
 						terrainNoiseGenerators[numGenerators].state.octaves = octaves;
 						terrainNoiseGenerators[numGenerators].state.lacunarity = lacunarity;
 						terrainNoiseGenerators[numGenerators].state.gain = gain;
-						terrainNoiseGenerators[weightedStrength].state.weighted_strength = weightedStrength;
+						terrainNoiseGenerators[numGenerators].state.weighted_strength = weightedStrength;
 					}
 					else
 					{

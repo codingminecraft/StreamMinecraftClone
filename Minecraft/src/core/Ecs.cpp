@@ -88,7 +88,7 @@ namespace Minecraft
 			uint32 numEntities;
 			memory.read<uint32>(&numEntities);
 			entities.resize(numEntities);
-			for (int entityCounter = 0; entityCounter < numEntities; entityCounter++)
+			for (uint32 entityCounter = 0; entityCounter < numEntities; entityCounter++)
 			{
 				EntityId entity;
 				memory.read<EntityId>(&entity);

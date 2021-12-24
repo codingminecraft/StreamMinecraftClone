@@ -163,7 +163,7 @@ namespace Minecraft
 		// 9 is the max crafting size
 		uint16 blockIds[9];
 		int16 output;
-		int16 outputCount;
+		uint8 outputCount;
 	};
 
 	struct TextureFormat

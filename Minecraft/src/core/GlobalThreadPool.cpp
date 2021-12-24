@@ -16,7 +16,7 @@ namespace Minecraft
 		: cv(), queueMtx(), generalMtx(), doWork(true), numThreads(numThreads)
 	{
 		workerThreads = new std::thread[numThreads];
-		for (int i = 0; i < numThreads; i++)
+		for (uint32 i = 0; i < numThreads; i++)
 		{
 			workerThreads[i] = std::thread(&GlobalThreadPool::processLoop, this, i);
 		}
@@ -30,14 +30,14 @@ namespace Minecraft
 		}
 		cv.notify_all();
 
-		for (int i = 0; i < numThreads; i++)
+		for (uint32 i = 0; i < numThreads; i++)
 		{
 			workerThreads[i].join();
 		}
 		delete[] workerThreads;
 	}
 
-	void GlobalThreadPool::processLoop(int threadIndex)
+	void GlobalThreadPool::processLoop(uint32 threadIndex)
 	{
 #ifdef _USE_OPTICK
 		std::string threadName = "GlobalThread_" + std::to_string(threadIndex);

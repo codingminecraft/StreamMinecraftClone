@@ -274,7 +274,7 @@ namespace Minecraft
 			{
 				if (largeRecipe.second["outputCount"])
 				{
-					int16 outputCount = largeRecipe.second["outputCount"].as<int16>();
+					uint8 outputCount = largeRecipe.second["outputCount"].as<uint8>();
 					std::string outputName = largeRecipe.first.as<std::string>();
 					int outputId = getBlockId(outputName);
 					g_logger_assert(outputId != NULL_BLOCK.id, "'%s' does not exist as a block. Did you forget to add it to the blockFormats.yaml file?", outputName.c_str());
@@ -283,7 +283,7 @@ namespace Minecraft
 					{
 						if (subRecipe.first.as<std::string>() != "outputCount")
 						{
-							int maxWidth = subRecipe.second[0].size();
+							int maxWidth = (int)subRecipe.second[0].size();
 							int rowIndex = 0;
 
 							CraftingRecipe resultRecipe;

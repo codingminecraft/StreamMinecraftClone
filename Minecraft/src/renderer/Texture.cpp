@@ -67,7 +67,7 @@ namespace Minecraft
 
 	TextureBuilder& TextureBuilder::setFilepath(const char* filepath)
 	{
-		int strLength = std::strlen(filepath);
+		int strLength = (int)std::strlen(filepath);
 		g_logger_assert(strLength > 0, "Bad filepath?");
 		texture.path = (char*)g_memory_allocate(sizeof(char) * (strLength + 1));
 		std::strcpy(texture.path, filepath);
@@ -498,7 +498,6 @@ namespace Minecraft
 						break;
 					}
 
-					int mipChannels;
 					int width, height;
 					unsigned char* mipPixels = stbi_load(texture.path, &width, &height, &channels, 0);
 					glTexImage2D(textureType, i + 1, internalFormat, width, height, 0, externalFormat, GL_UNSIGNED_BYTE, mipPixels);

@@ -42,7 +42,7 @@ namespace Minecraft
 
 	void Shader::compile(const char* shaderFilepath)
 	{
-		int strLength = std::strlen(shaderFilepath);
+		int strLength = (int)std::strlen(shaderFilepath);
 		filepath = (char*)g_memory_allocate(sizeof(char) * (strLength + 1));
 		std::strcpy(filepath, shaderFilepath);
 		filepath[strLength] = '\0';
