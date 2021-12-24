@@ -43,7 +43,7 @@ namespace Minecraft
 					{
 						// Parse General section
 						g_logger_info("Parsing terrain noise generator '%s'", generator.first.as<std::string>().c_str());
-						YAML::Node& generalSection = generator.second["general"];
+						const YAML::Node& generalSection = generator.second["general"];
 						std::string noiseTypeAsString = generalSection["noiseType"].as<std::string>();
 						fnl_noise_type noiseType = toFnlNoiseType(noiseTypeAsString);
 						float frequency = generalSection["frequency"].as<float>();
@@ -67,7 +67,7 @@ namespace Minecraft
 
 					if (generator.second["fractal"])
 					{
-						YAML::Node& fractalSection = generator.second["fractal"];
+						const YAML::Node& fractalSection = generator.second["fractal"];
 						std::string fractalTypeAsString = fractalSection["fractalType"].as<std::string>();
 						fnl_fractal_type type = toFnlFractalType(fractalTypeAsString);
 						int octaves = fractalSection["octaves"].as<int>();

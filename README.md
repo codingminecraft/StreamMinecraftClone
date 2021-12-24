@@ -60,7 +60,7 @@ make Minecraft
 If you ever need to rebuild the project simply run these two commands:
 ```bash
 ./build.sh gmake2
-make
+make Minecraft config=release
 ```
 
 </details>

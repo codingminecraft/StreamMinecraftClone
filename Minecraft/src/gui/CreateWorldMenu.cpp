@@ -47,7 +47,7 @@ namespace Minecraft
 			int i = 0;
 			for (auto& worldPath : std::filesystem::directory_iterator(filepath))
 			{
-				std::string worldIconPath = (worldPath / "worldIcon.png").string();
+				std::string worldIconPath = (worldPath / std::filesystem::path(std::string("worldIcon.png"))).string();
 				if (File::isFile(worldIconPath.c_str()))
 				{
 					Sprite iconSprite;
@@ -88,7 +88,7 @@ namespace Minecraft
 				{
 					Sprite nullSprite;
 					nullSprite.texture.graphicsId = UINT32_MAX;
-					nullSprite.texture.path = "";
+					nullSprite.texture.path = (char*)"";
 					nullSprite.uvSize = glm::vec2();
 					nullSprite.uvStart = glm::vec2();
 					worldIcons.push_back(nullSprite);
