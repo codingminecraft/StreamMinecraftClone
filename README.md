@@ -71,33 +71,6 @@ make
 
 This game is still very much in development, there are no official releases yet. However, bug reporting is still very helpful so I can keep track of everything. If you encounter any bugs please report them at the issues tab of the repository at: https://github.com/codingminecraft/StreamMinecraftClone.
 
-Follow this template when reporting the bug:
-
-```markdown 
-## Describe the bug
-A clear and concise description of what the bug is.
-
-## To Reproduce
-Steps to reproduce the behavior, for example:
-
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-## Expected behavior
-A clear and concise description of what you expected to happen.
-
-## Screenshots
-If applicable, add screenshots to help explain your problem.
-
-## Operating System (please complete the following information):
-OS: [e.g. Windows 10, Linux, MacOS]
-
-## Additional context
-Add any other context about the problem here.
-```
-
 ## TODOs
 
 This is a list of tasks that still need to be done.
