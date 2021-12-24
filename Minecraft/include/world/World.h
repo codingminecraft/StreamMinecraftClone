@@ -27,13 +27,13 @@ namespace Minecraft
 		bool isPlayerUnderwater();
 
 		const uint16 ChunkRadius = 12;
-		const uint16 ChunkCapacity = (ChunkRadius * 2) * (ChunkRadius * 2);
+		const uint16 ChunkCapacity = (uint16)((ChunkRadius * 2) * (ChunkRadius * 2) * 1.5f);
 
 		const uint16 ChunkWidth = 16;
 		const uint16 ChunkDepth = 16;
 		const uint16 ChunkHeight = 256;
 
-		const uint16 MaxVertsPerSubChunk = 1'500;
+		const uint16 MaxVertsPerSubChunk = 2'500;
 
 		extern std::string savePath;
 		extern std::string chunkSavePath;

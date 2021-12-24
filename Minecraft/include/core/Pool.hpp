@@ -79,7 +79,7 @@ namespace Minecraft
 				return nextPool;
 			}
 
-			g_logger_error(false, "Ran out of pools.");
+			g_logger_error("Ran out of pools.");
 			return nullptr;
 		}
 
@@ -97,6 +97,12 @@ namespace Minecraft
 			g_logger_assert(pool >= data && pool <= data + (_poolSize * numPools), "Data '%zu' does not exist in this pool.", pool);
 			uint32 poolIndex = (pool - data) / _poolSize;
 			freePool(poolIndex);
+		}
+
+		uint32 count()
+		{
+			std::lock_guard<std::mutex> lock(freeListMtx);
+			return freeListSize;
 		}
 
 		uint32 size() const

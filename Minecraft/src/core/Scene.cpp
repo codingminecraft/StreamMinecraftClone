@@ -76,7 +76,7 @@ namespace Minecraft
 			blockItemTexture = TextureBuilder()
 				.setFormat(ByteFormat::RGBA8_UI)
 				.setMagFilter(FilterMode::Nearest)
-				.setMinFilter(FilterMode::LinearMipmapNearest)
+				.setMinFilter(FilterMode::Linear)
 				.setFilepath("assets/generated/packedBlockItemsTextures.png")
 				.generateMipmapFromFile()
 				.generateTextureObject()

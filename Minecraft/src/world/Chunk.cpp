@@ -831,7 +831,7 @@ namespace Minecraft
 						const Block& block = getBlockInternal(chunk, x, y, z);
 						int blockId = block.id;
 
-						if (block == BlockMap::NULL_BLOCK || block == BlockMap::AIR_BLOCK)
+						if (block.isNull() || block == BlockMap::AIR_BLOCK)
 						{
 							continue;
 						}
@@ -896,7 +896,7 @@ namespace Minecraft
 						// Only add the faces that are not culled by other blocks
 						for (int i = 0; i < 6; i++)
 						{
-							if (blocks[i].id && (blocks[i].isTransparent() && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
+							if (!blocks[i].isNull() && (blocks[i].isTransparent() && !currentBlockIsWater) || (blocks[i] == BlockMap::AIR_BLOCK && currentBlockIsWater))
 							{
 								// Smooth lighting
 								glm::vec<4, uint8, glm::defaultp> smoothLightVertex[6] = {};
@@ -969,36 +969,18 @@ namespace Minecraft
 									: i == (int)CUBE_FACE::BOTTOM
 									? blockFormat.colorBottomByBiome
 									: blockFormat.colorSideByBiome;
-								//if (isRetesselation)
-								//{
-								//	loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
-								//		verts[vertIndices[i][0]],
-								//		verts[vertIndices[i][1]],
-								//		verts[vertIndices[i][2]],
-								//		verts[vertIndices[i][3]],
-								//		*textures[i],
-								//		(CUBE_FACE)i,
-								//		colorByBiome,
-								//		glm::u8vec4(0),
-								//		glm::u8vec4(0),
-								//		lightColors[i]);
-								//	currentSubChunk->numVertsUsed += 6;
-								//}
-								//else
-								//{
-									loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
-										verts[vertIndices[i][0]],
-										verts[vertIndices[i][1]],
-										verts[vertIndices[i][2]],
-										verts[vertIndices[i][3]],
-										*textures[i],
-										(CUBE_FACE)i,
-										colorByBiome,
-										smoothLightVertex[i],
-										smoothSkyLightVertex[i],
-										lightColors[i]);
-									currentSubChunk->numVertsUsed += 6;
-								//}
+								loadBlock(currentSubChunk->data + currentSubChunk->numVertsUsed,
+									verts[vertIndices[i][0]],
+									verts[vertIndices[i][1]],
+									verts[vertIndices[i][2]],
+									verts[vertIndices[i][3]],
+									*textures[i],
+									(CUBE_FACE)i,
+									colorByBiome,
+									smoothLightVertex[i],
+									smoothSkyLightVertex[i],
+									lightColors[i]);
+								currentSubChunk->numVertsUsed += 6;
 							}
 						}
 					}
@@ -1096,32 +1078,46 @@ namespace Minecraft
 		{
 			if (!chunk)
 			{
-				return BlockMap::NULL_BLOCK;
+				//return BlockMap::NULL_BLOCK;
+				static Block b = BlockMap::NULL_BLOCK;
+				b.id = 23;
+				return b;
 			}
 
 			if (x >= World::ChunkDepth || x < 0 || z >= World::ChunkWidth || z < 0)
 			{
 				if (x >= World::ChunkDepth)
 				{
-					return getBlockInternal(chunk->topNeighbor, x - World::ChunkDepth, y, z);
+					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Up);
+					//return getBlockInternal(chunk->topNeighbor, x - World::ChunkDepth, y, z);
+					return getBlockInternal(neighbor, x - World::ChunkDepth, y, z);
 				}
 				else if (x < 0)
 				{
-					return getBlockInternal(chunk->bottomNeighbor, World::ChunkDepth + x, y, z);
+					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Down);
+					//return getBlockInternal(chunk->bottomNeighbor, World::ChunkDepth + x, y, z);
+					return getBlockInternal(neighbor, World::ChunkDepth + x, y, z);
 				}
 
 				if (z >= World::ChunkWidth)
 				{
-					return getBlockInternal(chunk->rightNeighbor, x, y, z - World::ChunkWidth);
+					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Right);
+					//return getBlockInternal(chunk->rightNeighbor, x, y, z - World::ChunkWidth);
+					return getBlockInternal(neighbor, x, y, z - World::ChunkWidth);
 				}
 				else if (z < 0)
 				{
-					return getBlockInternal(chunk->leftNeighbor, x, y, World::ChunkWidth + z);
+					Chunk* neighbor = ChunkManager::getChunk(chunk->chunkCoords + INormals2::Left);
+					//return getBlockInternal(chunk->leftNeighbor, x, y, World::ChunkWidth + z);
+					return getBlockInternal(neighbor, x, y, World::ChunkWidth + z);
 				}
 			}
 			else if (y >= World::ChunkHeight || y < 0)
 			{
-				return BlockMap::NULL_BLOCK;
+				//return BlockMap::NULL_BLOCK;
+				static Block b = BlockMap::NULL_BLOCK;
+				b.id = 23;
+				return b;
 			}
 
 			int index = to1DArray(x, y, z);

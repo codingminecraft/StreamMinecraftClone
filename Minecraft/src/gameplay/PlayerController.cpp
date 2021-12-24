@@ -279,6 +279,8 @@ namespace Minecraft
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
 			{
+				controller.controllerBaseSpeed *= 2.0f;
+				controller.controllerRunSpeed *= 2.0f;
 				gameMode = GameMode::Spectator;
 				rb.isSensor = true;
 			}
@@ -322,6 +324,8 @@ namespace Minecraft
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
 			{
+				controller.controllerBaseSpeed /= 2.0f;
+				controller.controllerRunSpeed /= 2.0f;
 				gameMode = GameMode::Survival;
 				rb.isSensor = false;
 			}

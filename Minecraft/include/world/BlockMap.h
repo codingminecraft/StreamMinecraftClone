@@ -4,6 +4,7 @@
 
 namespace Minecraft
 {
+	const uint16 NULL_BLOCK_ID = 0;
 	struct Sprite;
 	struct Texture;
 
@@ -116,6 +117,11 @@ namespace Minecraft
 				((lightColor & 0x38) >> 3), // G
 				((lightColor & 0x1C0) >> 6) // B
 			);
+		}
+
+		inline bool isNull() const
+		{
+			return id == NULL_BLOCK_ID;
 		}
 	};
 

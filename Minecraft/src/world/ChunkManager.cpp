@@ -350,6 +350,7 @@ namespace Minecraft
 					cmd.type = CommandType::GenerateTerrain;
 					cmd.chunk = &chunks[newChunk.chunkCoords];
 					cmd.subChunks = subChunks;
+					cmd.isRetesselating = false;
 
 					// Queue the fill command
 					chunkWorker->queueCommand(cmd);
@@ -807,16 +808,13 @@ namespace Minecraft
 						auto iter = chunks.find(chunkPos);
 						if (iter != chunks.end() && iter->second.state != ChunkState::Saving)
 						{
-							if (iter->second.state != ChunkState::Saving)
-							{
-								queueSaveChunk((*subChunks)[i]->chunkCoordinates);
-							}
+							queueSaveChunk((*subChunks)[i]->chunkCoordinates);
 						}
 					}
 				}
 			}
 
-			// Unload any chunks that have been deserialized
+			// Unload any chunks that have been serialized
 			for (auto iter = chunks.begin(); iter != chunks.end();)
 			{
 				if (iter->second.state == ChunkState::Unloading)
@@ -830,14 +828,6 @@ namespace Minecraft
 				{
 					iter++;
 				}
-			}
-
-			// If the player moves to a new chunk, then retesselate any chunks on the edge of the chunk radius to 
-			// fix any holes there might be
-			bool retesselateEdges = false;
-			if (lastPlayerPosChunkCoords != playerPosChunkCoords)
-			{
-				retesselateEdges = true;
 			}
 
 			// Load/retesselate any chunks that need to be
@@ -856,9 +846,8 @@ namespace Minecraft
 						// which clog our threads with empty work.
 						needsWork = true;
 						glm::ivec2 lastLocalPos = lastPlayerPosChunkCoords - position;
-						bool retesselateThisChunk =
-							(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 2) * (World::ChunkRadius - 2))
-							&& retesselateEdges;
+						bool retesselateThisChunk = getChunk(position) != nullptr &&
+							(lastLocalPos.x * lastLocalPos.x) + (lastLocalPos.y * lastLocalPos.y) >= ((World::ChunkRadius - 2) * (World::ChunkRadius - 2));
 						if (retesselateThisChunk)
 						{
 							ChunkManager::queueRetesselateChunk(position);

@@ -110,14 +110,9 @@ namespace Minecraft
 			if (isSynchronous(command))
 			{
 				std::unique_lock<std::mutex> lock(mtx);
-				{
-					std::lock_guard<std::mutex> barrierLockTmp(barrierMtx);
-					g_logger_info("Waiting until we hit '%d'", barrierSyncPoint);
-				}
 				cv2.wait(lock, [&] { return !doWork || barrierSyncCounter >= barrierSyncPoint; });
 
 				std::lock_guard<std::mutex> barrierLock(barrierMtx);
-				g_logger_info("We hit SyncPoint: '%d' SyncCounter: '%d'", barrierSyncPoint, barrierSyncCounter);
 				barrierSyncCounter = 0;
 				barrierSyncPoint = 0;
 			}
@@ -340,7 +335,7 @@ namespace Minecraft
 		// Unload all sub-chunks
 		for (int i = 0; i < (int)command.subChunks->size(); i++)
 		{
-			if ((*command.subChunks)[i]->state == SubChunkState::Uploaded && (*command.subChunks)[i]->chunkCoordinates == command.chunk->chunkCoords)
+			if ((*command.subChunks)[i]->state != SubChunkState::Unloaded && (*command.subChunks)[i]->chunkCoordinates == command.chunk->chunkCoords)
 			{
 				(*command.subChunks)[i]->state = SubChunkState::Unloaded;
 				(*command.subChunks)[i]->numVertsUsed = 0;

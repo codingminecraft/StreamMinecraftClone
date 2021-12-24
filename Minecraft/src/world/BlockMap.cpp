@@ -14,7 +14,7 @@ namespace Minecraft
 	namespace BlockMap
 	{
 		Block NULL_BLOCK = {
-			0,
+			NULL_BLOCK_ID,
 			0,
 			0,
 			0
@@ -398,7 +398,7 @@ namespace Minecraft
 		void generateBlockItemPictures(const char* blockFormatConfig, const char* outputPath)
 		{
 			YAML::Node blockFormat = YamlExtended::readFile(blockFormatConfig);
-			// FIXME: bug!
+			
 			if (File::isDir(outputPath))
 			{
 				// Only regenerate the block item pictures if the file is out of date
