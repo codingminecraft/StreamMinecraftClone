@@ -322,6 +322,11 @@ namespace Minecraft
 			return chunks;
 		}
 
+		void queueCommand(FillChunkCommand& command) 
+		{
+			chunkWorker->queueCommand(command);
+		}
+
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates)
 		{
 			// Only upload if we need to

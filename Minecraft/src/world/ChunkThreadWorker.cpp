@@ -170,7 +170,9 @@ namespace Minecraft
 #ifdef _USE_OPTICK
 					OPTICK_EVENT("RecalculateLighting");
 #endif
-					Application::getGlobalThreadPool().queueTask(recalculateLighting, "RecalculateLighting", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					// SYNCHRONOUS
+					recalculateLighting(command, sizeof(FillChunkCommand));
+					freeChunkCmd(command, sizeof(FillChunkCommand));
 					break;
 				}
 				case CommandType::TesselateVertices:
@@ -241,6 +243,7 @@ namespace Minecraft
 		{
 		case CommandType::CalculateLighting:
 		case CommandType::GenerateDecorations:
+		case CommandType::RecalculateLighting:
 			return true;
 		}
 
@@ -314,11 +317,22 @@ namespace Minecraft
 		ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource, chunksToRetesselate);
 		for (Chunk* chunk : chunksToRetesselate)
 		{
-			// TODO: I should probably do all this from within the thread...
-			ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
-			//command.chunk = chunk;
-			//command.type = CommandType::TesselateVertices;
-			//queueCommand(command);
+			FillChunkCommand cmd;
+			cmd.type = CommandType::TesselateVertices;
+			cmd.subChunks = command.subChunks;
+			cmd.chunk = chunk;
+			cmd.isRetesselating = true;
+
+			// Update the sub-chunks that are about to be deleted
+			for (int i = 0; i < (int)command.subChunks->size(); i++)
+			{
+				if ((*command.subChunks)[i]->chunkCoordinates == chunk->chunkCoords && (*command.subChunks)[i]->state == SubChunkState::Uploaded)
+				{
+					(*command.subChunks)[i]->state = SubChunkState::RetesselateVertices;
+				}
+			}
+
+			ChunkManager::queueCommand(cmd);
 		}
 	}
 

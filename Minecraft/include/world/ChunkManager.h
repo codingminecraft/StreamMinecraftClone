@@ -10,6 +10,7 @@ namespace Minecraft
 	struct Block;
 	class Frustum;
 	struct Chunk;
+	struct FillChunkCommand;
 	enum class ChunkState : uint8;
 
 	enum class SubChunkState : uint8
@@ -63,6 +64,7 @@ namespace Minecraft
 		void beginWork();
 		void wakeUpCv2();
 
+		void queueCommand(FillChunkCommand& command);
 		void queueClientLoadChunk(void* chunkData, const glm::ivec2& chunkCoordinates, ChunkState state);
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
 		void queueCalculateLighting(const glm::ivec2& lastPlayerPosInChunkCoords);

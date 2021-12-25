@@ -430,11 +430,11 @@ namespace Minecraft
 				{
 					controller.controllerBaseSpeed *= 2.0f;
 					controller.controllerRunSpeed *= 2.0f;
-					rb.isSensor = true;
 					rb.useGravity = false;
 					rb.zeroForces();
 					controller.inMiddleOfJump = false;
 				}
+				rb.isSensor = true;
 				gameMode = GameMode::Spectator;
 				MainHud::hotbarVisible = false;
 				MainHud::notify("Game Mode Spectator");
