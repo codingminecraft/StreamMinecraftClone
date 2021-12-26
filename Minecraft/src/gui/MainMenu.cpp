@@ -93,9 +93,7 @@ namespace Minecraft
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
 				Gui::centerNextElement();
 				button.text = "Join LAN Server";
-				// TODO: Reenable me once multiplayer is working good
-				//if (Gui::textureButton(button))
-				if (Gui::textureButton(button, true))
+				if (Gui::textureButton(button))
 				{
 					Scene::changeScene(SceneType::LocalLanGame);
 				}

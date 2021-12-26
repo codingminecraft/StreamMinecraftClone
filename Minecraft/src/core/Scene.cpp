@@ -14,6 +14,7 @@
 #include "physics/PhysicsComponents.h"
 #include "gameplay/CharacterController.h"
 #include "gameplay/Inventory.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -203,6 +204,7 @@ namespace Minecraft
 			registry->registerComponent<Tag>("Tag");
 			registry->registerComponent<CharacterController>("CharacterController");
 			registry->registerComponent<Inventory>("Inventory");
+			registry->registerComponent<PlayerComponent>("PlayerComponent");
 			addCameraToRegistry();
 
 			switch (nextSceneType)

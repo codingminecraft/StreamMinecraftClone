@@ -13,7 +13,8 @@ namespace Minecraft
 		PatchChunkNeighbors,
 		NotifyChunkWorker,
 		WorldSeed,
-		EntityData
+		EntityData,
+		LocalPlayer
 	};
 
 	struct NetworkEvent

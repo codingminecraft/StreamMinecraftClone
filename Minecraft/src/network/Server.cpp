@@ -1,10 +1,12 @@
 #include "network/Server.h"
 #include "core.h"
 #include "core/Scene.h"
+#include "core/Components.h"
 #include "network/Network.h"
 #include "world/ChunkManager.h"
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
+#include "gameplay/CharacterController.h"
 
 #include <enet/enet.h>
 
@@ -142,8 +144,14 @@ namespace Minecraft
 					Network::sendClient(event.peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
 
 					Ecs::Registry* registry = Scene::getRegistry();
+					Ecs::EntityId currentPlayer = registry->find(TagType::Player);
+					Transform& currentPlayerTransform = registry->getComponent<Transform>(currentPlayer);
+					Ecs::EntityId newPlayer = World::createPlayer("New Server Player", currentPlayerTransform.position);
+					registry->getComponent<CharacterController>(newPlayer).lockedToCamera = false;
 					RawMemory entityMemory = registry->serialize();
 					Network::sendClient(event.peer, NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
+					Network::sendClient(event.peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
+					// TODO: Send new player event to all clients
 					g_memory_free(entityMemory.data);
 					enet_host_flush(server);
 					break;

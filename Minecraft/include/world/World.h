@@ -26,6 +26,10 @@ namespace Minecraft
 		void givePlayerBlock(int blockId, int blockCount);
 		bool isPlayerUnderwater();
 
+		Ecs::EntityId getLocalPlayer();
+		void setLocalPlayer(Ecs::EntityId localPlayer);
+		Ecs::EntityId createPlayer(const char* playerName, const glm::vec3& position);
+
 		const uint16 ChunkRadius = 12;
 		const uint16 ChunkCapacity = (uint16)((ChunkRadius * 2) * (ChunkRadius * 2) * 1.5f);
 

@@ -86,21 +86,7 @@ namespace Minecraft
 
 		void update(Ecs::Registry& registry, float dt)
 		{
-			if (playerId == Ecs::nullEntity || registry.getComponent<Tag>(playerId).type != TagType::Player)
-			{
-				playerId = registry.find(TagType::Player);
-				if (gameMode == GameMode::Survival)
-				{
-					if (registry.hasComponent<CharacterController>(playerId) && registry.hasComponent<Rigidbody>(playerId))
-					{
-						CharacterController& controller = registry.getComponent<CharacterController>(playerId);
-						Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
-						controller.controllerBaseSpeed = 4.4f;
-						controller.controllerRunSpeed = 6.2f;
-						rb.useGravity = true;
-					}
-				}
-			}
+			setPlayerIfNeeded();
 
 			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
 				&& registry.hasComponent<Rigidbody>(playerId) && registry.hasComponent<Inventory>(playerId))
@@ -202,6 +188,38 @@ namespace Minecraft
 				DebugStats::playerOrientation = transform.orientation;
 
 				MainHud::update(dt, inventory);
+			}
+		}
+
+		void setPlayerIfNeeded(bool forceOverride)
+		{
+			Ecs::Registry* registry = Scene::getRegistry();
+			if (playerId == Ecs::nullEntity || registry->getComponent<Tag>(playerId).type != TagType::Player || forceOverride)
+			{
+				playerId = World::getLocalPlayer();
+				if (gameMode == GameMode::Survival)
+				{
+					if (registry->hasComponent<CharacterController>(playerId) && registry->hasComponent<Rigidbody>(playerId))
+					{
+						CharacterController& controller = registry->getComponent<CharacterController>(playerId);
+						Rigidbody& rb = registry->getComponent<Rigidbody>(playerId);
+						controller.controllerBaseSpeed = 4.4f;
+						controller.controllerRunSpeed = 6.2f;
+						rb.useGravity = true;
+						controller.lockedToCamera = true;
+						PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
+						g_logger_info("Player controller found player: '%s'", playerComp.name);
+
+						for (auto entity : registry->view<CharacterController>())
+						{
+							CharacterController& otherController = registry->getComponent<CharacterController>(entity);
+							if (&otherController != &controller)
+							{
+								otherController.lockedToCamera = false;
+							}
+						}
+					}
+				}
 			}
 		}
 

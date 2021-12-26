@@ -5,6 +5,7 @@
 #include "world/ChunkManager.h"
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
+#include "gameplay/PlayerController.h"
 
 #include <enet/enet.h>
 
@@ -224,6 +225,13 @@ namespace Minecraft
 				memory.data = data;
 				memory.size = event->dataSize;
 				registry->deserialize(memory);
+				break;
+			}
+			case NetworkEventType::LocalPlayer:
+			{
+				Ecs::EntityId localPlayer = *(Ecs::EntityId*)data;
+				World::setLocalPlayer(localPlayer);
+				PlayerController::setPlayerIfNeeded(true);
 				break;
 			}
 			default:

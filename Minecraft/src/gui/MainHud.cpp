@@ -175,9 +175,7 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 			Gui::centerNextElement();
 			defaultButton.text = "Start LAN Server";
-			// TODO: Re-enable me once multiplayer is working good
-			//if (Gui::textureButton(defaultButton, Network::isLanServer()))
-			if (Gui::textureButton(defaultButton, true))
+			if (Gui::textureButton(defaultButton, Network::isLanServer()))
 			{
 				Network::free();
 				Network::init(true, "127.0.0.1", 8080);

@@ -83,6 +83,7 @@ namespace Minecraft
 			{
 				isClient = true;
 				Network::init(false, hostname, port);
+				asyncInitThread = std::thread(asyncInit, glm::vec3(), isClient);
 			}
 			else
 			{
@@ -110,42 +111,14 @@ namespace Minecraft
 					g_logger_assert(randomEntity != Ecs::nullEntity, "Failed to find random entity. He's special to me, this world must be corrupted.");
 					g_logger_assert(playerId != Ecs::nullEntity, "Failed to find a player from serialized world. Possible save corruption.");
 					playerTransform = &registry->getComponent<Transform>(playerId);
+					PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
+					g_logger_info("Deserialized player '%s'", playerComp.name);
 				}
 				else
 				{
 					// Setup player if this is a new world
-					Ecs::EntityId player = registry->createEntity();
-					playerId = player;
-					registry->addComponent<Transform>(player);
-					registry->addComponent<CharacterController>(player);
-					registry->addComponent<BoxCollider>(player);
-					registry->addComponent<Rigidbody>(player);
-					registry->addComponent<Tag>(player);
-					registry->addComponent<Inventory>(player);
-					BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
-					boxCollider.size.x = 0.55f;
-					boxCollider.size.y = 1.8f;
-					boxCollider.size.z = 0.55f;
-					Transform& transform1 = registry->getComponent<Transform>(player);
-					transform1.position.x = -145.0f;
-					transform1.position.y = 289;
-					transform1.position.z = 55.0f;
-					CharacterController& controller = registry->getComponent<CharacterController>(player);
-					controller.lockedToCamera = true;
-					controller.controllerBaseSpeed = 4.4f;
-					controller.controllerRunSpeed = 6.2f;
-					controller.movementSensitivity = 0.6f;
-					controller.isRunning = false;
-					controller.movementAxis = glm::vec3();
-					controller.viewAxis = glm::vec2();
-					controller.applyJumpForce = false;
-					controller.jumpForce = 7.6f;
-					controller.downJumpForce = -25.0f;
-					controller.cameraOffset = glm::vec3(0, 0.65f, 0);
-					Inventory& inventory = registry->getComponent<Inventory>(player);
-					g_memory_zeroMem(&inventory, sizeof(Inventory));
-					Tag& tag = registry->getComponent<Tag>(player);
-					tag.type = TagType::Player;
+					Ecs::EntityId player = createPlayer("Some Name", glm::vec3(-145.0f, 289, 55.0f));
+					playerTransform = &registry->getComponent<Transform>(player);
 
 					// Setup random physics entity
 					randomEntity = registry->createEntity();
@@ -178,8 +151,6 @@ namespace Minecraft
 					g_memory_zeroMem(&inventory2, sizeof(Inventory));
 					Tag& tag2 = registry->getComponent<Tag>(randomEntity);
 					tag2.type = TagType::RandomEntity;
-
-					playerTransform = &transform1;
 				}
 
 				if (seed == UINT32_MAX)
@@ -448,6 +419,56 @@ namespace Minecraft
 				return blockAtEyeLevel.id == 19;
 			}
 			return false;
+		}
+
+		Ecs::EntityId getLocalPlayer()
+		{
+			return playerId;
+		}
+
+		void setLocalPlayer(Ecs::EntityId localPlayer)
+		{
+			playerId = localPlayer;
+		}
+
+		Ecs::EntityId createPlayer(const char* playerName, const glm::vec3& position)
+		{
+			Ecs::EntityId player = registry->createEntity();
+			registry->addComponent<Transform>(player);
+			registry->addComponent<CharacterController>(player);
+			registry->addComponent<BoxCollider>(player);
+			registry->addComponent<Rigidbody>(player);
+			registry->addComponent<Tag>(player);
+			registry->addComponent<Inventory>(player);
+			registry->addComponent<PlayerComponent>(player);
+			BoxCollider& boxCollider = registry->getComponent<BoxCollider>(player);
+			boxCollider.size.x = 0.55f;
+			boxCollider.size.y = 1.8f;
+			boxCollider.size.z = 0.55f;
+			Transform& transform = registry->getComponent<Transform>(player);
+			transform.position.x = position.x;
+			transform.position.y = position.y;
+			transform.position.z = position.z;
+			CharacterController& controller = registry->getComponent<CharacterController>(player);
+			controller.lockedToCamera = true;
+			controller.controllerBaseSpeed = 4.4f;
+			controller.controllerRunSpeed = 6.2f;
+			controller.movementSensitivity = 0.6f;
+			controller.isRunning = false;
+			controller.movementAxis = glm::vec3();
+			controller.viewAxis = glm::vec2();
+			controller.applyJumpForce = false;
+			controller.jumpForce = 7.6f;
+			controller.downJumpForce = -25.0f;
+			controller.cameraOffset = glm::vec3(0, 0.65f, 0);
+			Inventory& inventory = registry->getComponent<Inventory>(player);
+			g_memory_zeroMem(&inventory, sizeof(Inventory));
+			Tag& tag = registry->getComponent<Tag>(player);
+			tag.type = TagType::Player;
+			PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(player);
+			playerComp.setName(playerName);
+
+			return player;
 		}
 
 		void serialize()
