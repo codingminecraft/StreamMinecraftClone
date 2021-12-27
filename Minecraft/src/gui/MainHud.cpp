@@ -9,6 +9,7 @@
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
 #include "world/BlockMap.h"
+#include "world/World.h"
 #include "input/Input.h"
 #include "gameplay/Inventory.h"
 #include "utils/CMath.h"
@@ -211,7 +212,7 @@ namespace Minecraft
 				Renderer::drawString(messageStr, *defaultFont, glm::vec2(xPos, yPos), fontScale, notificationStyle, 1);
 			}
 
-			timeToNotificationFadeout -= Application::deltaTime;
+			timeToNotificationFadeout -= World::deltaTime;
 		}
 
 		static void drawHotbar(const Inventory& inventory)

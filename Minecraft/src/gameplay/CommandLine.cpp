@@ -32,6 +32,9 @@ namespace Minecraft
 		StopNetwork,
 		ReloadShaders,
 		RegenerateWorld,
+		BeginRecording,
+		StopRecording,
+		PlayRecording,
 		Length
 	};
 
@@ -205,6 +208,20 @@ namespace Minecraft
 				break;
 			case CommandLineType::RegenerateWorld:
 				World::regenerateWorld();
+				break;
+			case CommandLineType::BeginRecording:
+				World::playFromEventFile = false;
+				World::serializeEvents = true;
+				g_logger_info("Recording demo to '%s'", World::getWorldEventFilepath(World::savePath).c_str());
+				break;
+			case CommandLineType::StopRecording:
+				World::serializeEvents = false;
+				g_logger_info("Saved recorded demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
+				break;
+			case CommandLineType::PlayRecording:
+				World::serializeEvents = false;
+				World::playFromEventFile = true;
+				g_logger_info("Playing demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
 				break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());

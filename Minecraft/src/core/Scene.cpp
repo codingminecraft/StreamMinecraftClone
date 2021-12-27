@@ -1,6 +1,7 @@
 #include "core/Scene.h"
 #include "core/Components.h"
 #include "core/File.h"
+#include "core/Application.h"
 #include "world/World.h"
 #include "world/BlockMap.h"
 #include "gui/MainMenu.h"
@@ -100,6 +101,7 @@ namespace Minecraft
 			case SceneType::SinglePlayerGame:
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
+				World::queueWorldEvent(WorldEventType::SetDeltaTime, &Application::deltaTime, sizeof(float), false);
 				World::update(cameraFrustum, worldTexture);
 				break;
 			case SceneType::MainMenu:

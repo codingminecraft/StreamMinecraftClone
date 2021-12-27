@@ -62,7 +62,7 @@ namespace Minecraft
 #endif
 
 			static float accumulatedDeltaTime = 0.0f;
-			accumulatedDeltaTime += Application::deltaTime;
+			accumulatedDeltaTime += World::deltaTime;
 
 			// Never update the physics more than twice per frame. This means we will get skipped physics
 			// frames, but that's probably more ideal then lagging forever

@@ -245,8 +245,6 @@ namespace Minecraft
 					backspacePressedLastFrame = false;
 				}
 				backspaceDelayTimeLeft -= Application::deltaTime;
-
-
 			}
 
 			Gui::advanceCursorPastElement(windowState, inputBoxSize);

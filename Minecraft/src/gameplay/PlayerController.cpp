@@ -225,7 +225,7 @@ namespace Minecraft
 
 		static void updateSurvival(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
 		{
-			blockPlaceDebounce -= Application::deltaTime;
+			blockPlaceDebounce -= World::deltaTime;
 
 			//Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
@@ -244,9 +244,9 @@ namespace Minecraft
 					static glm::vec3 verticalOffset = glm::vec3(0.0f);
 					static float speedDir = 0.05f;
 					static int changeDirTick = 0;
-					verticalOffset.y += speedDir * Application::deltaTime;
+					verticalOffset.y += speedDir * World::deltaTime;
 					//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
-					rotation = rotation + 30.0f * Application::deltaTime;
+					rotation = rotation + 30.0f * World::deltaTime;
 					changeDirTick++;
 					if (changeDirTick > 30)
 					{
@@ -334,8 +334,8 @@ namespace Minecraft
 		{
 			static float doubleJumpDebounce = 0.0f;
 			const float doubleJumpDebounceTime = 0.5f;
-			blockPlaceDebounce -= Application::deltaTime;
-			doubleJumpDebounce -= Application::deltaTime;
+			blockPlaceDebounce -= World::deltaTime;
+			doubleJumpDebounce -= World::deltaTime;
 
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{

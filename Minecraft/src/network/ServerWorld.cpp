@@ -118,7 +118,7 @@ namespace Minecraft
 			ticks++;
 			if (ticks > 10)
 			{
-				DebugStats::lastFrameTime = Application::deltaTime;
+				DebugStats::lastFrameTime = World::deltaTime;
 				ticks = 0;
 			}
 
