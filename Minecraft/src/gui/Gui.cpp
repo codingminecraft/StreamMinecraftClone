@@ -243,6 +243,7 @@ namespace Minecraft
 				else
 				{
 					backspacePressedLastFrame = false;
+					backspaceDelayTimeLeft = -1.0f;
 				}
 				backspaceDelayTimeLeft -= Application::deltaTime;
 			}

@@ -171,6 +171,7 @@ namespace Minecraft
 					else if (MainHud::viewingCraftScreen)
 					{
 						MainHud::viewingCraftScreen = false;
+						Application::getWindow().setCursorMode(CursorMode::Locked);
 					}
 					else if (!MainHud::isPaused)
 					{
