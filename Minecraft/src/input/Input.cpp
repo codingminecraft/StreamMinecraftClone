@@ -1,4 +1,5 @@
 #include "input/Input.h"
+#include "core/Scene.h"
 
 namespace Minecraft
 {
@@ -52,43 +53,12 @@ namespace Minecraft
 
 		void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 		{
-			mouseX = (float)xpos;
-			mouseY = (float)ypos;
-			if (mFirstMouse)
-			{
-				mLastMouseX = (float)xpos;
-				mLastMouseY = (float)ypos;
-				mFirstMouse = false;
-			}
-
-			deltaMouseX = (float)xpos - mLastMouseX;
-			deltaMouseY = mLastMouseY - (float)ypos;
-			mLastMouseX = (float)xpos;
-			mLastMouseY = (float)ypos;
-
-			glm::vec4 tmp = glm::vec4((mouseX / windowSize.x) * 2.0f - 1.0f, -((mouseY / windowSize.y) * 2.0f - 1.0f), 0, 1.0f);
-			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;
-			mouseScreenX = projectedScreen.x;
-			mouseScreenY = projectedScreen.y;
+			Scene::queueMainEventMouse((float)xpos, (float)ypos);
 		}
 
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
-			if (key < 0 || key > GLFW_KEY_LAST)
-			{
-				return;
-			}
-
-			if (action == GLFW_PRESS)
-			{
-				keyPressed[key] = true;
-				keyBeginPressData[key] = true;
-			}
-			else if (action == GLFW_RELEASE)
-			{
-				keyPressed[key] = false;
-				keyBeginPressData[key] = false;
-			}
+			Scene::queueMainEventKey(key, action);
 		}
 
 		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
@@ -111,6 +81,47 @@ namespace Minecraft
 			mouseScrollY = 0;
 			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
 			g_memory_zeroMem(mouseBeginPressData, sizeof(mouseBeginPressData));
+		}
+
+		void processKeyEvent(int key, int action)
+		{
+			if (key < 0 || key > GLFW_KEY_LAST)
+			{
+				return;
+			}
+
+			if (action == GLFW_PRESS)
+			{
+				keyPressed[key] = true;
+				keyBeginPressData[key] = true;
+			}
+			else if (action == GLFW_RELEASE)
+			{
+				keyPressed[key] = false;
+				keyBeginPressData[key] = false;
+			}
+		}
+
+		void processMouseEvent(float xpos, float ypos)
+		{
+			mouseX = xpos;
+			mouseY = ypos;
+			if (mFirstMouse)
+			{
+				mLastMouseX = xpos;
+				mLastMouseY = ypos;
+				mFirstMouse = false;
+			}
+
+			deltaMouseX = xpos - mLastMouseX;
+			deltaMouseY = mLastMouseY - ypos;
+			mLastMouseX = xpos;
+			mLastMouseY = ypos;
+
+			glm::vec4 tmp = glm::vec4((mouseX / windowSize.x) * 2.0f - 1.0f, -((mouseY / windowSize.y) * 2.0f - 1.0f), 0, 1.0f);
+			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;
+			mouseScreenX = projectedScreen.x;
+			mouseScreenY = projectedScreen.y;
 		}
 
 		bool isKeyPressed(int key)

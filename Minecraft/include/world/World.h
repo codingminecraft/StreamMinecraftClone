@@ -5,20 +5,6 @@
 
 namespace Minecraft
 {
-	enum class WorldEventType : uint8
-	{
-		None=0,
-		SetDeltaTime,
-	};
-
-	struct WorldEvent
-	{
-		WorldEventType type;
-		size_t size;
-		void* data;
-		bool freeData;
-	};
-
 	struct Camera;
 	struct Texture;
 	class Frustum;
@@ -41,8 +27,6 @@ namespace Minecraft
 		void givePlayerBlock(int blockId, int blockCount);
 		bool isPlayerUnderwater();
 
-		void queueWorldEvent(WorldEventType type, void* eventData, size_t eventDataSize, bool freeData);
-
 		Ecs::EntityId getLocalPlayer();
 		void setLocalPlayer(Ecs::EntityId localPlayer);
 		Ecs::EntityId createPlayer(const char* playerName, const glm::vec3& position);
@@ -64,8 +48,6 @@ namespace Minecraft
 		extern float deltaTime;
 
 		extern bool doDaylightCycle;
-		extern bool serializeEvents;
-		extern bool playFromEventFile;
 	}
 }
 

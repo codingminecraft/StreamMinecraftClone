@@ -45,8 +45,6 @@ namespace Minecraft
 		std::string chunkSavePath = "";
 		int worldTime = 0;
 		bool doDaylightCycle = false;
-		bool serializeEvents = false;
-		bool playFromEventFile = false;
 		float deltaTime = 0.0f;
 
 		// Members
@@ -61,27 +59,19 @@ namespace Minecraft
 		static glm::vec2 lastPlayerLoadPosition;
 		static bool isClient;
 		static bool isLoading;
-		static FILE* serializedEventFile;
 		static std::thread asyncInitThread;
-		static std::queue<WorldEvent> events;
 
 		// Internal functions
 		static void asyncInit(glm::vec3 playerPosition, bool isClient);
-		static void processEvents();
-		static void serializeEvent(const WorldEvent& event);
-		static void processEvent(WorldEventType type, void* data, size_t sizeOfData);
-		static size_t getEventSize(WorldEventType type);
 
 		void init(Ecs::Registry& sceneRegistry, const char* hostname, int port)
 		{
-			serializedEventFile = nullptr;
 			isLoading = true;
 			ChunkLoadingScreen::init();
 			registry = &sceneRegistry;
 
 			playerId = Ecs::nullEntity;
 			randomEntity = Ecs::nullEntity;
-			events = std::queue<WorldEvent>();
 
 			isClient = false;
 
@@ -232,13 +222,6 @@ namespace Minecraft
 
 			Application::takeScreenshot((savePath + "/worldIcon.png").c_str());
 
-			if (serializedEventFile)
-			{
-				fclose(serializedEventFile);
-				serializedEventFile = nullptr;
-				serializeEvents = false;
-			}
-
 			// Force any connections that might have been opened to close
 			Network::free();
 
@@ -293,34 +276,6 @@ namespace Minecraft
 				randomEntity = registry->find(TagType::RandomEntity);
 			}
 
-			if (serializedEventFile == nullptr && (serializeEvents || playFromEventFile))
-			{
-				const std::string eventFilepath = getWorldEventFilepath(savePath);
-				if (serializeEvents)
-				{
-					serializedEventFile = fopen(eventFilepath.c_str(), "wb");
-				}
-				else
-				{
-					serializedEventFile = fopen(eventFilepath.c_str(), "rb");
-				}
-
-				if (!serializedEventFile)
-				{
-					serializeEvents = false;
-					playFromEventFile = false;
-					g_logger_error("Could not open filepath '%s' to serialize world events.", eventFilepath.c_str());
-					serializedEventFile = nullptr;
-				}
-			}
-
-			if (serializedEventFile && (!serializeEvents && !playFromEventFile))
-			{
-				fclose(serializedEventFile);
-				serializedEventFile = nullptr;
-			}
-
-			processEvents();
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
 			TransformSystem::update(*registry);
 			// Draw cubemap and update camera
@@ -474,19 +429,6 @@ namespace Minecraft
 			playerId = localPlayer;
 		}
 
-		void queueWorldEvent(WorldEventType type, void* eventData, size_t eventDataSize, bool freeData)
-		{
-			if (!playFromEventFile)
-			{
-				WorldEvent newEvent;
-				newEvent.type = type;
-				newEvent.data = eventData;
-				newEvent.size = eventDataSize;
-				newEvent.freeData = freeData;
-				events.emplace(newEvent);
-			}
-		}
-
 		Ecs::EntityId createPlayer(const char* playerName, const glm::vec3& position)
 		{
 			Ecs::EntityId player = registry->createEntity();
@@ -610,122 +552,6 @@ namespace Minecraft
 		static void asyncInit(glm::vec3 playerPosition, bool isClient)
 		{
 			ChunkManager::checkChunkRadius(playerPosition, isClient);
-		}
-
-		static void processEvents()
-		{
-			if (!playFromEventFile)
-			{
-				// Do regular event loop
-				while (events.size() > 0)
-				{
-					const WorldEvent& nextEvent = events.front();
-
-					processEvent(nextEvent.type, nextEvent.data, nextEvent.size);
-
-					if (serializeEvents)
-					{
-						serializeEvent(nextEvent);
-					}
-
-					if (nextEvent.freeData)
-					{
-						g_memory_free(nextEvent.data);
-					}
-
-					events.pop();
-				}
-			}
-			else if (playFromEventFile && serializedEventFile != nullptr)
-			{
-				// Play events from the event file
-
-				// A command should only ever be 16 bytes big
-				uint8 buffer[16];
-				WorldEventType eventType = WorldEventType::None;
-				while (eventType != WorldEventType::SetDeltaTime && serializedEventFile && playFromEventFile)
-				{
-					int readResult = fread(buffer, sizeof(uint8), 1, serializedEventFile);
-					if (readResult)
-					{
-						eventType = *(WorldEventType*)&buffer;
-						size_t dataSize = getEventSize(eventType);
-						readResult = fread(buffer, dataSize, 1, serializedEventFile);
-
-						if (readResult)
-						{
-							processEvent(eventType, buffer, dataSize);
-						}
-					}
-
-					if (!readResult)
-					{
-						g_logger_error("Failed to read event file for some reason. Stopping the replay.");
-						fclose(serializedEventFile);
-						serializedEventFile = nullptr;
-						playFromEventFile = false;
-						break;
-					}
-				}
-			}
-		}
-
-		static void serializeEvent(const WorldEvent& event)
-		{
-			g_logger_assert(event.size <= 15,
-				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 15 bytes right now.",
-				magic_enum::enum_name(event.type).data());
-
-			// Write the event type
-			fwrite(&event.type, sizeof(WorldEventType), 1, serializedEventFile);
-
-			// Write data depending on event type
-			switch (event.type)
-			{
-			case WorldEventType::SetDeltaTime:
-			{
-				fwrite(event.data, sizeof(float), 1, serializedEventFile);
-				break;
-			}
-			}
-		}
-
-		static size_t getEventSize(WorldEventType type)
-		{
-			switch (type)
-			{
-			case WorldEventType::SetDeltaTime:
-				return sizeof(float);
-			default:
-				g_logger_error("Tried to get size of unknown event '%s' in World::getEventSize().", magic_enum::enum_name(type).data());
-				break;
-			}
-
-			return 0;
-		}
-
-		static void processEvent(WorldEventType type, void* data, size_t sizeOfData)
-		{
-			g_logger_assert(sizeOfData <= 15,
-				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 15 bytes right now.",
-				magic_enum::enum_name(type).data());
-
-			switch (type)
-			{
-			case WorldEventType::SetDeltaTime:
-			{
-				g_logger_assert(sizeOfData == sizeof(float), "Expected sizeof(float) for SetDeltaTime event.");
-				World::deltaTime = *(float*)data;
-				if (playFromEventFile)
-				{
-					g_logger_info("Processing setDeltaTime to: %2.3f", World::deltaTime);
-				}
-				break;
-			}
-			default:
-				g_logger_error("Tried to process unknown event '%s' in World::processEvents().", magic_enum::enum_name(type).data());
-				break;
-			}
 		}
 	}
 }

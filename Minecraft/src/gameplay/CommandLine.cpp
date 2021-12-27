@@ -9,7 +9,9 @@
 #include "core/Application.h"
 #include "core/Scene.h"
 #include "core/Window.h"
+#include "core/Components.h"
 #include "gameplay/PlayerController.h"
+#include "gameplay/CharacterController.h"
 #include "world/ChunkManager.h"
 #include "network/Network.h"
 
@@ -210,17 +212,28 @@ namespace Minecraft
 				World::regenerateWorld();
 				break;
 			case CommandLineType::BeginRecording:
-				World::playFromEventFile = false;
-				World::serializeEvents = true;
+			{
+				Scene::playFromEventFile = false;
+				Scene::serializeEvents = true;
+				const Ecs::EntityId playerId = World::getLocalPlayer();
+				const Transform& playerTransform = Scene::getRegistry()->getComponent<Transform>(playerId);
+				const CharacterController& controller = Scene::getRegistry()->getComponent<CharacterController>(playerId);
+				glm::vec3* playerPosition = (glm::vec3*)g_memory_allocate(sizeof(glm::vec3));
+				g_memory_copyMem(playerPosition, (void*)&playerTransform.position, sizeof(glm::vec3));
+				Scene::queueMainEvent(GEventType::SetPlayerPos, (void*)playerPosition, sizeof(glm::vec3), true);
+				glm::vec2* playerViewAxis = (glm::vec2*)g_memory_allocate(sizeof(glm::vec2));
+				g_memory_copyMem(playerViewAxis, (void*)&controller.viewAxis, sizeof(glm::vec2));
+				Scene::queueMainEvent(GEventType::SetPlayerViewAxis, (void*)playerViewAxis, sizeof(glm::vec2), true);
 				g_logger_info("Recording demo to '%s'", World::getWorldEventFilepath(World::savePath).c_str());
 				break;
+			}
 			case CommandLineType::StopRecording:
-				World::serializeEvents = false;
+				Scene::serializeEvents = false;
 				g_logger_info("Saved recorded demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
 				break;
 			case CommandLineType::PlayRecording:
-				World::serializeEvents = false;
-				World::playFromEventFile = true;
+				Scene::serializeEvents = false;
+				Scene::playFromEventFile = true;
 				g_logger_info("Playing demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
 				break;
 			default:
