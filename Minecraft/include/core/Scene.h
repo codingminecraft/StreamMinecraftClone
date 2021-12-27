@@ -19,7 +19,7 @@ namespace Minecraft
 	{
 		void init(SceneType type, Ecs::Registry& registry);
 
-		void update(float dt);
+		void update();
 
 		void changeScene(SceneType type);
 

@@ -52,7 +52,7 @@ namespace Minecraft
 		static bool parseBoolean(const char* str, int strLength, bool* result);
 		static bool isInteger(const char* str, int strLength);
 
-		void update(float dt, bool parseText)
+		void update(bool parseText)
 		{
 			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
 			if (font)

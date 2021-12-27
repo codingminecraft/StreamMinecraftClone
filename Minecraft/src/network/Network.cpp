@@ -45,41 +45,50 @@ namespace Minecraft
 			isInitialized = true;
 		}
 
-		void update(float dt)
+		void update()
 		{
 			if (isInitialized)
 			{
 				if (isServer)
 				{
-					Server::update(dt);
+					Server::update();
 				}
 				else
 				{
-					Client::update(dt);
+					Client::update();
 				}
 			}
 		}
 
-		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable)
 		{
 			g_logger_assert(!isServer, "Cannot send server a message from the server.");
-			ENetPacket* packet = enet_packet_create(data, dataSizeInBytes, ENET_PACKET_FLAG_RELIABLE);
+			_ENetPacketFlag packetFlag = isReliable
+				? ENET_PACKET_FLAG_RELIABLE
+				: ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT;
+			ENetPacket* packet = enet_packet_create(data, dataSizeInBytes, packetFlag);
 			Client::sendServer(packet);
 		}
 
-		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable)
 		{
 			g_logger_assert(isServer, "Cannot send client a message from the client.");
 			NetworkPacket networkPacket = createPacket(eventType, data, dataSizeInBytes);
-			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, ENET_PACKET_FLAG_RELIABLE);
+			_ENetPacketFlag packetFlag = isReliable
+				? ENET_PACKET_FLAG_RELIABLE
+				: ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT;
+			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, packetFlag);
 			Server::sendClient(peer, packet);
 			g_memory_free(networkPacket.data);
 		}
 
-		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes)
+		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable)
 		{
 			NetworkPacket networkPacket = createPacket(eventType, data, dataSizeInBytes);
-			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, ENET_PACKET_FLAG_RELIABLE);
+			_ENetPacketFlag packetFlag = isReliable
+				? ENET_PACKET_FLAG_RELIABLE
+				: ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT;
+			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, packetFlag);
 
 			if (isServer)
 			{

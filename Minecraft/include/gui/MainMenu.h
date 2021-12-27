@@ -8,7 +8,7 @@ namespace Minecraft
 		void init();
 		void reloadShaders();
 
-		void update(float dt);
+		void update();
 
 		void free();
 	}

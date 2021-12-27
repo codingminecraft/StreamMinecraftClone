@@ -13,7 +13,7 @@ namespace Minecraft
 	{
 		void init(Ecs::Registry& registry);
 		void free();
-		void update(float dt);
+		void update();
 
 		void serialize();
 		bool deserialize();

@@ -30,7 +30,7 @@ namespace Minecraft
 
 		void init();
 
-		void update(Ecs::Registry& registry, float dt);
+		void update(Ecs::Registry& registry);
 
 		void setPlayerIfNeeded(bool forceOverride = false);
 	};

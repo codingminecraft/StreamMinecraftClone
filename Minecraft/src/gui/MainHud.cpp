@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core/Scene.h"
+#include "core/Application.h"
 #include "gui/MainHud.h"
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
@@ -58,7 +59,7 @@ namespace Minecraft
 		// Internal functions
 		static void initSlotPositions();
 		static void updatePauseScreen();
-		static void updateNotificationMessage(float dt);
+		static void updateNotificationMessage();
 		static void updateCraftingScreen(Inventory& inventory);
 		static void drawHotbar(const Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
@@ -89,7 +90,7 @@ namespace Minecraft
 			initSlotPositions();
 		}
 
-		void update(float dt, Inventory& inventory)
+		void update(Inventory& inventory)
 		{
 			if (blockCursorSprite && !viewingCraftScreen)
 			{
@@ -129,7 +130,7 @@ namespace Minecraft
 
 			if (notificationMessage)
 			{
-				updateNotificationMessage(dt);
+				updateNotificationMessage();
 			}
 		}
 
@@ -192,7 +193,7 @@ namespace Minecraft
 			Gui::endWindow();
 		}
 
-		static void updateNotificationMessage(float dt)
+		static void updateNotificationMessage()
 		{
 			if (timeToNotificationFadeout >= 0)
 			{
@@ -210,7 +211,7 @@ namespace Minecraft
 				Renderer::drawString(messageStr, *defaultFont, glm::vec2(xPos, yPos), fontScale, notificationStyle, 1);
 			}
 
-			timeToNotificationFadeout -= dt;
+			timeToNotificationFadeout -= Application::deltaTime;
 		}
 
 		static void drawHotbar(const Inventory& inventory)

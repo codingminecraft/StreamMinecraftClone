@@ -15,7 +15,7 @@ namespace Minecraft
 		void free();
 		void reloadShaders();
 		void regenerateWorld();
-		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture);
+		void update(Frustum& cameraFrustum, const Texture& worldTexture);
 		void serialize();
 		bool deserialize();
 

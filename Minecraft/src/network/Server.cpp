@@ -54,7 +54,7 @@ namespace Minecraft
 			}
 		}
 
-		void update(float dt)
+		void update()
 		{
 			ENetEvent event;
 

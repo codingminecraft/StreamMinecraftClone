@@ -104,21 +104,21 @@ namespace Minecraft
 			ChunkManager::free();
 		}
 
-		void update(float dt)
+		void update()
 		{
 			// Update all systems
-			Network::update(dt);
-			Physics::update(*registry, dt);
-			CharacterSystem::update(*registry, dt);
+			Network::update();
+			Physics::update(*registry);
+			CharacterSystem::update(*registry);
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(*registry, dt);
+			TransformSystem::update(*registry);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
 			ticks++;
 			if (ticks > 10)
 			{
-				DebugStats::lastFrameTime = dt;
+				DebugStats::lastFrameTime = Application::deltaTime;
 				ticks = 0;
 			}
 

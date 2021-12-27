@@ -62,10 +62,10 @@ namespace Minecraft
 		static const TextureFormat* bottomSprite;
 
 		// Internal functions
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
-		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
-		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
-		static void updateInventory(float dt, Inventory& inventory);
+		static void updateSurvival(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
+		static void updateCreative(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
+		static void updateSpectator(Transform& transform, CharacterController& controller, Rigidbody& rb);
+		static void updateInventory(Inventory& inventory);
 
 		static Model stick;
 
@@ -84,7 +84,7 @@ namespace Minecraft
 			stick = Vertices::getItemModel("stick");
 		}
 
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 			setPlayerIfNeeded();
 
@@ -149,13 +149,13 @@ namespace Minecraft
 				switch (gameMode)
 				{
 				case GameMode::Survival:
-					updateSurvival(dt, transform, controller, rb, inventory);
+					updateSurvival(transform, controller, rb, inventory);
 					break;
 				case GameMode::Creative:
-					updateCreative(dt, transform, controller, rb, inventory);
+					updateCreative(transform, controller, rb, inventory);
 					break;
 				case GameMode::Spectator:
-					updateSpectator(dt, transform, controller, rb);
+					updateSpectator(transform, controller, rb);
 					break;
 				default:
 					break;
@@ -187,7 +187,7 @@ namespace Minecraft
 				DebugStats::playerPos = transform.position;
 				DebugStats::playerOrientation = transform.orientation;
 
-				MainHud::update(dt, inventory);
+				MainHud::update(inventory);
 			}
 		}
 
@@ -223,9 +223,9 @@ namespace Minecraft
 			}
 		}
 
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		static void updateSurvival(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
 		{
-			blockPlaceDebounce -= dt;
+			blockPlaceDebounce -= Application::deltaTime;
 
 			//Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
@@ -244,9 +244,9 @@ namespace Minecraft
 					static glm::vec3 verticalOffset = glm::vec3(0.0f);
 					static float speedDir = 0.05f;
 					static int changeDirTick = 0;
-					verticalOffset.y += speedDir * dt;
+					verticalOffset.y += speedDir * Application::deltaTime;
 					//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
-					rotation = rotation + 30.0f * dt;
+					rotation = rotation + 30.0f * Application::deltaTime;
 					changeDirTick++;
 					if (changeDirTick > 30)
 					{
@@ -309,7 +309,7 @@ namespace Minecraft
 					}
 				}
 
-				updateInventory(dt, inventory);
+				updateInventory(inventory);
 			}
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
@@ -330,12 +330,12 @@ namespace Minecraft
 			}
 		}
 
-		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		static void updateCreative(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
 		{
 			static float doubleJumpDebounce = 0.0f;
 			const float doubleJumpDebounceTime = 0.5f;
-			blockPlaceDebounce -= dt;
-			doubleJumpDebounce -= dt;
+			blockPlaceDebounce -= Application::deltaTime;
+			doubleJumpDebounce -= Application::deltaTime;
 
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
@@ -439,7 +439,7 @@ namespace Minecraft
 					}
 				}
 
-				updateInventory(dt, inventory);
+				updateInventory(inventory);
 			}
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
@@ -468,7 +468,7 @@ namespace Minecraft
 			}
 		}
 
-		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
+		static void updateSpectator(Transform& transform, CharacterController& controller, Rigidbody& rb)
 		{
 			controller.viewAxis.x = Input::deltaMouseX;
 			controller.viewAxis.y = Input::deltaMouseY;
@@ -505,7 +505,7 @@ namespace Minecraft
 			}
 		}
 
-		static void updateInventory(float dt, Inventory& inventory)
+		static void updateInventory(Inventory& inventory)
 		{
 			for (int i = 0; i < Player::numHotbarSlots; i++)
 			{

@@ -14,7 +14,8 @@ namespace Minecraft
 		NotifyChunkWorker,
 		WorldSeed,
 		EntityData,
-		LocalPlayer
+		LocalPlayer,
+		SetEntityPosition,
 	};
 
 	struct NetworkEvent
@@ -35,11 +36,11 @@ namespace Minecraft
 
 		// TODO: Move this into it's own thread worker and process all network
 		// stuff on a dedicated thread
-		void update(float dt);
+		void update();
 
-		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
-		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes);
-		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 
 		bool isLanServer();
 		bool isNetworkEnabled();

@@ -9,7 +9,7 @@ namespace Minecraft
 	{
 		void init();
 
-		void update(float dt, Inventory& playerInventory);
+		void update(Inventory& playerInventory);
 
 		void notify(const std::string& message);
 

@@ -40,7 +40,7 @@ namespace Minecraft
 			defaultFont = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 		}
 
-		void update(float dt, float percentLoaded)
+		void update(float percentLoaded)
 		{
 			static Style dirtStyle = Styles::defaultStyle;
 			dirtStyle.color = "#232323ff"_hex;

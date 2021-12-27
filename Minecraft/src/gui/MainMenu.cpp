@@ -57,7 +57,7 @@ namespace Minecraft
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 		}
 
-		void update(float dt)
+		void update()
 		{
 			if (!isCreatingWorld)
 			{
@@ -70,7 +70,7 @@ namespace Minecraft
 				
 				viewMatrix = glm::rotate(glm::radians(viewRotation), viewAxis);
 				menuSkybox.render(cubemapShader, projectionMatrix, viewMatrix);
-				viewRotation = viewRotation - (3.0f * dt);
+				viewRotation = viewRotation - (3.0f * Application::deltaTime);
 				if (viewRotation < 0)
 				{
 					viewRotation = 360.0f + viewRotation;
@@ -109,7 +109,7 @@ namespace Minecraft
 			}
 			else
 			{
-				CreateWorldMenu::update(dt);
+				CreateWorldMenu::update();
 			}
 		}
 

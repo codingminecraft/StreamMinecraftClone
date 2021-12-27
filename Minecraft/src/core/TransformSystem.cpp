@@ -6,7 +6,7 @@ namespace Minecraft
 {
 	namespace TransformSystem
 	{
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 			for (Ecs::EntityId entity : registry.view<Transform>())
 			{

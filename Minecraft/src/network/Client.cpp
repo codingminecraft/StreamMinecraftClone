@@ -73,7 +73,7 @@ namespace Minecraft
 			}
 		}
 
-		void update(float dt)
+		void update()
 		{
 			ENetEvent event;
 
@@ -121,7 +121,7 @@ namespace Minecraft
 			peer = NULL;
 
 			// Process all the events
-			update(0.16f);
+			update();
 
 			enet_host_destroy(client);
 			client = NULL;

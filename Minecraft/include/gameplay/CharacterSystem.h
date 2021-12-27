@@ -7,7 +7,7 @@ namespace Minecraft
 {
 	namespace CharacterSystem
 	{
-		void update(Ecs::Registry& registry, float dt);
+		void update(Ecs::Registry& registry);
 	}
 }
 

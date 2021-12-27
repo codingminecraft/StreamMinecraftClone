@@ -6,6 +6,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "utils/CMath.h"
+#include "network/Network.h"
 
 namespace Minecraft
 {
@@ -15,7 +16,7 @@ namespace Minecraft
 		static Ecs::EntityId cameraEntity = Ecs::nullEntity;
 		static glm::vec2 smoothMouse = glm::vec2();
 
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 			for (Ecs::EntityId entity : registry.view<Transform, CharacterController, Rigidbody>())
 			{
@@ -118,6 +119,11 @@ namespace Minecraft
 						g_logger_warning("Camera is null!");
 					}
 				}
+
+				//if (Network::isNetworkEnabled() && !Network::isLanServer())
+				//{
+				//	Network::sendServer(NetworkEventType::SetEntityPosition, &transform.position, sizeof(glm::vec3), false);
+				//}
 			}
 		}
 	}

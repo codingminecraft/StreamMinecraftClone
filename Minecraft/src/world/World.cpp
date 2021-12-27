@@ -243,7 +243,7 @@ namespace Minecraft
 			savePath = "";
 		}
 
-		void update(float dt, Frustum& cameraFrustum, const Texture& worldTexture)
+		void update(Frustum& cameraFrustum, const Texture& worldTexture)
 		{
 #ifdef _USE_OPTICK
 			OPTICK_EVENT();
@@ -252,7 +252,7 @@ namespace Minecraft
 			//static float slowLoading = 0.0f;
 			if (isLoading)
 			{
-				//slowLoading += 0.1f * dt;
+				//slowLoading += 0.1f * Application::deltaTime;
 				float percentLoaded = ChunkManager::percentWorkDone();
 				if (percentLoaded == 1.0f)// && slowLoading >= 1.0f)
 				{
@@ -262,8 +262,8 @@ namespace Minecraft
 				}
 				else
 				{
-					ChunkLoadingScreen::update(dt, percentLoaded);
-					//ChunkLoadingScreen::update(dt, slowLoading);
+					ChunkLoadingScreen::update(percentLoaded);
+					//ChunkLoadingScreen::update(slowLoading);
 					return;
 				}
 			}
@@ -279,7 +279,7 @@ namespace Minecraft
 			}
 
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
-			TransformSystem::update(*registry, dt);
+			TransformSystem::update(*registry);
 			// Draw cubemap and update camera
 			Camera& camera = Scene::getCamera();
 			glm::mat4 projectionMatrix = camera.calculateProjectionMatrix(*registry);
@@ -290,18 +290,18 @@ namespace Minecraft
 			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
 
 			// Update all systems
-			Network::update(dt);
-			KeyHandler::update(dt); 
-			Physics::update(*registry, dt);
-			PlayerController::update(*registry, dt);
-			CharacterSystem::update(*registry, dt);
+			Network::update();
+			KeyHandler::update(); 
+			Physics::update(*registry);
+			PlayerController::update(*registry);
+			CharacterSystem::update(*registry);
 
 			DebugStats::numDrawCalls = 0;
 			static uint32 ticks = 0;
 			ticks++;
 			if (ticks > 10)
 			{
-				DebugStats::lastFrameTime = dt;
+				DebugStats::lastFrameTime = Application::deltaTime;
 				ticks = 0;
 			}
 

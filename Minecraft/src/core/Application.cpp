@@ -149,7 +149,7 @@ namespace Minecraft
 				glClearBufferfv(GL_COLOR, 0, zeroFillerVec);
 				float one = 1;
 				glClearBufferfv(GL_DEPTH, 0, &one);
-				Scene::update(deltaTime);
+				Scene::update();
 
 				// Unbind all framebuffers and render the composited image
 				glDisable(GL_DEPTH_TEST);

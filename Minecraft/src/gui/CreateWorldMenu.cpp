@@ -96,7 +96,7 @@ namespace Minecraft
 			}
 		}
 
-		void update(float dt)
+		void update()
 		{
 			static Style dirtStyle = Styles::defaultStyle;
 			dirtStyle.color = "#232323ff"_hex;

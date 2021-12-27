@@ -91,7 +91,7 @@ namespace Minecraft
 			changeScene(type);
 		}
 
-		void update(float dt)
+		void update()
 		{
 			Gui::beginFrame();
 
@@ -100,10 +100,10 @@ namespace Minecraft
 			case SceneType::SinglePlayerGame:
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
-				World::update(dt, cameraFrustum, worldTexture);
+				World::update(cameraFrustum, worldTexture);
 				break;
 			case SceneType::MainMenu:
-				MainMenu::update(dt);
+				MainMenu::update();
 				break;
 			case SceneType::None:
 				break;

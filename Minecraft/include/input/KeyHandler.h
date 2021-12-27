@@ -5,7 +5,7 @@ namespace Minecraft
 {
 	namespace KeyHandler
 	{
-		void update(float dt);
+		void update();
 	}
 }
 
