@@ -11,6 +11,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "core/Scene.h"
+#include "world/World.h"
 
 namespace Minecraft
 {
@@ -29,6 +30,7 @@ namespace Minecraft
 
 		void init()
 		{
+			World::setSavePath("");
 			isCreatingWorld = false;
 
 			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");

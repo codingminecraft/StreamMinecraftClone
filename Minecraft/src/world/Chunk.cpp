@@ -1005,11 +1005,11 @@ namespace Minecraft
 			}
 		}
 
-		void serialize(const std::string& worldSavePath, const Chunk& chunk)
+		void serialize(const std::string& pathToSaveTo, const Chunk& chunk)
 		{
 			if ((Network::isNetworkEnabled() && Network::isLanServer()) || (!Network::isNetworkEnabled()))
 			{
-				std::string filepath = getFormattedFilepath(chunk.chunkCoords, worldSavePath);
+				std::string filepath = getFormattedFilepath(chunk.chunkCoords, pathToSaveTo);
 				FILE* fp = fopen(filepath.c_str(), "wb");
 				if (!fp)
 				{

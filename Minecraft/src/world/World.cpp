@@ -48,6 +48,9 @@ namespace Minecraft
 		float deltaTime = 0.0f;
 
 		// Members
+		static std::string lastSavePath;
+		static std::string lastChunkSavePath;
+
 		static Shader opaqueShader;
 		static Shader transparentShader;
 		static Shader cubemapShader;
@@ -90,11 +93,7 @@ namespace Minecraft
 			{
 				// Initialize and create any filepaths for save information
 				g_logger_assert(savePath != "", "World save path must not be empty.");
-				savePath = (std::filesystem::path(AppData::worldsRootPath) / std::filesystem::path(savePath)).string();
-				File::createDirIfNotExists(savePath.c_str());
-				chunkSavePath = (savePath / std::filesystem::path("chunks")).string();
-				g_logger_info("World save folder at: %s", savePath.c_str());
-				File::createDirIfNotExists(chunkSavePath.c_str());
+				setSavePath(savePath);
 
 				// Generate a seed if needed
 				Transform* playerTransform = nullptr;
@@ -213,7 +212,37 @@ namespace Minecraft
 			asyncInitThread = std::thread(asyncInit, playerPos, isClient);
 		}
 
-		void free()
+		void setSavePath(const std::string& newSavePath) 
+		{
+			if (newSavePath == "") 
+			{
+				savePath = "";
+				chunkSavePath = "";
+				return;
+			}
+
+			savePath = (std::filesystem::path(AppData::worldsRootPath) / std::filesystem::path(newSavePath)).string();
+			File::createDirIfNotExists(savePath.c_str());
+			chunkSavePath = (savePath / std::filesystem::path("chunks")).string();
+			g_logger_info("World save folder at: %s", savePath.c_str());
+			File::createDirIfNotExists(chunkSavePath.c_str());
+		}
+
+		void pushSavePath(const std::string& newSavePath)
+		{
+			lastSavePath = savePath;
+			lastChunkSavePath = chunkSavePath;
+
+			setSavePath(newSavePath);
+		}
+
+		void popSavePath()
+		{
+			savePath = lastSavePath;
+			chunkSavePath = lastChunkSavePath;
+		}
+
+		void free(bool shouldSerialize)
 		{
 			if (asyncInitThread.joinable())
 			{
@@ -230,8 +259,11 @@ namespace Minecraft
 			skybox.destroy();
 			cubemapShader.destroy();
 
-			serialize();
-			ChunkManager::serialize();
+			if (shouldSerialize) 
+			{
+				serialize();
+				ChunkManager::serialize();
+			}
 			ChunkManager::free();
 			MainHud::free();
 			TerrainGenerator::free();
@@ -241,7 +273,6 @@ namespace Minecraft
 
 			seed = UINT32_MAX;
 			seedAsFloat = FLT_MAX;
-			savePath = "";
 		}
 
 		void update(Frustum& cameraFrustum, const Texture& worldTexture)
@@ -419,6 +450,11 @@ namespace Minecraft
 			return false;
 		}
 
+		bool isLoaded()
+		{
+			return !isLoading;
+		}
+
 		Ecs::EntityId getLocalPlayer()
 		{
 			return playerId;
@@ -474,6 +510,7 @@ namespace Minecraft
 			if (!isClient)
 			{
 				std::string filepath = getWorldDataFilepath(savePath);
+				g_logger_info("Saving world to '%s'", filepath.c_str());
 				FILE* fp = fopen(filepath.c_str(), "wb");
 				if (!fp)
 				{
@@ -546,7 +583,7 @@ namespace Minecraft
 
 		std::string getWorldReplayDirPath(const std::string& worldSavePath)
 		{
-			return worldSavePath + "/events";
+			return worldSavePath + "/replay";
 		}
 
 		static void asyncInit(glm::vec3 playerPosition, bool isClient)

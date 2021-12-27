@@ -50,8 +50,11 @@ namespace Minecraft
 	}
 
 	ChunkThreadWorker::ChunkThreadWorker()
-		: cv(), mtx(), queueMtx(), doWork(true)
+		: cv(), cv2(), mtx(), queueMtx(), doWork(true)
 	{
+		std::lock_guard<std::mutex> barrierLock(barrierMtx);
+		barrierSyncCounter = 0;
+		barrierSyncPoint = 0;
 		workerThread = std::thread(&ChunkThreadWorker::threadWorker, this);
 	}
 
@@ -62,6 +65,7 @@ namespace Minecraft
 			doWork = false;
 		}
 		cv.notify_all();
+		cv2.notify_all();
 
 		workerThread.join();
 	}

@@ -12,7 +12,7 @@ namespace Minecraft
 	namespace World
 	{
 		void init(Ecs::Registry& registry, const char* hostname = "", int port = 0);
-		void free();
+		void free(bool shouldSerialize = true);
 		void reloadShaders();
 		void regenerateWorld();
 		void update(Frustum& cameraFrustum, const Texture& worldTexture);
@@ -22,10 +22,15 @@ namespace Minecraft
 		std::string getWorldDataFilepath(const std::string& worldSavePath);
 		std::string getWorldReplayDirPath(const std::string& worldSavePath);
 
+		void setSavePath(const std::string& newSavePath);
+		void pushSavePath(const std::string& newSavePath);
+		void popSavePath();
+
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
 		void givePlayerBlock(int blockId, int blockCount);
 		bool isPlayerUnderwater();
+		bool isLoaded();
 
 		Ecs::EntityId getLocalPlayer();
 		void setLocalPlayer(Ecs::EntityId localPlayer);

@@ -34,7 +34,8 @@ namespace Minecraft
 		SinglePlayerGame,
 		LocalLanGame,
 		MultiplayerGame,
-		MainMenu
+		MainMenu,
+		Replay
 	};
 
 	namespace Scene

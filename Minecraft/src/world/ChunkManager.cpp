@@ -148,7 +148,6 @@ namespace Minecraft
 
 		// Internal variables
 		static std::mutex chunkMtx;
-		static uint32 processorCount = 0;
 		static robin_hood::unordered_node_map<glm::ivec2, Chunk> chunks = {};
 
 		static uint32 chunkPosInstancedBuffer;
@@ -170,7 +169,6 @@ namespace Minecraft
 		{
 			// A chunk uses 55,000 vertices on average, so a sub-chunk can be estimated to use about 
 			// 4,500 vertices on average. That's the default vertex bucket size
-			processorCount = 1;// std::thread::hardware_concurrency();
 
 			// Initialize the singletons
 			chunkWorker = new ChunkThreadWorker();
@@ -313,6 +311,24 @@ namespace Minecraft
 					chunk.state != ChunkState::Unloading)
 				{
 					queueSaveChunk(chunkIter.first);
+				}
+			}
+		}
+
+		void serializeSynchronous() 
+		{
+			for (robin_hood::pair<const glm::ivec2, Chunk>& chunkIter : chunks)
+			{
+				Chunk& chunk = chunkIter.second;
+				Block* blockData = chunk.data;
+				if (chunk.state != ChunkState::Saving && blockData &&
+					chunk.state != ChunkState::Unloaded &&
+					chunk.state != ChunkState::Unloading)
+				{
+					ChunkState oldState = chunk.state;
+					chunk.state = ChunkState::Saving;
+					ChunkPrivate::serialize(World::chunkSavePath, chunk);
+					chunk.state = oldState;
 				}
 			}
 		}

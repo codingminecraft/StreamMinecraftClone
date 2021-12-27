@@ -112,7 +112,12 @@ namespace Minecraft
 			// Process events and open the event file if needed
 			if (serializedEventFile == nullptr && (serializeEvents || playFromEventFile))
 			{
-				const std::string eventFilepath = World::getWorldReplayDirPath(World::savePath) + "/events.bin";
+				std::string eventFilepath = World::getWorldReplayDirPath(World::savePath) + "/replay.bin";
+				if (playFromEventFile)
+				{
+					eventFilepath = World::savePath + "/replay.bin";
+				}
+
 				if (serializeEvents)
 				{
 					serializedEventFile = fopen(eventFilepath.c_str(), "wb");
@@ -145,6 +150,7 @@ namespace Minecraft
 			case SceneType::SinglePlayerGame:
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
+			case SceneType::Replay:
 				World::update(cameraFrustum, worldTexture);
 				break;
 			case SceneType::MainMenu:
@@ -153,7 +159,7 @@ namespace Minecraft
 			case SceneType::None:
 				break;
 			default:
-				g_logger_warning("Cannot update unknown scene type %d", currentScene);
+				g_logger_warning("Cannot update unknown scene type '%s'", magic_enum::enum_name(currentScene).data());
 				break;
 			}
 
@@ -194,6 +200,10 @@ namespace Minecraft
 
 			switch (currentScene)
 			{
+			case SceneType::Replay:
+				World::free(false);
+				World::popSavePath();
+				break;
 			case SceneType::SinglePlayerGame:
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
@@ -219,6 +229,7 @@ namespace Minecraft
 			case SceneType::SinglePlayerGame:
 			case SceneType::LocalLanGame:
 			case SceneType::MultiplayerGame:
+			case SceneType::Replay:
 				World::reloadShaders();
 				break;
 			case SceneType::MainMenu:
@@ -328,6 +339,15 @@ namespace Minecraft
 
 			switch (nextSceneType)
 			{
+			case SceneType::Replay:
+			{
+				Scene::serializeEvents = false;
+				Scene::playFromEventFile = true;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				World::pushSavePath(demoDir);
+				World::init(*registry);
+				break;
+			}
 			case SceneType::SinglePlayerGame:
 				World::init(*registry);
 				break;
@@ -395,7 +415,7 @@ namespace Minecraft
 					events.pop();
 				}
 			}
-			else if (playFromEventFile && serializedEventFile != nullptr)
+			else if (playFromEventFile && serializedEventFile != nullptr && World::isLoaded())
 			{
 				// Play events from the event file
 
@@ -429,6 +449,7 @@ namespace Minecraft
 						fclose(serializedEventFile);
 						serializedEventFile = nullptr;
 						playFromEventFile = false;
+						changeScene(SceneType::SinglePlayerGame);
 						break;
 					}
 				}
@@ -472,7 +493,7 @@ namespace Minecraft
 				return sizeof(glm::vec3);
 			case GEventType::SetPlayerForward:
 				return sizeof(glm::vec3);
-			// Zero sized events
+				// Zero sized events
 			case GEventType::FrameTick:
 				return 0;
 			default:

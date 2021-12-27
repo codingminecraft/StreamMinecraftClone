@@ -49,6 +49,7 @@ namespace Minecraft
 		void init();
 		void free();
 		void serialize();
+		void serializeSynchronous();
 
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks();
 
