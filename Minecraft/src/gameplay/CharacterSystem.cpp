@@ -119,11 +119,6 @@ namespace Minecraft
 						g_logger_warning("Camera is null!");
 					}
 				}
-
-				//if (Network::isNetworkEnabled() && !Network::isLanServer())
-				//{
-				//	Network::sendServer(NetworkEventType::SetEntityPosition, &transform.position, sizeof(glm::vec3), false);
-				//}
 			}
 		}
 	}

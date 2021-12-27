@@ -544,9 +544,9 @@ namespace Minecraft
 			return worldSavePath + "/world.bin";
 		}
 
-		std::string getWorldEventFilepath(const std::string& worldSavePath)
+		std::string getWorldReplayDirPath(const std::string& worldSavePath)
 		{
-			return worldSavePath + "/events.bin";
+			return worldSavePath + "/events";
 		}
 
 		static void asyncInit(glm::vec3 playerPosition, bool isClient)

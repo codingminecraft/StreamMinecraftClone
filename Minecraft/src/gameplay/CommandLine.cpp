@@ -9,6 +9,7 @@
 #include "core/Application.h"
 #include "core/Scene.h"
 #include "core/Window.h"
+#include "core/File.h"
 #include "core/Components.h"
 #include "gameplay/PlayerController.h"
 #include "gameplay/CharacterController.h"
@@ -215,27 +216,54 @@ namespace Minecraft
 			{
 				Scene::playFromEventFile = false;
 				Scene::serializeEvents = true;
-				const Ecs::EntityId playerId = World::getLocalPlayer();
-				const Transform& playerTransform = Scene::getRegistry()->getComponent<Transform>(playerId);
-				const CharacterController& controller = Scene::getRegistry()->getComponent<CharacterController>(playerId);
-				glm::vec3* playerPosition = (glm::vec3*)g_memory_allocate(sizeof(glm::vec3));
-				g_memory_copyMem(playerPosition, (void*)&playerTransform.position, sizeof(glm::vec3));
-				Scene::queueMainEvent(GEventType::SetPlayerPos, (void*)playerPosition, sizeof(glm::vec3), true);
-				glm::vec2* playerViewAxis = (glm::vec2*)g_memory_allocate(sizeof(glm::vec2));
-				g_memory_copyMem(playerViewAxis, (void*)&controller.viewAxis, sizeof(glm::vec2));
-				Scene::queueMainEvent(GEventType::SetPlayerViewAxis, (void*)playerViewAxis, sizeof(glm::vec2), true);
-				g_logger_info("Recording demo to '%s'", World::getWorldEventFilepath(World::savePath).c_str());
-				break;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				File::createDirIfNotExists(demoDir.c_str());
+				// ----- Serialize initial entity states
+				RawMemory serializedEntities = Scene::getRegistry()->serialize();
+				std::string entityStates = demoDir + "/entities.bin";
+				FILE* entities = fopen(entityStates.c_str(), "wb");
+				if (entities)
+				{
+					fwrite(&serializedEntities.size, sizeof(size_t), 1, entities);
+					fwrite(serializedEntities.data, serializedEntities.size, 1, entities);
+					fclose(entities);
+				}
+				Scene::queueMainEvent(GEventType::SetDeltaTime, &Application::deltaTime, sizeof(float), false);
+				Scene::queueMainEventMoustInitial(Input::mouseX, Input::mouseY, Input::lastMouseX, Input::lastMouseY);
+				Scene::queueMainEvent(GEventType::FrameTick);
+				// -----
+				g_logger_info("Recording demo to '%s'", (demoDir + "/events.bin").c_str());
 			}
+			break;
 			case CommandLineType::StopRecording:
+			{
 				Scene::serializeEvents = false;
-				g_logger_info("Saved recorded demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
-				break;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				g_logger_info("Saved recorded demo at '%s'", (demoDir + "/events.bin").c_str());
+			}
+			break;
 			case CommandLineType::PlayRecording:
+			{
 				Scene::serializeEvents = false;
 				Scene::playFromEventFile = true;
-				g_logger_info("Playing demo at '%s'", World::getWorldEventFilepath(World::savePath).c_str());
-				break;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				std::string entityStates = demoDir + "/entities.bin";
+				FILE* fp = fopen(entityStates.c_str(), "rb");
+				if (fp)
+				{
+					RawMemory registryData = { 0, 0 };
+					fread(&registryData.size, sizeof(size_t), 1, fp);
+					uint8* tmpData = (uint8*)g_memory_allocate(registryData.size);
+					fread(tmpData, registryData.size, 1, fp);
+					registryData.data = tmpData;
+					Scene::resetRegistry();
+					Scene::getRegistry()->deserialize(registryData);
+					g_memory_free(tmpData);
+					fclose(fp);
+				}
+				g_logger_info("Playing demo at '%s'", demoDir.c_str());
+			}
+			break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
 				break;

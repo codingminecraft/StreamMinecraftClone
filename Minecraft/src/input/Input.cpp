@@ -9,6 +9,8 @@ namespace Minecraft
 		float mouseScreenY = 0;
 		float mouseX = 0;
 		float mouseY = 0;
+		float lastMouseX = 0;
+		float lastMouseY = 0;
 		float deltaMouseX = 0;
 		float deltaMouseY = 0;
 		float mouseScrollX = 0;
@@ -20,8 +22,6 @@ namespace Minecraft
 
 		uint32 lastCharPressedData = '\0';
 
-		static float mLastMouseX = 0;
-		static float mLastMouseY = 0;
 		static bool mFirstMouse = true;
 		static glm::vec2 windowSize = glm::vec2();
 		static glm::mat4 inverseProjectionMatrix = glm::mat4();
@@ -108,15 +108,15 @@ namespace Minecraft
 			mouseY = ypos;
 			if (mFirstMouse)
 			{
-				mLastMouseX = xpos;
-				mLastMouseY = ypos;
+				lastMouseX = xpos;
+				lastMouseY = ypos;
 				mFirstMouse = false;
 			}
 
-			deltaMouseX = xpos - mLastMouseX;
-			deltaMouseY = mLastMouseY - ypos;
-			mLastMouseX = xpos;
-			mLastMouseY = ypos;
+			deltaMouseX = xpos - lastMouseX;
+			deltaMouseY = lastMouseY - ypos;
+			lastMouseX = xpos;
+			lastMouseY = ypos;
 
 			glm::vec4 tmp = glm::vec4((mouseX / windowSize.x) * 2.0f - 1.0f, -((mouseY / windowSize.y) * 2.0f - 1.0f), 0, 1.0f);
 			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;

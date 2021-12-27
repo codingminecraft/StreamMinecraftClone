@@ -11,8 +11,12 @@ namespace Minecraft
 		SetDeltaTime,
 		PlayerKeyInput,
 		PlayerMouseInput,
+		MouseInitial,
 		SetPlayerPos,
-		SetPlayerViewAxis
+		SetPlayerViewAxis,
+		SetPlayerOrientation,
+		SetPlayerForward,
+		FrameTick
 	};
 
 	struct GEvent
@@ -43,15 +47,17 @@ namespace Minecraft
 
 		void reloadShaders();
 
-		void queueMainEvent(GEventType type, void* eventData, size_t eventDataSize, bool freeData);
+		void queueMainEvent(GEventType type, void* eventData = nullptr, size_t eventDataSize = 0, bool freeData = false);
 		void queueMainEventKey(int key, int action);
 		void queueMainEventMouse(float xpos, float ypos);
+		void queueMainEventMoustInitial(float xpos, float ypos, float lastMouseX, float lastMouseY);
 
 		void free(bool freeGlobalResources=true);
 
 		bool isPlayingGame();
 
 		Ecs::Registry* getRegistry();
+		void resetRegistry();
 
 		Camera& getCamera();
 

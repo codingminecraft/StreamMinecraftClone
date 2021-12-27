@@ -8,6 +8,8 @@ namespace Minecraft
 	{
 		extern float mouseX;
 		extern float mouseY;
+		extern float lastMouseX;
+		extern float lastMouseY;
 		extern float mouseScreenX;
 		extern float mouseScreenY;
 		extern float deltaMouseX;

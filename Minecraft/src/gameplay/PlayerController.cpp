@@ -194,7 +194,8 @@ namespace Minecraft
 		void setPlayerIfNeeded(bool forceOverride)
 		{
 			Ecs::Registry* registry = Scene::getRegistry();
-			if (playerId == Ecs::nullEntity || registry->getComponent<Tag>(playerId).type != TagType::Player || forceOverride)
+			if (forceOverride || playerId == Ecs::nullEntity || !registry->hasComponent<Tag>(playerId) ||
+				registry->getComponent<Tag>(playerId).type != TagType::Player)
 			{
 				playerId = World::getLocalPlayer();
 				if (gameMode == GameMode::Survival)

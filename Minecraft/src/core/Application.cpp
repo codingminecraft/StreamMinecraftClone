@@ -280,14 +280,14 @@ namespace Minecraft
 
 		static void freeWindow()
 		{
-			delete &getWindow();
+			delete& getWindow();
 		}
 
 		static void freeRegistry()
 		{
 			Ecs::Registry& registry = getRegistry();
 			registry.free();
-			delete &registry;
+			delete& registry;
 		}
 	}
 }

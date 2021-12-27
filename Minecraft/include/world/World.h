@@ -20,7 +20,7 @@ namespace Minecraft
 		bool deserialize();
 
 		std::string getWorldDataFilepath(const std::string& worldSavePath);
-		std::string getWorldEventFilepath(const std::string& worldSavePath);
+		std::string getWorldReplayDirPath(const std::string& worldSavePath);
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 

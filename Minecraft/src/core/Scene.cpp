@@ -112,7 +112,7 @@ namespace Minecraft
 			// Process events and open the event file if needed
 			if (serializedEventFile == nullptr && (serializeEvents || playFromEventFile))
 			{
-				const std::string eventFilepath = World::getWorldEventFilepath(World::savePath);
+				const std::string eventFilepath = World::getWorldReplayDirPath(World::savePath) + "/events.bin";
 				if (serializeEvents)
 				{
 					serializedEventFile = fopen(eventFilepath.c_str(), "wb");
@@ -158,6 +158,8 @@ namespace Minecraft
 			}
 
 			Renderer::render();
+
+			queueMainEvent(GEventType::FrameTick, nullptr, 0, false);
 
 			if (changeSceneAtFrameEnd)
 			{
@@ -273,6 +275,23 @@ namespace Minecraft
 			}
 		}
 
+		void queueMainEventMoustInitial(float xpos, float ypos, float lastMouseX, float lastMouseY)
+		{
+			if (!playFromEventFile)
+			{
+				GEvent newEvent;
+				newEvent.type = GEventType::MouseInitial;
+				newEvent.data = g_memory_allocate(sizeof(float) * 4);
+				g_memory_copyMem(newEvent.data, &xpos, sizeof(float));
+				g_memory_copyMem((float*)newEvent.data + 1, &ypos, sizeof(float));
+				g_memory_copyMem((float*)newEvent.data + 2, &lastMouseX, sizeof(float));
+				g_memory_copyMem((float*)newEvent.data + 3, &lastMouseY, sizeof(float));
+				newEvent.size = sizeof(float) * 4;
+				newEvent.freeData = true;
+				events.emplace(newEvent);
+			}
+		}
+
 		bool isPlayingGame()
 		{
 			return currentScene == SceneType::SinglePlayerGame;
@@ -281,6 +300,19 @@ namespace Minecraft
 		Ecs::Registry* getRegistry()
 		{
 			return registry;
+		}
+
+		void resetRegistry()
+		{
+			registry->clear();
+			registry->registerComponent<Transform>("Transform");
+			registry->registerComponent<Rigidbody>("Rigidbody");
+			registry->registerComponent<BoxCollider>("BoxCollider");
+			registry->registerComponent<Tag>("Tag");
+			registry->registerComponent<CharacterController>("CharacterController");
+			registry->registerComponent<Inventory>("Inventory");
+			registry->registerComponent<PlayerComponent>("PlayerComponent");
+			addCameraToRegistry();
 		}
 
 		Camera& getCamera()
@@ -292,15 +324,7 @@ namespace Minecraft
 		{
 			free(false);
 
-			registry->clear();
-			registry->registerComponent<Transform>("Transform");
-			registry->registerComponent<Rigidbody>("Rigidbody");
-			registry->registerComponent<BoxCollider>("BoxCollider");
-			registry->registerComponent<Tag>("Tag");
-			registry->registerComponent<CharacterController>("CharacterController");
-			registry->registerComponent<Inventory>("Inventory");
-			registry->registerComponent<PlayerComponent>("PlayerComponent");
-			addCameraToRegistry();
+			resetRegistry();
 
 			switch (nextSceneType)
 			{
@@ -375,17 +399,20 @@ namespace Minecraft
 			{
 				// Play events from the event file
 
-				// A command should only ever be 16 bytes big
-				uint8 buffer[16];
+				// A command should only ever be 18 bytes big
+				uint8 buffer[18];
 				GEventType eventType = GEventType::None;
-				while (eventType != GEventType::SetDeltaTime && serializedEventFile && playFromEventFile)
+				while (eventType != GEventType::FrameTick && serializedEventFile && playFromEventFile)
 				{
 					int readResult = fread(buffer, sizeof(uint8), 1, serializedEventFile);
 					if (readResult)
 					{
 						eventType = *(GEventType*)&buffer;
 						size_t dataSize = getEventSize(eventType);
-						readResult = fread(buffer, dataSize, 1, serializedEventFile);
+						if (dataSize != 0)
+						{
+							readResult = fread(buffer, dataSize, 1, serializedEventFile);
+						}
 
 						if (readResult)
 						{
@@ -395,7 +422,10 @@ namespace Minecraft
 
 					if (!readResult)
 					{
-						g_logger_error("Failed to read event file for some reason. Stopping the replay.");
+						if (!feof(serializedEventFile))
+						{
+							g_logger_error("Failed to read event file for some reason. Stopping the replay.");
+						}
 						fclose(serializedEventFile);
 						serializedEventFile = nullptr;
 						playFromEventFile = false;
@@ -407,44 +437,18 @@ namespace Minecraft
 
 		static void serializeEvent(const GEvent& event)
 		{
-			g_logger_assert(event.size <= 15,
-				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 15 bytes right now.",
+			g_logger_assert(event.size <= 18,
+				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 17 bytes right now.",
 				magic_enum::enum_name(event.type).data());
 
 			// Write the event type
 			fwrite(&event.type, sizeof(GEventType), 1, serializedEventFile);
 
-			// Write data depending on event type
-			switch (event.type)
+			// Write the data
+			size_t eventSize = getEventSize(event.type);
+			if (eventSize > 0)
 			{
-			case GEventType::SetDeltaTime:
-			{
-				fwrite(event.data, sizeof(float), 1, serializedEventFile);
-				break;
-			}
-			case GEventType::PlayerKeyInput:
-			{
-				fwrite(event.data, sizeof(int) * 2, 1, serializedEventFile);
-				break;
-			}
-			case GEventType::PlayerMouseInput:
-			{
-				fwrite(event.data, sizeof(float) * 2, 1, serializedEventFile);
-				break;
-			}
-			case GEventType::SetPlayerPos:
-			{
-				fwrite(event.data, sizeof(glm::vec3), 1, serializedEventFile);
-				break;
-			}
-			case GEventType::SetPlayerViewAxis:
-			{
-				fwrite(event.data, sizeof(glm::vec2), 1, serializedEventFile);
-				break;
-			}
-			default:
-				g_logger_error("Tried to serialize unknown event '%s' in World::getEventSize().", magic_enum::enum_name(event.type).data());
-				break;
+				fwrite(event.data, eventSize, 1, serializedEventFile);
 			}
 		}
 
@@ -458,10 +462,19 @@ namespace Minecraft
 				return sizeof(int) * 2;
 			case GEventType::PlayerMouseInput:
 				return sizeof(float) * 2;
+			case GEventType::MouseInitial:
+				return sizeof(float) * 4;
 			case GEventType::SetPlayerPos:
 				return sizeof(glm::vec3);
 			case GEventType::SetPlayerViewAxis:
 				return sizeof(glm::vec2);
+			case GEventType::SetPlayerOrientation:
+				return sizeof(glm::vec3);
+			case GEventType::SetPlayerForward:
+				return sizeof(glm::vec3);
+			// Zero sized events
+			case GEventType::FrameTick:
+				return 0;
 			default:
 				g_logger_error("Tried to get size of unknown event '%s' in World::getEventSize().", magic_enum::enum_name(type).data());
 				break;
@@ -472,8 +485,8 @@ namespace Minecraft
 
 		static void processEvent(GEventType type, void* data, size_t sizeOfData)
 		{
-			g_logger_assert(sizeOfData <= 15,
-				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 15 bytes right now.",
+			g_logger_assert(sizeOfData <= 18,
+				"Bad world event data for event '%s'. WorldEvents can only be a maximum of 17 bytes right now.",
 				magic_enum::enum_name(type).data());
 
 			switch (type)
@@ -499,11 +512,26 @@ namespace Minecraft
 			case GEventType::PlayerMouseInput:
 			{
 #ifdef _DEBUG
-				g_logger_assert(sizeOfData == sizeof(float) * 2, "Expected sizeof(float) * 2 for PlayerKeyInput event.");
+				g_logger_assert(sizeOfData == sizeof(float) * 2, "Expected sizeof(float) * 2 for PlayerMouseInput event.");
 #endif
 				float xpos = *(float*)data;
 				float ypos = *(((float*)data) + 1);
 				Input::processMouseEvent(xpos, ypos);
+				break;
+			}
+			case GEventType::MouseInitial:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(float) * 4, "Expected sizeof(float) * 4 for MouseInitial event.");
+#endif
+				float xpos = *(float*)data;
+				float ypos = *(((float*)data) + 1);
+				float lastMouseX = *(((float*)data) + 2);
+				float lastMouseY = *(((float*)data) + 3);
+				Input::mouseX = xpos;
+				Input::mouseY = ypos;
+				Input::lastMouseX = lastMouseX;
+				Input::lastMouseY = lastMouseY;
 				break;
 			}
 			case GEventType::SetPlayerPos:
@@ -528,6 +556,31 @@ namespace Minecraft
 				controller.viewAxis = *viewAxis;
 				break;
 			}
+			case GEventType::SetPlayerOrientation:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(glm::vec3), "Expected sizeof(glm::vec3) for SetPlayerOrientation event.");
+#endif
+				glm::vec3* orientation = (glm::vec3*)data;
+				const Ecs::EntityId playerId = World::getLocalPlayer();
+				Transform& playerTransform = registry->getComponent<Transform>(playerId);
+				playerTransform.orientation = *orientation;
+				break;
+			}
+			case GEventType::SetPlayerForward:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(glm::vec3), "Expected sizeof(glm::vec3) for SetPlayerForward event.");
+#endif
+				glm::vec3* forward = (glm::vec3*)data;
+				const Ecs::EntityId playerId = World::getLocalPlayer();
+				Transform& playerTransform = registry->getComponent<Transform>(playerId);
+				playerTransform.forward = *forward;
+				break;
+			}
+			// Zero sized events
+			case GEventType::FrameTick:
+				break;
 			default:
 				g_logger_error("Tried to process unknown event '%s' in World::processEvents().", magic_enum::enum_name(type).data());
 				break;
