@@ -38,17 +38,7 @@ namespace Minecraft
 
 		void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 		{
-			g_logger_assert(button >= 0 && button < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
-			if (action == GLFW_PRESS)
-			{
-				mousePressed[button] = true;
-				mouseBeginPressData[button] = true;
-			}
-			else if (action == GLFW_RELEASE)
-			{
-				mousePressed[button] = false;
-				mouseBeginPressData[button] = false;
-			}
+			Scene::queueMainEventMouseButton(button, action);
 		}
 
 		void mouseCallback(GLFWwindow* window, double xpos, double ypos)
@@ -63,13 +53,12 @@ namespace Minecraft
 
 		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 		{
-			mouseScrollX = (float)xoffset;
-			mouseScrollY = (float)yoffset;
+			Scene::queueMainEventMouseScroll((float)xoffset, (float)yoffset);
 		}
 
 		void charCallback(GLFWwindow* window, unsigned int codepoint)
 		{
-			lastCharPressedData = codepoint;
+			Scene::queueMainEventChar(codepoint);
 		}
 
 		void endFrame()
@@ -122,6 +111,32 @@ namespace Minecraft
 			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;
 			mouseScreenX = projectedScreen.x;
 			mouseScreenY = projectedScreen.y;
+		}
+
+		void processMouseButton(int button, int action)
+		{
+			g_logger_assert(button >= 0 && button < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
+			if (action == GLFW_PRESS)
+			{
+				mousePressed[button] = true;
+				mouseBeginPressData[button] = true;
+			}
+			else if (action == GLFW_RELEASE)
+			{
+				mousePressed[button] = false;
+				mouseBeginPressData[button] = false;
+			}
+		}
+
+		void processMouseScroll(float xoffset, float yoffset)
+		{
+			mouseScrollX = xoffset;
+			mouseScrollY = yoffset;
+		}
+
+		void processChar(unsigned int codepoint)
+		{
+			lastCharPressedData = codepoint;
 		}
 
 		bool isKeyPressed(int key)

@@ -286,6 +286,50 @@ namespace Minecraft
 			}
 		}
 
+		void queueMainEventChar(unsigned int codepoint)
+		{
+			if (!playFromEventFile)
+			{
+				GEvent newEvent;
+				newEvent.type = GEventType::PlayerCharInput;
+				newEvent.data = g_memory_allocate(sizeof(unsigned int));
+				g_memory_copyMem(newEvent.data, &codepoint, sizeof(unsigned int));
+				newEvent.size = sizeof(unsigned int);
+				newEvent.freeData = true;
+				events.emplace(newEvent);
+			}
+		}
+
+		void queueMainEventMouseButton(int button, int action)
+		{
+			if (!playFromEventFile)
+			{
+				GEvent newEvent;
+				newEvent.type = GEventType::PlayerMouseButtonInput;
+				newEvent.data = g_memory_allocate(sizeof(int) * 2);
+				g_memory_copyMem(newEvent.data, &button, sizeof(int));
+				g_memory_copyMem((int*)newEvent.data + 1, &action, sizeof(int));
+				newEvent.size = sizeof(int) * 2;
+				newEvent.freeData = true;
+				events.emplace(newEvent);
+			}
+		}
+
+		void queueMainEventMouseScroll(float xoffset, float yoffset)
+		{
+			if (!playFromEventFile)
+			{
+				GEvent newEvent;
+				newEvent.type = GEventType::PlayerMouseScrollInput;
+				newEvent.data = g_memory_allocate(sizeof(float) * 2);
+				g_memory_copyMem(newEvent.data, &xoffset, sizeof(float));
+				g_memory_copyMem((float*)newEvent.data + 1, &yoffset, sizeof(float));
+				newEvent.size = sizeof(float) * 2;
+				newEvent.freeData = true;
+				events.emplace(newEvent);
+			}
+		}
+
 		void queueMainEventMoustInitial(float xpos, float ypos, float lastMouseX, float lastMouseY)
 		{
 			if (!playFromEventFile)
@@ -493,7 +537,13 @@ namespace Minecraft
 				return sizeof(glm::vec3);
 			case GEventType::SetPlayerForward:
 				return sizeof(glm::vec3);
-				// Zero sized events
+			case GEventType::PlayerCharInput:
+				return sizeof(unsigned int);
+			case GEventType::PlayerMouseButtonInput:
+				return sizeof(int) * 2;
+			case GEventType::PlayerMouseScrollInput:
+				return sizeof(float) * 2;
+			// Zero sized events
 			case GEventType::FrameTick:
 				return 0;
 			default:
@@ -538,6 +588,35 @@ namespace Minecraft
 				float xpos = *(float*)data;
 				float ypos = *(((float*)data) + 1);
 				Input::processMouseEvent(xpos, ypos);
+				break;
+			}
+			case GEventType::PlayerCharInput:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(unsigned int), "Expected sizeof(unsigned int) for PlayerCharInput event.");
+#endif
+				unsigned int codepoint = *(unsigned int*)data;
+				Input::processChar(codepoint);
+				break;
+			}
+			case GEventType::PlayerMouseButtonInput:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(int) * 2, "Expected sizeof(int) * 2 for PlayerMouseButtonInput event.");
+#endif
+				int button = *(int*)data;
+				int action = *(((int*)data) + 1);
+				Input::processMouseButton(button, action);
+				break;
+			}
+			case GEventType::PlayerMouseScrollInput:
+			{
+#ifdef _DEBUG
+				g_logger_assert(sizeOfData == sizeof(float) * 2, "Expected sizeof(float) * 2 for PlayerMouseScrollInput event.");
+#endif
+				float xoffset = *(float*)data;
+				float yoffset = *(((float*)data) + 1);
+				Input::processMouseScroll(xoffset, yoffset);
 				break;
 			}
 			case GEventType::MouseInitial:

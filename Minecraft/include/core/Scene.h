@@ -11,6 +11,9 @@ namespace Minecraft
 		SetDeltaTime,
 		PlayerKeyInput,
 		PlayerMouseInput,
+		PlayerCharInput,
+		PlayerMouseButtonInput,
+		PlayerMouseScrollInput,
 		MouseInitial,
 		SetPlayerPos,
 		SetPlayerViewAxis,
@@ -51,6 +54,9 @@ namespace Minecraft
 		void queueMainEvent(GEventType type, void* eventData = nullptr, size_t eventDataSize = 0, bool freeData = false);
 		void queueMainEventKey(int key, int action);
 		void queueMainEventMouse(float xpos, float ypos);
+		void queueMainEventChar(unsigned int codepoint);
+		void queueMainEventMouseButton(int button, int action);
+		void queueMainEventMouseScroll(float xoffset, float yoffset);
 		void queueMainEventMoustInitial(float xpos, float ypos, float lastMouseX, float lastMouseY);
 
 		void free(bool freeGlobalResources=true);

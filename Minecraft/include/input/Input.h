@@ -32,6 +32,9 @@ namespace Minecraft
 		
 		void processKeyEvent(int key, int action);
 		void processMouseEvent(float xpos, float ypos);
+		void processMouseButton(int button, int action);
+		void processChar(unsigned int codepoint);
+		void processMouseScroll(float xoffset, float yoffset);
 
 		bool isKeyPressed(int key);
 		bool keyBeginPress(int key);
