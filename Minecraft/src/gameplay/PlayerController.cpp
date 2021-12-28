@@ -20,6 +20,7 @@
 #include "core/Application.h"
 #include "core/Scene.h"
 #include "core/Window.h"
+#include "network/Network.h"
 
 #include "utils/Constants.h"
 
@@ -189,6 +190,14 @@ namespace Minecraft
 				DebugStats::playerOrientation = transform.orientation;
 
 				MainHud::update(inventory);
+
+				size_t dataSizeInBytes = sizeof(glm::vec3) + sizeof(Ecs::EntityId);
+				void* userCommandData = g_memory_allocate(dataSizeInBytes);
+				*(glm::vec3*)userCommandData = transform.position;
+				uint8* entityData = (uint8*)userCommandData + sizeof(glm::vec3);
+				*(Ecs::EntityId*)entityData = playerId;
+				Network::sendUserCommand(UserCommandType::UpdatePosition, userCommandData, dataSizeInBytes);
+				g_memory_free(userCommandData);
 			}
 		}
 

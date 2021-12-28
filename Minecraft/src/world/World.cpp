@@ -56,13 +56,15 @@ namespace Minecraft
 		static Shader cubemapShader;
 		static Cubemap skybox;
 		static Ecs::EntityId playerId;
-		static Ecs::EntityId randomEntity;
 		static robin_hood::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
 		static glm::vec2 lastPlayerLoadPosition;
 		static bool isClient;
 		static bool isLoading;
 		static std::thread asyncInitThread;
+
+		// Tmp
+		static const char* localPlayerName = "Local Player";
 
 		// Internal functions
 		static void asyncInit(glm::vec3 playerPosition, bool isClient);
@@ -74,7 +76,6 @@ namespace Minecraft
 			registry = &sceneRegistry;
 
 			playerId = Ecs::nullEntity;
-			randomEntity = Ecs::nullEntity;
 
 			isClient = false;
 
@@ -106,10 +107,16 @@ namespace Minecraft
 						return;
 					}
 
-					playerId = registry->find(TagType::Player);
-					randomEntity = registry->find(TagType::RandomEntity);
-					g_logger_assert(randomEntity != Ecs::nullEntity, "Failed to find random entity. He's special to me, this world must be corrupted.");
-					g_logger_assert(playerId != Ecs::nullEntity, "Failed to find a player from serialized world. Possible save corruption.");
+					for (auto entity : registry->view<PlayerComponent>())
+					{
+						const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(entity);
+						if (std::strcmp(playerComponent.name, localPlayerName) == 0)
+						{
+							playerId = entity;
+							break;
+						}
+					}
+					g_logger_assert(playerId != Ecs::nullEntity, "Failed to find a player '%s' from serialized world. Possible save corruption.", localPlayerName);
 					playerTransform = &registry->getComponent<Transform>(playerId);
 					PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
 					g_logger_info("Deserialized player '%s'", playerComp.name);
@@ -117,40 +124,8 @@ namespace Minecraft
 				else
 				{
 					// Setup player if this is a new world
-					Ecs::EntityId player = createPlayer("Some Name", glm::vec3(-145.0f, 289, 55.0f));
-					playerTransform = &registry->getComponent<Transform>(player);
-
-					// Setup random physics entity
-					randomEntity = registry->createEntity();
-					registry->addComponent<Transform>(randomEntity);
-					registry->addComponent<BoxCollider>(randomEntity);
-					registry->addComponent<Rigidbody>(randomEntity);
-					registry->addComponent<CharacterController>(randomEntity);
-					registry->addComponent<Tag>(randomEntity);
-					registry->addComponent<Inventory>(randomEntity);
-					BoxCollider& boxCollider2 = registry->getComponent<BoxCollider>(randomEntity);
-					boxCollider2.size.x = 0.55f;
-					boxCollider2.size.y = 1.8f;
-					boxCollider2.size.z = 0.55f;
-					Transform& transform2 = registry->getComponent<Transform>(randomEntity);
-					transform2.position.y = 255;
-					transform2.position.x = -145.0f;
-					transform2.position.z = 55.0f;
-					CharacterController& controller2 = registry->getComponent<CharacterController>(randomEntity);
-					controller2.lockedToCamera = false;
-					controller2.controllerBaseSpeed = 5.6f;
-					controller2.controllerRunSpeed = 11.2f;
-					controller2.isRunning = false;
-					controller2.movementAxis = glm::vec3();
-					controller2.viewAxis = glm::vec2();
-					controller2.movementSensitivity = 0.6f;
-					controller2.applyJumpForce = false;
-					controller2.jumpForce = 16.0f;
-					controller2.cameraOffset = glm::vec3(0, 0.65f, 0);
-					Inventory& inventory2 = registry->getComponent<Inventory>(randomEntity);
-					g_memory_zeroMem(&inventory2, sizeof(Inventory));
-					Tag& tag2 = registry->getComponent<Tag>(randomEntity);
-					tag2.type = TagType::RandomEntity;
+					playerId = createPlayer(localPlayerName, glm::vec3(-145.0f, 289, 55.0f));
+					playerTransform = &registry->getComponent<Transform>(playerId);
 				}
 
 				if (seed == UINT32_MAX)
@@ -162,7 +137,6 @@ namespace Minecraft
 				srand(seed);
 				g_logger_info("Loading world in single player mode locally.");
 				g_logger_info("World seed: %u", seed);
-				g_logger_info("World seed (as float): %2.8f", seedAsFloat.load());
 
 				g_logger_assert(playerTransform != nullptr, "Failed to find player or create player when initializing world.");
 				lastPlayerLoadPosition = glm::vec2(playerTransform->position.x, playerTransform->position.z);
@@ -297,14 +271,12 @@ namespace Minecraft
 				}
 			}
 
+			// TODO: Find a better way to set up players than this. They
+			// should be set at world initialization and not dynamically like this
 			if (playerId == Ecs::nullEntity)
 			{
 				playerId = registry->find(TagType::Player);
-			}
-
-			if (randomEntity == Ecs::nullEntity)
-			{
-				randomEntity = registry->find(TagType::RandomEntity);
+				g_logger_warning("Uh oh. We had to resort to a baaaaddd method for finding the player.");
 			}
 
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
@@ -332,25 +304,6 @@ namespace Minecraft
 			{
 				DebugStats::lastFrameTime = World::deltaTime;
 				ticks = 0;
-			}
-
-			if (randomEntity != Ecs::nullEntity)
-			{
-				Transform& t2 = registry->getComponent<Transform>(randomEntity);
-				Physics::raycastStatic(t2.position, glm::normalize(glm::vec3(0.5f, -0.3f, -0.5f)), 10.0f, true);
-			}
-
-			// TODO: Remove me, I'm just here for testing purposes
-			if (Input::keyBeginPress(GLFW_KEY_F5))
-			{
-				CharacterController& c1 = registry->getComponent<CharacterController>(playerId);
-				CharacterController& c2 = registry->getComponent<CharacterController>(randomEntity);
-				c1.lockedToCamera = !c1.lockedToCamera;
-				c2.lockedToCamera = !c2.lockedToCamera;
-				Tag& t1 = registry->getComponent<Tag>(playerId);
-				Tag& t2 = registry->getComponent<Tag>(randomEntity);
-				t1.type = c1.lockedToCamera ? TagType::Player : TagType::RandomEntity;
-				t2.type = c2.lockedToCamera ? TagType::Player : TagType::RandomEntity;
 			}
 
 			if (doDaylightCycle)

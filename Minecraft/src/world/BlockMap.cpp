@@ -349,7 +349,6 @@ namespace Minecraft
 				texCoordsMap[startingLocation + 7] = texFormat.uvs[3].y;
 			}
 
-			g_logger_info("Num Textures: %d", numTextures);
 			glGenBuffers(1, &texCoordsBufferId);
 			glBindBuffer(GL_TEXTURE_BUFFER, texCoordsBufferId);
 			glBufferData(GL_TEXTURE_BUFFER, sizeof(float) * 8 * numTextures, texCoordsMap, GL_STATIC_DRAW);

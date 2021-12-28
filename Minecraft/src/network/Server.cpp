@@ -7,6 +7,7 @@
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
 #include "gameplay/CharacterController.h"
+#include "gameplay/PlayerController.h"
 
 #include <enet/enet.h>
 
@@ -25,7 +26,10 @@ namespace Minecraft
 		static int port = 0;
 
 		// Internal functions
-		static void processEvent(NetworkEvent* event, uint8* data);
+		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer);
+
+		// Tmp
+		static const char* serverPlayerName = "External Client Player";
 
 		void init(const char* inHostname, int inPort)
 		{
@@ -146,10 +150,27 @@ namespace Minecraft
 					Ecs::Registry* registry = Scene::getRegistry();
 					Ecs::EntityId currentPlayer = registry->find(TagType::Player);
 					Transform& currentPlayerTransform = registry->getComponent<Transform>(currentPlayer);
-					Ecs::EntityId newPlayer = World::createPlayer("New Server Player", currentPlayerTransform.position);
+					// Check if we need a new player or if the player has joined before
+					Ecs::EntityId newPlayer = Ecs::nullEntity;
+					for (auto entity : registry->view<PlayerComponent>())
+					{
+						const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(entity);
+						if (std::strcmp(playerComponent.name, serverPlayerName) == 0)
+						{
+							newPlayer = entity;
+							break;
+						}
+					}
+					if (newPlayer == Ecs::nullEntity)
+					{
+						newPlayer = World::createPlayer(serverPlayerName, currentPlayerTransform.position);
+						g_logger_info("Welcome '%s'. First time joining this world.", serverPlayerName);
+					}
 					registry->getComponent<CharacterController>(newPlayer).lockedToCamera = false;
+					// Synchronize the ECS
 					RawMemory entityMemory = registry->serialize();
 					Network::sendClient(event.peer, NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
+					// Then set the new local player
 					Network::sendClient(event.peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 					// TODO: Send new player event to all clients
 					g_memory_free(entityMemory.data);
@@ -158,13 +179,13 @@ namespace Minecraft
 				}
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
-					g_logger_info("A packet of length %u containing %s was received from %s on channel %u.",
-						event.packet->dataLength,
-						event.packet->data,
-						event.peer->data,
-						event.channelID);
+					//g_logger_info("A packet of length %u containing %s was received from %s on channel %u.",
+					//	event.packet->dataLength,
+					//	event.packet->data,
+					//	event.peer->data,
+					//	event.channelID);
 					NetworkEventData networkEventData = Network::deserializeNetworkEvent(event.packet->data, event.packet->dataLength);
-					processEvent(networkEventData.event, networkEventData.data);
+					processEvent(networkEventData.event, networkEventData.data, event.peer);
 
 					// Clean up the packet now that we're done using it
 					enet_packet_destroy(event.packet);
@@ -216,7 +237,7 @@ namespace Minecraft
 			port = 0;
 		}
 
-		static void processEvent(NetworkEvent* event, uint8* data)
+		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer)
 		{
 			switch (event->type)
 			{
@@ -224,6 +245,46 @@ namespace Minecraft
 			{
 				char* msg = (char*)data;
 				g_logger_info("<ServerMsg>: %s", msg);
+				break;
+			}
+			case NetworkEventType::UserCommand:
+			{
+				UserCommand* command = (UserCommand*)data;
+				size_t sizeOfCommand = sizeof(UserCommand) + command->sizeOfData;
+				void* userCommandData = (void*)((UserCommand*)data + 1);
+				switch (command->type)
+				{
+				case UserCommandType::UpdatePosition:
+				{
+#ifdef _DEBUG
+					g_logger_assert(command->sizeOfData == sizeof(glm::vec3) + sizeof(Ecs::EntityId), "Invalid size fo UpdatePosition in Server");
+#endif
+					glm::vec3* newPosition = (glm::vec3*)userCommandData;
+					Ecs::EntityId entityId = *(Ecs::EntityId*)(newPosition + 1);
+					// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+					// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+					Ecs::Registry* registry = Scene::getRegistry();
+					if (registry->hasComponent<Transform>(entityId))
+					{
+						registry->getComponent<Transform>(entityId).position = *newPosition;
+
+						// TODO: Don't broadcast these back to all the clients every update, it's stupid
+						// instead, buffer the data and send bulk updates and perform interpolation
+						for (int i = 0; i < numConnectedClients; i++)
+						{
+							ENetPeer* peerToSendTo = clients[i];
+							if (peerToSendTo != peer)
+							{
+								Network::sendClient(peerToSendTo, NetworkEventType::UserCommand, command, command->sizeOfData);
+							}
+						}
+					}
+				}
+				break;
+				default:
+					g_logger_error("Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
+					break;
+				}
 				break;
 			}
 			default:

@@ -15,7 +15,12 @@ namespace Minecraft
 		WorldSeed,
 		EntityData,
 		LocalPlayer,
-		SetEntityPosition,
+		UserCommand,
+	};
+
+	enum class UserCommandType : uint8
+	{
+		UpdatePosition,
 	};
 
 	struct NetworkEvent
@@ -30,6 +35,13 @@ namespace Minecraft
 		uint8* data;
 	};
 
+	struct UserCommand
+	{
+		UserCommandType type;
+		uint64 timestamp;
+		size_t sizeOfData;
+	};
+
 	namespace Network
 	{
 		void init(bool isServer, const char* hostname, int port);
@@ -41,6 +53,9 @@ namespace Minecraft
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+
+		// User Commands
+		void sendUserCommand(UserCommandType type, void* data, size_t dataSizeInBytes);
 
 		bool isLanServer();
 		bool isNetworkEnabled();

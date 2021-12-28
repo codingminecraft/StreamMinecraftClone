@@ -17,7 +17,7 @@ namespace Minecraft
 		return iter->second;
 	}
 
-	CharRange CharRange::Ascii = { 32, 127 };
+	CharRange CharRange::Ascii = { 32, 126 };
 
 	float Font::getKerning(char leftChar, char rightChar) const
 	{

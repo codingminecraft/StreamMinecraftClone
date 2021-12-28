@@ -132,43 +132,47 @@ namespace Minecraft
 				OPTICK_EVENT();
 #endif
 
-				if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
+				// Only update the game if the window is not minimized
+				if (getWindow().width > 0 && getWindow().height > 0)
 				{
-					mainFramebuffer.width = getWindow().width;
-					mainFramebuffer.height = getWindow().height;
-					mainFramebuffer.regenerate();
+					if (mainFramebuffer.width != getWindow().width || mainFramebuffer.height != getWindow().height)
+					{
+						mainFramebuffer.width = getWindow().width;
+						mainFramebuffer.height = getWindow().height;
+						mainFramebuffer.regenerate();
+						mainFramebuffer.bind();
+						glViewport(0, 0, getWindow().width, getWindow().height);
+					}
+
+					// TODO: You're trying to debug the black screen because of the glClear framebuffer thing
 					mainFramebuffer.bind();
-					glViewport(0, 0, getWindow().width, getWindow().height);
+					const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
+					glDrawBuffers(3, mainDrawBuffer);
+					const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+					glClearBufferfv(GL_COLOR, 0, zeroFillerVec);
+					float one = 1;
+					glClearBufferfv(GL_DEPTH, 0, &one);
+					Scene::update();
+
+					// Unbind all framebuffers and render the composited image
+					glDisable(GL_DEPTH_TEST);
+					glDepthMask(GL_TRUE);
+					glDisable(GL_BLEND);
+
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+					screenShader.bind();
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(0).graphicsId);
+					screenShader.uploadInt("uMainTexture", 0);
+
+					glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
+					glDrawArrays(GL_TRIANGLES, 0, 6);
+
+					glEnable(GL_DEPTH_TEST);
 				}
-
-				// TODO: You're trying to debug the black screen because of the glClear framebuffer thing
-				mainFramebuffer.bind();
-				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
-				glDrawBuffers(3, mainDrawBuffer);
-				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-				glClearBufferfv(GL_COLOR, 0, zeroFillerVec);
-				float one = 1;
-				glClearBufferfv(GL_DEPTH, 0, &one);
-				Scene::update();
-
-				// Unbind all framebuffers and render the composited image
-				glDisable(GL_DEPTH_TEST);
-				glDepthMask(GL_TRUE);
-				glDisable(GL_BLEND);
-
-				glBindFramebuffer(GL_FRAMEBUFFER, 0);
-				glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-				screenShader.bind();
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(0).graphicsId);
-				screenShader.uploadInt("uMainTexture", 0);
-
-				glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
-				glDrawArrays(GL_TRIANGLES, 0, 6);
-
-				glEnable(GL_DEPTH_TEST);
 
 				window.swapBuffers();
 				window.pollInput();

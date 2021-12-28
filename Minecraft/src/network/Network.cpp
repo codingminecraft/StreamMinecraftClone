@@ -63,11 +63,13 @@ namespace Minecraft
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable)
 		{
 			g_logger_assert(!isServer, "Cannot send server a message from the server.");
+			NetworkPacket networkPacket = createPacket(eventType, data, dataSizeInBytes);
 			_ENetPacketFlag packetFlag = isReliable
 				? ENET_PACKET_FLAG_RELIABLE
 				: ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT;
-			ENetPacket* packet = enet_packet_create(data, dataSizeInBytes, packetFlag);
+			ENetPacket* packet = enet_packet_create(networkPacket.data, networkPacket.size, packetFlag);
 			Client::sendServer(packet);
+			g_memory_free(networkPacket.data);
 		}
 
 		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable)
@@ -100,6 +102,32 @@ namespace Minecraft
 			}
 
 			g_memory_free(networkPacket.data);
+		}
+
+		void sendUserCommand(UserCommandType type, void* data, size_t dataSizeInBytes)
+		{
+			if (isInitialized)
+			{
+				size_t sizeOfCommand = sizeof(UserCommand) + dataSizeInBytes;
+				void* commandData = g_memory_allocate(sizeOfCommand);
+				UserCommand* command = (UserCommand*)commandData;
+				command->type = type;
+				command->timestamp = 0;
+				command->sizeOfData = dataSizeInBytes;
+				uint8* dataDst = (uint8*)commandData + sizeof(UserCommand);
+				g_memory_copyMem(dataDst, data, dataSizeInBytes);
+
+				if (!isServer)
+				{
+					sendServer(NetworkEventType::UserCommand, commandData, sizeOfCommand, false);
+				}
+				else
+				{
+					broadcast(NetworkEventType::UserCommand, commandData, sizeOfCommand, false);
+				}
+
+				g_memory_free(command);
+			}
 		}
 
 		bool isLanServer()

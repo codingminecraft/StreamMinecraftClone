@@ -6,6 +6,7 @@
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
+#include "core/Components.h"
 
 #include <enet/enet.h>
 
@@ -179,7 +180,7 @@ namespace Minecraft
 							blockIndex++;
 						}
 					}
-					g_logger_assert(blockIndex == World::ChunkWidth * World::ChunkDepth * World::ChunkHeight, 
+					g_logger_assert(blockIndex == World::ChunkWidth * World::ChunkDepth * World::ChunkHeight,
 						"Deserialized invalid block data on client. Count was '%d', should be '%d'", blockIndex, World::ChunkWidth * World::ChunkHeight * World::ChunkDepth);
 					int32 chunkX, chunkZ;
 					ChunkState state;
@@ -234,9 +235,37 @@ namespace Minecraft
 				PlayerController::setPlayerIfNeeded(true);
 				break;
 			}
+			case NetworkEventType::UserCommand:
+			{
+				UserCommand* command = (UserCommand*)data;
+				uint8* userCommandData = (uint8*)data + sizeof(UserCommand);
+				switch (command->type)
+				{
+				case UserCommandType::UpdatePosition:
+				{
+#ifdef _DEBUG
+					g_logger_assert(command->sizeOfData == (sizeof(glm::vec3) + sizeof(Ecs::EntityId)), "Invalid size to UpdatePosition in Client");
+#endif
+					glm::vec3* newPosition = (glm::vec3*)userCommandData;
+					Ecs::EntityId entityId = *(Ecs::EntityId*)(newPosition + 1);
+					// TODO: Add interpolation and buffering here so that the client is not snapping objects into position
+					// every update
+					Ecs::Registry* registry = Scene::getRegistry();
+					if (registry->hasComponent<Transform>(entityId))
+					{
+						registry->getComponent<Transform>(entityId).position = *newPosition;
+					}
+				}
+				break;
+				default:
+					g_logger_error("Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
+					break;
+				}
+				break;
+			}
 			default:
 			{
-				g_logger_error("Unknown chat NetworkEventType: %d", event->type);
+				g_logger_error("Unknown NetworkEventType in client: '%s'", magic_enum::enum_name(event->type).data());
 				break;
 			}
 			}
