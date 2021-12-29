@@ -9,6 +9,7 @@
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
+#include "gui/MainHud.h"
 
 #include <enet/enet.h>
 
@@ -409,7 +410,8 @@ namespace Minecraft
 				if (player != Ecs::nullEntity && registry->hasComponent<PlayerComponent>(player))
 				{
 					const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(player);
-					g_logger_info("<%s>: %s", playerComponent.name, message);
+
+					MainHud::generalMessage(player, message);
 				}
 			}
 			break;

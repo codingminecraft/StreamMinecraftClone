@@ -96,6 +96,8 @@ namespace Minecraft
 						*(Ecs::EntityId*)entityIdDst = localPlayer;
 						Network::sendClientCommand(ClientCommandType::Chat, memory);
 						g_memory_free(memory.memory);
+
+						MainHud::generalMessage(localPlayer, &buffer[0]);
 					}
 
 					g_memory_zeroMem(buffer.data(), 512 * sizeof(char));

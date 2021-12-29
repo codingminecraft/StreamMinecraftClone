@@ -1,5 +1,7 @@
 #ifndef MINECRAFT_MAIN_HUD_H
 #define MINECRAFT_MAIN_HUD_H
+#include "core.h"
+#include "core/Ecs.h"
 
 namespace Minecraft
 {
@@ -12,6 +14,7 @@ namespace Minecraft
 		void update(Inventory& playerInventory);
 
 		void notify(const std::string& message);
+		void generalMessage(Ecs::EntityId playerSpeaking, const char* message);
 
 		void free();
 
