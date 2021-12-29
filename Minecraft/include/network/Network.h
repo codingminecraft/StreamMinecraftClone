@@ -29,6 +29,7 @@ namespace Minecraft
 		SetBlock,
 		RemoveBlock,
 		Chat,
+		ServerTime,
 	};
 
 	struct NetworkEvent
@@ -76,6 +77,8 @@ namespace Minecraft
 
 		bool isLanServer();
 		bool isNetworkEnabled();
+
+		uint64 now();
 
 		void free();
 

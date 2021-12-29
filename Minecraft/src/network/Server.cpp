@@ -36,6 +36,9 @@ namespace Minecraft
 		static const char* hostname = nullptr;
 		static int port = 0;
 
+		// Time since server started in milliseconds
+		uint64 serverGameTime;
+
 		// Internal functions
 		static void checkForClientBroadcasts();
 		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer);
@@ -50,13 +53,14 @@ namespace Minecraft
 		static constexpr int maxNumPositionCommands = 3000;
 
 		// Tmp
-		static const char* serverPlayerName = "ExternalClientPlayer3";
+		static const char* serverPlayerName = "ExternalClientPlayer";
 
 		void init(const char* inHostname, int inPort)
 		{
 			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
 			hostname = inHostname;
 			port = inPort;
+			serverGameTime = 0;
 
 			// First start the listening socket, this will listen and respond to anybody looking for a server on LAN
 			// This code is adapted from: http://cxong.github.io/2016/01/how-to-write-a-lan-server
@@ -92,6 +96,7 @@ namespace Minecraft
 
 		void update()
 		{
+			serverGameTime += (uint64)(World::deltaTime * 1000.0f);
 			checkForClientBroadcasts();
 
 			ENetEvent event;
@@ -208,8 +213,8 @@ namespace Minecraft
 					Network::broadcast(NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 					g_memory_free(entityMemory.data);
 					enet_host_flush(server);
-					break;
 				}
+				break;
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					//g_logger_info("A packet of length %u containing %s was received from %s on channel %u.",
@@ -222,8 +227,8 @@ namespace Minecraft
 
 					// Clean up the packet now that we're done using it
 					enet_packet_destroy(event.packet);
-					break;
 				}
+				break;
 				case ENET_EVENT_TYPE_DISCONNECT:
 				{
 					g_logger_info("%s disconnected.", event.peer->data);
@@ -243,15 +248,19 @@ namespace Minecraft
 
 					// Reset the peer's client information
 					event.peer->data = NULL;
-					break;
 				}
+				break;
 				}
 			}
 		}
 
 		void broadcast(ENetPacket* packet)
 		{
-			enet_host_broadcast(server, 0, packet);
+			//enet_host_broadcast(server, 0, packet);
+			for (int i = 0; i < numConnectedClients; i++)
+			{
+				sendClient(clients[i], packet);
+			}
 		}
 
 		void sendClient(ENetPeer* peer, ENetPacket* packet)
@@ -495,6 +504,25 @@ namespace Minecraft
 						}
 					}
 				}
+			}
+			break;
+			case ClientCommandType::ServerTime:
+			{
+				uint64 clientTime, tmp1, tmp2;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<uint64, uint64, uint64>(
+					sizedData,
+					&clientTime,
+					&tmp1,
+					&tmp2
+					);
+
+				uint64 myTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				).count();
+				SizedMemory responseMessage = pack<uint64, uint64, uint64>(clientTime, myTime, serverGameTime);
+				Network::sendClientCommand(ClientCommandType::ServerTime, responseMessage, peer);
+				g_memory_free(responseMessage.memory);
 			}
 			break;
 			default:

@@ -29,6 +29,10 @@ namespace Minecraft
 		static constexpr uint64 lagInMs = 300;
 		static constexpr int maxNumPositionCommands = 3000;
 
+		// The time that this client is drifting from the server in milliseconds
+		static uint64 serverTimeDrift;
+		uint64 clientGameTime = 0;
+
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data);
 		static void processUserCommand(UserCommand* command, void* userCommandData);
@@ -36,6 +40,9 @@ namespace Minecraft
 
 		void init(const char*, int)
 		{
+			serverTimeDrift = 0;
+			clientGameTime = 0;
+
 			// Try to find a server to connect to 
 			// Adapted from http://cxong.github.io/2016/01/how-to-write-a-lan-server
 			ENetSocket scanner = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
@@ -118,6 +125,7 @@ namespace Minecraft
 
 		void update()
 		{
+			clientGameTime += (uint64)(World::deltaTime * 1000.0f);
 			ENetEvent event;
 
 			// Process all events
@@ -270,6 +278,14 @@ namespace Minecraft
 				Ecs::EntityId localPlayer = *(Ecs::EntityId*)data;
 				World::setLocalPlayer(localPlayer);
 				PlayerController::setPlayerIfNeeded(true);
+
+				// Once we get all the initial data, sync up with the server time
+				uint64 myTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				).count();
+				SizedMemory memory = pack<uint64, uint64, uint64>(myTime, 0, 0);
+				Network::sendClientCommand(ClientCommandType::ServerTime, memory);
+				g_memory_free(memory.memory);
 			}
 			break;
 			case NetworkEventType::UserCommand:
@@ -395,6 +411,26 @@ namespace Minecraft
 					const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(player);
 					g_logger_info("<%s>: %s", playerComponent.name, message);
 				}
+			}
+			break;
+			case ClientCommandType::ServerTime:
+			{
+				uint64 myTimePacketSent, serverTime, serverGameTime;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<uint64, uint64, uint64>(
+					sizedData,
+					&myTimePacketSent,
+					&serverTime,
+					&serverGameTime
+				);
+
+				// Server time drift is approximately half the ping time
+				uint64 myTimeNow = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				).count();
+				serverTimeDrift = (myTimeNow - myTimePacketSent) / 2;
+				clientGameTime = serverGameTime - serverTimeDrift;
+				g_logger_info("Client time drift is %u", serverTimeDrift);
 			}
 			break;
 			default:

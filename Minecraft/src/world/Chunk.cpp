@@ -1023,7 +1023,7 @@ namespace Minecraft
 			}
 			else
 			{
-				g_logger_warning("Cannot serialize chunk over the network yet... I mean I can, I just don't feel like adding it in this part of the code.");
+				//g_logger_warning("Cannot serialize chunk over the network yet... I mean I can, I just don't feel like adding it in this part of the code.");
 			}
 		}
 

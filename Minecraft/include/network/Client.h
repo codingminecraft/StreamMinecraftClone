@@ -1,5 +1,6 @@
 #ifndef MINECRAFT_CLIENT_H
 #define MINECRAFT_CLIENT_H
+#include "core.h"
 
 typedef struct _ENetPacket ENetPacket;
 
@@ -14,6 +15,8 @@ namespace Minecraft
 		void sendServer(ENetPacket* packet);
 
 		void free();
+
+		extern uint64 clientGameTime;
 	}
 }
 

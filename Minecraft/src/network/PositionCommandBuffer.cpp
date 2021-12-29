@@ -1,4 +1,5 @@
 #include "network/PositionCommandBuffer.h"
+#include "network/Network.h"
 #include "core/Scene.h"
 #include "core/Components.h"
 
@@ -124,10 +125,7 @@ namespace Minecraft
 		if (registry->hasComponent<Transform>(entity))
 		{
 			// Interpolate or extrapolate based on our commands
-			std::chrono::milliseconds now = std::chrono::duration_cast<std::chrono::milliseconds>(
-				std::chrono::system_clock::now().time_since_epoch()
-				);
-			uint64 minTime = now.count() - lagCompensation;
+			uint64 minTime = Network::now() - lagCompensation;
 
 			for (int i = size - 1; i >= 0; i--)
 			{
@@ -155,7 +153,7 @@ namespace Minecraft
 			if (!(*predictionSuccess))
 			{
 				// Extrapolate if we have some history left
-				g_logger_warning("Extrapolation being performed. This must be a laggy network.");
+				//g_logger_warning("Extrapolation being performed. This must be a laggy network.");
 				if (size > 1)
 				{
 					//uint64 deltaInMs = positionCommandBuffer[positionCommandBuffer.size - 1].timestamp -
