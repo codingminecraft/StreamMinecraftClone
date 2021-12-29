@@ -27,6 +27,8 @@ namespace Minecraft
 	enum class ClientCommandType : uint8
 	{
 		Give,
+		SetBlock,
+		RemoveBlock,
 	};
 
 	struct NetworkEvent

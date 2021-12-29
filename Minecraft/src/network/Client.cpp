@@ -288,7 +288,7 @@ namespace Minecraft
 			}
 		}
 
-		static void processClientCommand(ClientCommand* command, void* userCommandData)
+		static void processClientCommand(ClientCommand* command, void* clientCommandData)
 		{
 			switch (command->type)
 			{
@@ -297,19 +297,46 @@ namespace Minecraft
 				int blockId, blockCount;
 				Ecs::EntityId player;
 				unpack<int, int, Ecs::EntityId>(
-					SizedMemory{ (uint8*)userCommandData, command->sizeOfData },
+					SizedMemory{ (uint8*)clientCommandData, command->sizeOfData },
 					&blockId,
 					&blockCount,
 					&player
 					);
 
-				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
 				Ecs::Registry* registry = Scene::getRegistry();
 				if (player != Ecs::nullEntity)
 				{
 					World::givePlayerBlock(player, blockId, blockCount);
 				}
+			}
+			break;
+			case ClientCommandType::SetBlock:
+			{
+				glm::vec3 worldPosition;
+				Block block;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<glm::vec3, Block>(
+					sizedData,
+					&worldPosition,
+					&block
+					);
+
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				ChunkManager::setBlock(worldPosition, block);
+			}
+			break;
+			case ClientCommandType::RemoveBlock:
+			{
+				glm::vec3 worldPosition;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<glm::vec3>(
+					sizedData,
+					&worldPosition
+					);
+
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				ChunkManager::removeBlock(worldPosition);
 			}
 			break;
 			default:

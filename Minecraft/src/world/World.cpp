@@ -64,7 +64,7 @@ namespace Minecraft
 		static std::thread asyncInitThread;
 
 		// Tmp
-		static const char* localPlayerName = "Local Player";
+		static const char* localPlayerName = "LocalPlayer";
 
 		// Internal functions
 		static void asyncInit(glm::vec3 playerPosition, bool isClient);

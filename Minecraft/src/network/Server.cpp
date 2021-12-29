@@ -33,7 +33,7 @@ namespace Minecraft
 		// static void processServerCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
 
 		// Tmp
-		static const char* serverPlayerName = "External Client Player";
+		static const char* serverPlayerName = "ExternalClientPlayer";
 
 		void init(const char* inHostname, int inPort)
 		{
@@ -339,6 +339,60 @@ namespace Minecraft
 					World::givePlayerBlock(player, blockId, blockCount);
 
 					for (int i = 0; i < numConnectedClients; i++)
+					{
+						// This is a 2-way event, because the server must verify this action is not cheating
+						// So we want to send it back to everyone including the client that issued the command
+						ENetPeer* peerToSendTo = clients[i];
+						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+					}
+				}
+			}
+			break;
+			case ClientCommandType::SetBlock:
+			{
+				glm::vec3 worldPosition;
+				Block block;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<glm::vec3, Block>(
+					sizedData,
+					&worldPosition,
+					&block
+					);
+
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				ChunkManager::setBlock(worldPosition, block);
+
+				for (int i = 0; i < numConnectedClients; i++)
+				{
+					ENetPeer* peerToSendTo = clients[i];
+					if (peerToSendTo != peer)
+					{
+						// This is a 2-way event, because the server must verify this action is not cheating
+						// So we want to send it back to everyone including the client that issued the command
+						ENetPeer* peerToSendTo = clients[i];
+						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+					}
+				}
+			}
+			break;
+			case ClientCommandType::RemoveBlock:
+			{
+				glm::vec3 worldPosition;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<glm::vec3>(
+					sizedData,
+					&worldPosition
+					);
+
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				ChunkManager::removeBlock(worldPosition);
+
+				for (int i = 0; i < numConnectedClients; i++)
+				{
+					ENetPeer* peerToSendTo = clients[i];
+					if (peerToSendTo != peer)
 					{
 						// This is a 2-way event, because the server must verify this action is not cheating
 						// So we want to send it back to everyone including the client that issued the command

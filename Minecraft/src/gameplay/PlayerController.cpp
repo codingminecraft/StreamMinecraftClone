@@ -276,6 +276,13 @@ namespace Minecraft
 						{
 							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 							ChunkManager::setBlock(worldPos, newBlock);
+							// If the network is enabled also send this across the network
+							if (Network::isNetworkEnabled())
+							{
+								SizedMemory sizedMemory = pack<glm::vec3, Block>(worldPos, newBlock);
+								Network::sendClientCommand(ClientCommandType::SetBlock, sizedMemory);
+								g_memory_free(sizedMemory.memory);
+							}
 							blockPlaceDebounce = blockPlaceDebounceTime;
 						}
 					}
@@ -283,6 +290,13 @@ namespace Minecraft
 					{
 						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
 						ChunkManager::removeBlock(worldPos);
+						// If the network is enabled also send this across the network
+						if (Network::isNetworkEnabled())
+						{
+							SizedMemory sizedMemory = pack<glm::vec3>(worldPos);
+							Network::sendClientCommand(ClientCommandType::RemoveBlock, sizedMemory);
+							g_memory_free(sizedMemory.memory);
+						}
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
 				}
@@ -366,6 +380,13 @@ namespace Minecraft
 						{
 							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 							ChunkManager::setBlock(worldPos, newBlock);
+							// If the network is enabled also send this across the network
+							if (Network::isNetworkEnabled())
+							{
+								SizedMemory sizedMemory = pack<glm::vec3, Block>(worldPos, newBlock);
+								Network::sendClientCommand(ClientCommandType::SetBlock, sizedMemory);
+								g_memory_free(sizedMemory.memory);
+							}
 							blockPlaceDebounce = blockPlaceDebounceTime;
 						}
 					}
@@ -373,6 +394,13 @@ namespace Minecraft
 					{
 						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
 						ChunkManager::removeBlock(worldPos);
+						// If the network is enabled also send this across the network
+						if (Network::isNetworkEnabled())
+						{
+							SizedMemory sizedMemory = pack<glm::vec3>(worldPos);
+							Network::sendClientCommand(ClientCommandType::RemoveBlock, sizedMemory);
+							g_memory_free(sizedMemory.memory);
+						}
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
 				}
