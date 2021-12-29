@@ -111,8 +111,11 @@ namespace Minecraft
 				size_t sizeOfCommand = sizeof(UserCommand) + data.size;
 				void* commandData = g_memory_allocate(sizeOfCommand);
 				UserCommand* command = (UserCommand*)commandData;
+				std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::system_clock::now().time_since_epoch()
+				);
 				command->type = type;
-				command->timestamp = 0;
+				command->timestamp = ms.count();
 				command->sizeOfData = data.size;
 				uint8* dataDst = (uint8*)commandData + sizeof(UserCommand);
 				g_memory_copyMem(dataDst, data.memory, data.size);

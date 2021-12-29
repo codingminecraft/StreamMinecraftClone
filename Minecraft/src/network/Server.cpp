@@ -11,6 +11,13 @@
 
 #include <enet/enet.h>
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace Minecraft
 {
 	namespace Server
@@ -29,14 +36,25 @@ namespace Minecraft
 		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer);
 		static void processUserCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
 		static void processClientCommand(ClientCommand* command, void* userCommandData, ENetPeer* peer);
+
+		static void addToBuffer(const UpdatePositionCommand& command);
 		// TODO: Should there be server commands? If so, what's the difference from a ClientCommand?
 		// static void processServerCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
+
+		// Internal buffers
+		static UpdatePositionCommand* positionCommandBuffer;
+		static int numPositionCommands;
+		static constexpr int maxNumPositionCommands = 3000;
+
+		static constexpr uint64 lagInMs = 500;
 
 		// Tmp
 		static const char* serverPlayerName = "ExternalClientPlayer";
 
 		void init(const char* inHostname, int inPort)
 		{
+			positionCommandBuffer = nullptr;
+
 			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
 			hostname = inHostname;
 			port = inPort;
@@ -60,6 +78,9 @@ namespace Minecraft
 				g_logger_assert(false, "An error occurred while trying to create an ENet server host.");
 				return;
 			}
+
+			positionCommandBuffer = (UpdatePositionCommand*)g_memory_allocate(sizeof(UpdatePositionCommand) * maxNumPositionCommands);
+			numPositionCommands = 0;
 		}
 
 		void update()
@@ -274,30 +295,62 @@ namespace Minecraft
 			{
 			case UserCommandType::UpdatePosition:
 			{
-				glm::vec3 newPosition;
-				Ecs::EntityId entityId;
+				UpdatePositionCommand bufferCommand;
 				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
 				unpack<glm::vec3, Ecs::EntityId>(
 					sizedData,
-					&newPosition,
-					&entityId
+					&bufferCommand.position,
+					&bufferCommand.entity
 					);
+				bufferCommand.timestamp = command->timestamp;
+				addToBuffer(bufferCommand);
+
 
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
-				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				// Use a command from at least 100ms ago
 				Ecs::Registry* registry = Scene::getRegistry();
-				if (registry->hasComponent<Transform>(entityId))
+				if (registry->hasComponent<Transform>(bufferCommand.entity))
 				{
-					registry->getComponent<Transform>(entityId).position = newPosition;
-
-					// TODO: Don't broadcast these back to all the clients every update, it's stupid
-					// instead, buffer the data and send bulk updates and perform interpolation
-					for (int i = 0; i < numConnectedClients; i++)
+					// Interpolate or extrapolate based on our commands
+					std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::system_clock::now().time_since_epoch()
+						);
+					uint64 minTime = ms.count() - lagInMs;
+					glm::vec3 position;
+					bool foundPosition = false;
+					for (int i = 0; i < numPositionCommands; i++)
 					{
-						ENetPeer* peerToSendTo = clients[i];
-						if (peerToSendTo != peer)
+						if (positionCommandBuffer[i].timestamp < minTime)
 						{
-							Network::sendUserCommand(command->type, sizedData, peerToSendTo);
+							foundPosition = true;
+							if (i < numPositionCommands - 1)
+							{
+								// Interpolate
+								uint64 deltaInMs = positionCommandBuffer[i + 1].timestamp - positionCommandBuffer[i].timestamp;
+								float timeInterpolated = (float)((double)(minTime - positionCommandBuffer[i].timestamp) / (double)deltaInMs);
+								position = positionCommandBuffer[i].position +
+									((positionCommandBuffer[i + 1].position - positionCommandBuffer[i].position) * timeInterpolated);
+							}
+							else
+							{
+								// Extrapolate
+								g_logger_warning("Extrapolating! I don't support that yet.");
+							}
+						}
+					}
+					if (foundPosition)
+					{
+						registry->getComponent<Transform>(bufferCommand.entity).position = position;
+
+						// TODO: Don't broadcast these back to all the clients every update, it's stupid
+						// instead, buffer the data and send bulk updates and perform interpolation
+						for (int i = 0; i < numConnectedClients; i++)
+						{
+							ENetPeer* peerToSendTo = clients[i];
+							if (peerToSendTo != peer)
+							{
+								Network::sendUserCommand(command->type, sizedData, peerToSendTo);
+							}
 						}
 					}
 				}
@@ -429,6 +482,97 @@ namespace Minecraft
 				g_logger_error("<Server> Unknown client command '%s'.", magic_enum::enum_name(command->type).data());
 				break;
 			}
+		}
+
+		// PositionCommandBuffer is sorted least->greatest
+		static void addToBuffer(const UpdatePositionCommand& command)
+		{
+			int indexToInsertAt = -1;
+			// Do binary search to find where we should put the new command based on timestamp
+			int left = 0;
+			int right = numPositionCommands;
+			while (left != right)
+			{
+				int mid = left + ((right - left) / 2);
+				if (command.timestamp < positionCommandBuffer[mid].timestamp)
+				{
+					// Search the left half
+					if (right == mid)
+					{
+						right = glm::max(mid - 1, left);
+					}
+					else
+					{
+						right = mid;
+					}
+				}
+				else if (command.timestamp > positionCommandBuffer[mid].timestamp)
+				{
+					if (left == mid)
+					{
+						left = glm::min(mid + 1, right);
+					}
+					else
+					{
+						left = mid;
+					}
+				}
+				else
+				{
+					indexToInsertAt = mid;
+					break;
+				}
+
+				if (right == left)
+				{
+					indexToInsertAt = right;
+					break;
+				}
+			}
+
+			// Add the command to the end of the list if there's no room for it
+			if (indexToInsertAt == -1)
+			{
+				indexToInsertAt = numPositionCommands;
+			}
+
+			// Move the data as necessary to make room for the next command
+			if (indexToInsertAt >= maxNumPositionCommands)
+			{
+				indexToInsertAt = maxNumPositionCommands - 1;
+				numPositionCommands--;
+				// Otherwise move to the left
+				std::memmove(positionCommandBuffer, positionCommandBuffer + 1,
+					sizeof(UpdatePositionCommand) * indexToInsertAt);
+			}
+			else if (indexToInsertAt < numPositionCommands)
+			{
+				if (numPositionCommands + 1 < maxNumPositionCommands)
+				{
+					// Move data to the right if we have room
+					std::memmove(positionCommandBuffer + indexToInsertAt + 1, positionCommandBuffer + indexToInsertAt,
+						sizeof(UpdatePositionCommand) * (numPositionCommands - indexToInsertAt));
+				}
+				else
+				{
+					if (indexToInsertAt == 0)
+					{
+						// If we're trying to insert an element at the beginning of the array
+						// and we have no more room for new stuff, just discard this because
+						// it's too old anyways and we don't care about it anymore
+						return;
+					}
+
+					// Otherwise move to the left
+					std::memmove(positionCommandBuffer, positionCommandBuffer + 1,
+						sizeof(UpdatePositionCommand) * indexToInsertAt);
+					numPositionCommands--;
+				}
+			}
+
+			// Insert the command into the list and increment the number of commands
+			g_memory_copyMem(positionCommandBuffer + indexToInsertAt, (void*)&command, sizeof(UpdatePositionCommand));
+			numPositionCommands++;
 		}
 	}
 }
