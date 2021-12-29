@@ -1,6 +1,7 @@
 #include "network/Client.h"
 #include "network/PositionCommandBuffer.h"
 #include "network/Network.h"
+#include "network/Server.h"
 #include "core.h"
 #include "core/Scene.h"
 #include "core/Components.h"
@@ -33,8 +34,41 @@ namespace Minecraft
 		static void processUserCommand(UserCommand* command, void* userCommandData);
 		static void processClientCommand(ClientCommand* command, void* userCommandData);
 
-		void init(const char* inHostname, int inPort)
+		void init(const char*, int)
 		{
+			// Try to find a server to connect to 
+			// Adapted from http://cxong.github.io/2016/01/how-to-write-a-lan-server
+			ENetSocket scanner = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+			// We need to set a socket option in order to send to the broadcast address
+			enet_socket_set_option(scanner, ENET_SOCKOPT_BROADCAST, 1);
+			ENetAddress scannerAddress;
+			scannerAddress.host = ENET_HOST_BROADCAST;
+			scannerAddress.port = Server::listeningPort;
+			// Send a dummy payload; you can make your own (larger) payload
+			// but make sure to update the server code if you do
+			char data = 0xBA;
+			ENetBuffer sendbuf;
+			sendbuf.data = &data;
+			sendbuf.dataLength = 1;
+			enet_socket_send(scanner, &scannerAddress, &sendbuf, 1);
+
+			// Note that enet_socket_receive is blocking;
+			// for a non-blocking version use enet_socketset_select to check before receiving
+			enet_uint16 server_port;
+			ENetBuffer recvbuf;
+			recvbuf.data = &server_port;
+			recvbuf.dataLength = sizeof(server_port);
+			enet_socket_receive(scanner, &address, &recvbuf, 1);
+			// If the message is correct, we should have received sizeof(enet_uint16) worth of data
+			// Once again, error checking would be nice here, but omitted for brevity
+			g_logger_assert(recvbuf.dataLength == sizeof(enet_uint16), "Invalid recv buffer on client side.");
+			address.port = server_port;
+			// Now addr holds the exact host/port to connect to
+
+			// But first, shut down the scanner because we're done with it
+			enet_socket_shutdown(scanner, ENET_SOCKET_SHUTDOWN_READ_WRITE);
+			enet_socket_destroy(scanner);
+
 			client = enet_host_create(
 				NULL, // create a client host
 				1, // only allow 1 outgoing connection
@@ -49,15 +83,14 @@ namespace Minecraft
 			}
 
 			// Bind the client to the default localhost
-			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
-			hostname = inHostname;
-			port = inPort;
+			//hostname = addr.host;
+			port = address.port;
 
-			enet_address_set_host(&address, hostname);
+			//enet_address_set_host(&address, hostname);
 			address.port = port;
 
 			// Create a peer that is connected to the server
-			peer = enet_host_connect(client, &address, 1, 0);
+			peer = enet_host_connect(client, &address, 2, 0);
 			if (peer == NULL)
 			{
 				g_logger_assert(false, "No available peers for initiating an ENet connection.");

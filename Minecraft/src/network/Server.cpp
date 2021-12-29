@@ -30,10 +30,14 @@ namespace Minecraft
 		static std::array<ENetPeer*, maxClients> clients;
 		static int numConnectedClients;
 
+		static ENetSocket listenSocket;
+		static ENetAddress listenAddress;
+
 		static const char* hostname = nullptr;
 		static int port = 0;
 
 		// Internal functions
+		static void checkForClientBroadcasts();
 		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer);
 		static void processUserCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
 		static void processClientCommand(ClientCommand* command, void* userCommandData, ENetPeer* peer);
@@ -53,6 +57,15 @@ namespace Minecraft
 			g_logger_assert(strcmp(inHostname, "") != 0 && inPort != 0, "Need to supply hostname and port to server initialization.");
 			hostname = inHostname;
 			port = inPort;
+
+			// First start the listening socket, this will listen and respond to anybody looking for a server on LAN
+			// This code is adapted from: http://cxong.github.io/2016/01/how-to-write-a-lan-server
+			listenSocket = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+			// Allow the port to be reused by other servers
+			enet_socket_set_option(listenSocket, ENET_SOCKOPT_REUSEADDR, 1);
+			listenAddress.host = ENET_HOST_ANY;
+			listenAddress.port = listeningPort;
+			enet_socket_bind(listenSocket, &listenAddress);
 
 			// Bind the server to the default localhost
 			g_logger_warning("Server only supports localhost right now.");
@@ -79,6 +92,8 @@ namespace Minecraft
 
 		void update()
 		{
+			checkForClientBroadcasts();
+
 			ENetEvent event;
 
 			// Process all events
@@ -249,11 +264,48 @@ namespace Minecraft
 
 		void free()
 		{
+			enet_socket_shutdown(listenSocket, ENET_SOCKET_SHUTDOWN_READ_WRITE);
+			enet_socket_destroy(listenSocket);
 			enet_host_destroy(server);
 			positionCommandBuffer.free();
 
 			hostname = "";
 			port = 0;
+		}
+
+		static void checkForClientBroadcasts()
+		{
+			// Look for anybody that broadcast asking to see servers
+			ENetSocketSet set;
+			ENET_SOCKETSET_EMPTY(set);
+			ENET_SOCKETSET_ADD(set, listenSocket);
+			if (enet_socketset_select(listenSocket, &set, NULL, 0) <= 0) return;
+
+			// Construct a data buffer (ENetBuffer) to receive the data
+			// Because we know exactly how big the scan packets will be (1 byte),
+			// we'll only set aside enough memory for that.
+			// If you want bigger payloads, adjust this to suit.
+			// If you want dynamic payloads, or you want to receive any payload just for the heck of it,
+			// use a suitably big buffer.
+			ENetAddress addr;
+			char buf;
+			ENetBuffer recvbuf;
+			recvbuf.data = &buf;
+			recvbuf.dataLength = 1;
+			if (enet_socket_receive(listenSocket, &addr, &recvbuf, 1) <= 0) return;
+
+			if (buf != (char)0xBA)
+			{
+				g_logger_warning("Recieved invalid message on the broadcast port.");
+				return;
+			}
+
+			// Reply to scanner client with the port of the server host
+			// We know the client address from the enet_socket_receive function
+			ENetBuffer replybuf;
+			replybuf.data = &server->address.port;
+			replybuf.dataLength = sizeof(server->address.port);
+			enet_socket_send(listenSocket, &addr, &replybuf, 1);
 		}
 
 		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer)

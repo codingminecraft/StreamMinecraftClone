@@ -17,6 +17,8 @@ namespace Minecraft
 		void sendClient(ENetPeer* peer, ENetPacket* packet);
 
 		void free();
+
+		constexpr int listeningPort = 73019;
 	}
 }
 
