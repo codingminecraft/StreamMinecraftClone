@@ -137,12 +137,6 @@ namespace Minecraft
 		{
 			switch (event->type)
 			{
-			case NetworkEventType::Chat:
-			{
-				char* msg = (char*)data;
-				g_logger_info("<ClientMsg>: %s", msg);
-			}
-			break;
 			case NetworkEventType::ChunkData:
 			{
 				g_logger_info("Recieving server chunk data.");
@@ -337,6 +331,25 @@ namespace Minecraft
 
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
 				ChunkManager::removeBlock(worldPosition);
+			}
+			break;
+			case ClientCommandType::Chat:
+			{
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side'
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				char* message = (char*)clientCommandData;
+				size_t strLength = std::strlen(message) + 1;
+
+				// TODO: Make sure I'm not going out of bounds memory here
+				Ecs::EntityId player = *(Ecs::EntityId*)(sizedData.memory + (strLength * sizeof(char)));
+
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (player != Ecs::nullEntity && registry->hasComponent<PlayerComponent>(player))
+				{
+					const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(player);
+					g_logger_info("<%s>: %s", playerComponent.name, message);
+				}
 			}
 			break;
 			default:

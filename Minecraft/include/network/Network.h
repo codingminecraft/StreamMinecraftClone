@@ -8,7 +8,6 @@ namespace Minecraft
 {
 	enum class NetworkEventType : uint8
 	{
-		Chat,
 		ChunkData,
 		PatchChunkNeighbors,
 		NotifyChunkWorker,
@@ -29,6 +28,7 @@ namespace Minecraft
 		Give,
 		SetBlock,
 		RemoveBlock,
+		Chat,
 	};
 
 	struct NetworkEvent

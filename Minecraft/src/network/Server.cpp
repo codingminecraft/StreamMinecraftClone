@@ -244,12 +244,6 @@ namespace Minecraft
 		{
 			switch (event->type)
 			{
-			case NetworkEventType::Chat:
-			{
-				char* msg = (char*)data;
-				g_logger_info("<ServerMsg>: %s", msg);
-			}
-			break;
 			case NetworkEventType::UserCommand:
 			{
 				UserCommand* command = (UserCommand*)data;
@@ -284,10 +278,10 @@ namespace Minecraft
 				Ecs::EntityId entityId;
 				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
 				unpack<glm::vec3, Ecs::EntityId>(
-					sizedData, 
-					&newPosition, 
+					sizedData,
+					&newPosition,
 					&entityId
-				);
+					);
 
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
@@ -329,7 +323,7 @@ namespace Minecraft
 					&blockId,
 					&blockCount,
 					&player
-				);
+					);
 
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
@@ -398,6 +392,35 @@ namespace Minecraft
 						// So we want to send it back to everyone including the client that issued the command
 						ENetPeer* peerToSendTo = clients[i];
 						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+					}
+				}
+			}
+			break;
+			case ClientCommandType::Chat:
+			{
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				char* message = (char*)clientCommandData;
+				size_t strLength = std::strlen(message) + 1;
+				Ecs::EntityId player = *(Ecs::EntityId*)(sizedData.memory + (strLength * sizeof(char)));
+
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (player != Ecs::nullEntity && registry->hasComponent<PlayerComponent>(player))
+				{
+					const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(player);
+					g_logger_info("<%s>: %s", playerComponent.name, message);
+
+					for (int i = 0; i < numConnectedClients; i++)
+					{
+						ENetPeer* peerToSendTo = clients[i];
+						if (peerToSendTo != peer)
+						{
+							// This is a 2-way event, because the server must verify this action is not cheating
+							// So we want to send it back to everyone including the client that issued the command
+							ENetPeer* peerToSendTo = clients[i];
+							Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+						}
 					}
 				}
 			}

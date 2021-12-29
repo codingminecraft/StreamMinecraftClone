@@ -85,11 +85,17 @@ namespace Minecraft
 					else
 					{
 						// TODO: Display the message to chat
-						size_t messageLength = strlen(buffer.data()) + 1;
-						if (Network::isNetworkEnabled())
-						{
-							Network::broadcast(NetworkEventType::Chat, buffer.data(), messageLength);
-						}
+						Ecs::EntityId localPlayer = World::getLocalPlayer();
+						size_t chatMessageLength = strlen(buffer.data()) + 1;
+						size_t sizeOfCommand = sizeof(Ecs::EntityId) + (sizeof(char) * chatMessageLength);
+						SizedMemory memory = SizedMemory{ (uint8*)g_memory_allocate(sizeOfCommand), sizeOfCommand };
+						uint8* data = memory.memory;
+						std::strcpy((char*)data, &buffer[0]);
+						data[chatMessageLength - 1] = '\0';
+						uint8* entityIdDst = data + (chatMessageLength * sizeof(char));
+						*(Ecs::EntityId*)entityIdDst = localPlayer;
+						Network::sendClientCommand(ClientCommandType::Chat, memory);
+						g_memory_free(memory.memory);
 					}
 
 					g_memory_zeroMem(buffer.data(), 512 * sizeof(char));
