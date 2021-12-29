@@ -16,11 +16,17 @@ namespace Minecraft
 		EntityData,
 		LocalPlayer,
 		UserCommand,
+		ClientCommand,
 	};
 
 	enum class UserCommandType : uint8
 	{
 		UpdatePosition,
+	};
+
+	enum class ClientCommandType : uint8
+	{
+		Give,
 	};
 
 	struct NetworkEvent
@@ -42,6 +48,13 @@ namespace Minecraft
 		size_t sizeOfData;
 	};
 
+	struct ClientCommand
+	{
+		ClientCommandType type;
+		uint64 timestamp;
+		size_t sizeOfData;
+	};
+
 	namespace Network
 	{
 		void init(bool isServer, const char* hostname, int port);
@@ -50,12 +63,14 @@ namespace Minecraft
 		// stuff on a dedicated thread
 		void update();
 
+		// TODO: Replace these with sized memory types and test
 		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
 
-		// User Commands
-		void sendUserCommand(UserCommandType type, void* data, size_t dataSizeInBytes);
+		// User/Client/Server Commands
+		void sendUserCommand(UserCommandType type, const SizedMemory& data, ENetPeer* peer = nullptr);
+		void sendClientCommand(ClientCommandType type, const SizedMemory& data, ENetPeer* peer = nullptr);
 
 		bool isLanServer();
 		bool isNetworkEnabled();

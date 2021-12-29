@@ -468,7 +468,7 @@ namespace Minecraft
 				GEventType eventType = GEventType::None;
 				while (eventType != GEventType::FrameTick && serializedEventFile && playFromEventFile)
 				{
-					int readResult = fread(buffer, sizeof(uint8), 1, serializedEventFile);
+					size_t readResult = fread(buffer, sizeof(uint8), 1, serializedEventFile);
 					if (readResult)
 					{
 						eventType = *(GEventType*)&buffer;

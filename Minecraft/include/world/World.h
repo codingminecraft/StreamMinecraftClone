@@ -28,7 +28,7 @@ namespace Minecraft
 
 		glm::ivec2 toChunkCoords(const glm::vec3& worldCoordinates);
 
-		void givePlayerBlock(int blockId, int blockCount);
+		void givePlayerBlock(Ecs::EntityId player, int blockId, int blockCount);
 		bool isPlayerUnderwater();
 		bool isLoaded();
 

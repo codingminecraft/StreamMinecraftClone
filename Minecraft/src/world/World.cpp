@@ -186,9 +186,9 @@ namespace Minecraft
 			asyncInitThread = std::thread(asyncInit, playerPos, isClient);
 		}
 
-		void setSavePath(const std::string& newSavePath) 
+		void setSavePath(const std::string& newSavePath)
 		{
-			if (newSavePath == "") 
+			if (newSavePath == "")
 			{
 				savePath = "";
 				chunkSavePath = "";
@@ -233,7 +233,7 @@ namespace Minecraft
 			skybox.destroy();
 			cubemapShader.destroy();
 
-			if (shouldSerialize) 
+			if (shouldSerialize)
 			{
 				serialize();
 				ChunkManager::serialize();
@@ -376,16 +376,19 @@ namespace Minecraft
 			}
 		}
 
-		void givePlayerBlock(int blockId, int blockCount)
+		void givePlayerBlock(Ecs::EntityId player, int blockId, int blockCount)
 		{
-			Inventory& inventory = registry->getComponent<Inventory>(playerId);
-			for (int i = 0; i < Player::numHotbarSlots; i++)
+			if (registry->hasComponent<Inventory>(player))
 			{
-				if (!inventory.slots[i].blockId)
+				Inventory& inventory = registry->getComponent<Inventory>(player);
+				for (int i = 0; i < Player::numHotbarSlots; i++)
 				{
-					inventory.slots[i].blockId = blockId;
-					inventory.slots[i].count = blockCount;
-					break;
+					if (!inventory.slots[i].blockId)
+					{
+						inventory.slots[i].blockId = blockId;
+						inventory.slots[i].count = blockCount;
+						break;
+					}
 				}
 			}
 		}

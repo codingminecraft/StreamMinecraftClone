@@ -191,13 +191,9 @@ namespace Minecraft
 
 				MainHud::update(inventory);
 
-				size_t dataSizeInBytes = sizeof(glm::vec3) + sizeof(Ecs::EntityId);
-				void* userCommandData = g_memory_allocate(dataSizeInBytes);
-				*(glm::vec3*)userCommandData = transform.position;
-				uint8* entityData = (uint8*)userCommandData + sizeof(glm::vec3);
-				*(Ecs::EntityId*)entityData = playerId;
-				Network::sendUserCommand(UserCommandType::UpdatePosition, userCommandData, dataSizeInBytes);
-				g_memory_free(userCommandData);
+				SizedMemory data = pack<glm::vec3, Ecs::EntityId>(transform.position, playerId);
+				Network::sendUserCommand(UserCommandType::UpdatePosition, data);
+				g_memory_free(data.memory);
 			}
 		}
 

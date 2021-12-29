@@ -25,6 +25,8 @@ namespace Minecraft
 
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data);
+		static void processUserCommand(UserCommand* command, void* userCommandData);
+		static void processClientCommand(ClientCommand* command, void* userCommandData);
 
 		void init(const char* inHostname, int inPort)
 		{
@@ -139,8 +141,8 @@ namespace Minecraft
 			{
 				char* msg = (char*)data;
 				g_logger_info("<ClientMsg>: %s", msg);
-				break;
 			}
+			break;
 			case NetworkEventType::ChunkData:
 			{
 				g_logger_info("Recieving server chunk data.");
@@ -195,21 +197,21 @@ namespace Minecraft
 				}
 				g_logger_assert(chunkDataPtr - data == event->dataSize, "Deserialized more or less data than we recieved from the client.");
 				g_logger_info("Done processing chunk data.");
-				break;
 			}
+			break;
 			case NetworkEventType::PatchChunkNeighbors:
 			{
 				g_logger_info("Patching chunk pointers.");
 				ChunkManager::patchChunkPointers();
 				g_logger_info("Done patching chunk pointers.");
-				break;
 			}
+			break;
 			case NetworkEventType::NotifyChunkWorker:
 			{
 				g_logger_info("Starting the work on the thread.");
 				ChunkManager::beginWork();
-				break;
 			}
+			break;
 			case NetworkEventType::WorldSeed:
 			{
 				uint32 worldSeed = *(uint32*)(char*)(data);
@@ -217,8 +219,8 @@ namespace Minecraft
 				World::seedAsFloat = (float)((double)worldSeed / (double)UINT32_MAX) * 2.0f - 1.0f;
 				g_logger_info("Client received world seed: %u", worldSeed);
 				g_logger_info("World seed (as float): %2.8f", World::seedAsFloat.load());
-				break;
 			}
+			break;
 			case NetworkEventType::EntityData:
 			{
 				Ecs::Registry* registry = Scene::getRegistry();
@@ -226,48 +228,95 @@ namespace Minecraft
 				memory.data = data;
 				memory.size = event->dataSize;
 				registry->deserialize(memory);
-				break;
 			}
+			break;
 			case NetworkEventType::LocalPlayer:
 			{
 				Ecs::EntityId localPlayer = *(Ecs::EntityId*)data;
 				World::setLocalPlayer(localPlayer);
 				PlayerController::setPlayerIfNeeded(true);
-				break;
 			}
+			break;
 			case NetworkEventType::UserCommand:
 			{
 				UserCommand* command = (UserCommand*)data;
 				uint8* userCommandData = (uint8*)data + sizeof(UserCommand);
-				switch (command->type)
-				{
-				case UserCommandType::UpdatePosition:
-				{
-#ifdef _DEBUG
-					g_logger_assert(command->sizeOfData == (sizeof(glm::vec3) + sizeof(Ecs::EntityId)), "Invalid size to UpdatePosition in Client");
-#endif
-					glm::vec3* newPosition = (glm::vec3*)userCommandData;
-					Ecs::EntityId entityId = *(Ecs::EntityId*)(newPosition + 1);
-					// TODO: Add interpolation and buffering here so that the client is not snapping objects into position
-					// every update
-					Ecs::Registry* registry = Scene::getRegistry();
-					if (registry->hasComponent<Transform>(entityId))
-					{
-						registry->getComponent<Transform>(entityId).position = *newPosition;
-					}
-				}
-				break;
-				default:
-					g_logger_error("Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
-					break;
-				}
-				break;
+				processUserCommand(command, userCommandData);
 			}
+			break;
+			case NetworkEventType::ClientCommand:
+			{
+				ClientCommand* command = (ClientCommand*)data;
+				uint8* clientCommandData = (uint8*)data + sizeof(ClientCommand);
+				processClientCommand(command, clientCommandData);
+			}
+			break;
 			default:
 			{
-				g_logger_error("Unknown NetworkEventType in client: '%s'", magic_enum::enum_name(event->type).data());
+				g_logger_error("<Client> Unknown NetworkEventType in client: '%s'", magic_enum::enum_name(event->type).data());
+			}
+			break;
+			}
+		}
+
+		static void processUserCommand(UserCommand* command, void* userCommandData)
+		{
+			switch (command->type)
+			{
+			case UserCommandType::UpdatePosition:
+			{
+				glm::vec3 newPosition;
+				Ecs::EntityId entityId;
+				unpack<glm::vec3, Ecs::EntityId>(
+					SizedMemory{ (uint8*)userCommandData, command->sizeOfData },
+					&newPosition,
+					&entityId
+					);
+
+				// TODO: Add interpolation and buffering here so that the client is not snapping objects into position
+				// every update
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (registry->hasComponent<Transform>(entityId))
+				{
+					registry->getComponent<Transform>(entityId).position = newPosition;
+				}
+			}
+			break;
+			default:
+				g_logger_error("<Client> Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
 				break;
 			}
+		}
+
+		static void processClientCommand(ClientCommand* command, void* userCommandData)
+		{
+			switch (command->type)
+			{
+			case ClientCommandType::Give:
+			{
+				int blockId, blockCount;
+				Ecs::EntityId player;
+				unpack<int, int, Ecs::EntityId>(
+					SizedMemory{ (uint8*)userCommandData, command->sizeOfData },
+					&blockId,
+					&blockCount,
+					&player
+					);
+
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (player != Ecs::nullEntity)
+				{
+					World::givePlayerBlock(player, blockId, blockCount);
+				}
+			}
+			break;
+			default:
+			{
+				g_logger_error("<Client> Unknown client command '%s'.", magic_enum::enum_name(command->type).data());
+			}
+			break;
 			}
 		}
 	}

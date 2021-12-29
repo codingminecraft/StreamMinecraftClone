@@ -27,6 +27,10 @@ namespace Minecraft
 
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data, ENetPeer* peer);
+		static void processUserCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
+		static void processClientCommand(ClientCommand* command, void* userCommandData, ENetPeer* peer);
+		// TODO: Should there be server commands? If so, what's the difference from a ClientCommand?
+		// static void processServerCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
 
 		// Tmp
 		static const char* serverPlayerName = "External Client Player";
@@ -169,10 +173,9 @@ namespace Minecraft
 					registry->getComponent<CharacterController>(newPlayer).lockedToCamera = false;
 					// Synchronize the ECS
 					RawMemory entityMemory = registry->serialize();
-					Network::sendClient(event.peer, NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
+					Network::broadcast(NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
 					// Then set the new local player
-					Network::sendClient(event.peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
-					// TODO: Send new player event to all clients
+					Network::broadcast(NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 					g_memory_free(entityMemory.data);
 					enet_host_flush(server);
 					break;
@@ -245,53 +248,109 @@ namespace Minecraft
 			{
 				char* msg = (char*)data;
 				g_logger_info("<ServerMsg>: %s", msg);
-				break;
 			}
+			break;
 			case NetworkEventType::UserCommand:
 			{
 				UserCommand* command = (UserCommand*)data;
 				size_t sizeOfCommand = sizeof(UserCommand) + command->sizeOfData;
 				void* userCommandData = (void*)((UserCommand*)data + 1);
-				switch (command->type)
-				{
-				case UserCommandType::UpdatePosition:
-				{
-#ifdef _DEBUG
-					g_logger_assert(command->sizeOfData == sizeof(glm::vec3) + sizeof(Ecs::EntityId), "Invalid size fo UpdatePosition in Server");
-#endif
-					glm::vec3* newPosition = (glm::vec3*)userCommandData;
-					Ecs::EntityId entityId = *(Ecs::EntityId*)(newPosition + 1);
-					// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
-					// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
-					Ecs::Registry* registry = Scene::getRegistry();
-					if (registry->hasComponent<Transform>(entityId))
-					{
-						registry->getComponent<Transform>(entityId).position = *newPosition;
+				processUserCommand(command, userCommandData, peer);
+			}
+			break;
+			case NetworkEventType::ClientCommand:
+			{
+				ClientCommand* command = (ClientCommand*)data;
+				size_t sizeOfCommand = sizeof(ClientCommand) + command->sizeOfData;
+				void* userCommandData = (void*)((ClientCommand*)data + 1);
+				processClientCommand(command, userCommandData, peer);
+			}
+			break;
+			default:
+			{
+				g_logger_error("<Server> Unknown chat NetworkEventType: %d", event->type);
+			}
+			break;
+			}
+		}
 
-						// TODO: Don't broadcast these back to all the clients every update, it's stupid
-						// instead, buffer the data and send bulk updates and perform interpolation
-						for (int i = 0; i < numConnectedClients; i++)
+		static void processUserCommand(UserCommand* command, void* userCommandData, ENetPeer* peer)
+		{
+			switch (command->type)
+			{
+			case UserCommandType::UpdatePosition:
+			{
+				glm::vec3 newPosition;
+				Ecs::EntityId entityId;
+				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
+				unpack<glm::vec3, Ecs::EntityId>(
+					sizedData, 
+					&newPosition, 
+					&entityId
+				);
+
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (registry->hasComponent<Transform>(entityId))
+				{
+					registry->getComponent<Transform>(entityId).position = newPosition;
+
+					// TODO: Don't broadcast these back to all the clients every update, it's stupid
+					// instead, buffer the data and send bulk updates and perform interpolation
+					for (int i = 0; i < numConnectedClients; i++)
+					{
+						ENetPeer* peerToSendTo = clients[i];
+						if (peerToSendTo != peer)
 						{
-							ENetPeer* peerToSendTo = clients[i];
-							if (peerToSendTo != peer)
-							{
-								Network::sendClient(peerToSendTo, NetworkEventType::UserCommand, command, command->sizeOfData);
-							}
+							Network::sendUserCommand(command->type, sizedData, peerToSendTo);
 						}
 					}
 				}
-				break;
-				default:
-					g_logger_error("Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
-					break;
-				}
-				break;
 			}
+			break;
 			default:
-			{
-				g_logger_error("Unknown chat NetworkEventType: %d", event->type);
+				g_logger_error("<Server> Unknown user command '%s'.", magic_enum::enum_name(command->type).data());
 				break;
 			}
+		}
+
+		static void processClientCommand(ClientCommand* command, void* clientCommandData, ENetPeer* peer)
+		{
+			switch (command->type)
+			{
+			case ClientCommandType::Give:
+			{
+				int blockId, blockCount;
+				Ecs::EntityId player;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<int, int, Ecs::EntityId>(
+					sizedData,
+					&blockId,
+					&blockCount,
+					&player
+				);
+
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
+				Ecs::Registry* registry = Scene::getRegistry();
+				if (player != Ecs::nullEntity)
+				{
+					World::givePlayerBlock(player, blockId, blockCount);
+
+					for (int i = 0; i < numConnectedClients; i++)
+					{
+						// This is a 2-way event, because the server must verify this action is not cheating
+						// So we want to send it back to everyone including the client that issued the command
+						ENetPeer* peerToSendTo = clients[i];
+						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+					}
+				}
+			}
+			break;
+			default:
+				g_logger_error("<Server> Unknown client command '%s'.", magic_enum::enum_name(command->type).data());
+				break;
 			}
 		}
 	}

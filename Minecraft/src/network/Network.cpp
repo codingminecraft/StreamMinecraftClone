@@ -104,18 +104,18 @@ namespace Minecraft
 			g_memory_free(networkPacket.data);
 		}
 
-		void sendUserCommand(UserCommandType type, void* data, size_t dataSizeInBytes)
+		void sendUserCommand(UserCommandType type, const SizedMemory& data, ENetPeer* peer)
 		{
 			if (isInitialized)
 			{
-				size_t sizeOfCommand = sizeof(UserCommand) + dataSizeInBytes;
+				size_t sizeOfCommand = sizeof(UserCommand) + data.size;
 				void* commandData = g_memory_allocate(sizeOfCommand);
 				UserCommand* command = (UserCommand*)commandData;
 				command->type = type;
 				command->timestamp = 0;
-				command->sizeOfData = dataSizeInBytes;
+				command->sizeOfData = data.size;
 				uint8* dataDst = (uint8*)commandData + sizeof(UserCommand);
-				g_memory_copyMem(dataDst, data, dataSizeInBytes);
+				g_memory_copyMem(dataDst, data.memory, data.size);
 
 				if (!isServer)
 				{
@@ -123,7 +123,47 @@ namespace Minecraft
 				}
 				else
 				{
-					broadcast(NetworkEventType::UserCommand, commandData, sizeOfCommand, false);
+					if (peer)
+					{
+						sendClient(peer, NetworkEventType::UserCommand, commandData, sizeOfCommand, false);
+					}
+					else
+					{
+						broadcast(NetworkEventType::UserCommand, commandData, sizeOfCommand, false);
+					}
+				}
+
+				g_memory_free(command);
+			}
+		}
+
+		void sendClientCommand(ClientCommandType type, const SizedMemory& data, ENetPeer* peer)
+		{
+			if (isInitialized)
+			{
+				size_t sizeOfCommand = sizeof(ClientCommand) + data.size;
+				void* commandData = g_memory_allocate(sizeOfCommand);
+				ClientCommand* command = (ClientCommand*)commandData;
+				command->type = type;
+				command->timestamp = 0;
+				command->sizeOfData = data.size;
+				uint8* dataDst = (uint8*)commandData + sizeof(ClientCommand);
+				g_memory_copyMem(dataDst, data.memory, data.size);
+
+				if (!isServer)
+				{
+					sendServer(NetworkEventType::ClientCommand, commandData, sizeOfCommand);
+				}
+				else
+				{
+					if (peer)
+					{
+						sendClient(peer, NetworkEventType::ClientCommand, commandData, sizeOfCommand);
+					}
+					else
+					{
+						broadcast(NetworkEventType::ClientCommand, commandData, sizeOfCommand);
+					}
 				}
 
 				g_memory_free(command);
