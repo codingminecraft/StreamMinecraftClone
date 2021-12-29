@@ -1,7 +1,6 @@
 #ifndef MINECRAFT_NETWORK_H
 #define MINECRAFT_NETWORK_H
 #include "core.h"
-#include "core/Ecs.h"
 
 typedef struct _ENetPeer ENetPeer;
 
@@ -56,13 +55,6 @@ namespace Minecraft
 		ClientCommandType type;
 		uint64 timestamp;
 		size_t sizeOfData;
-	};
-
-	struct UpdatePositionCommand
-	{
-		uint64 timestamp;
-		Ecs::EntityId entity;
-		glm::vec3 position;
 	};
 
 	namespace Network
