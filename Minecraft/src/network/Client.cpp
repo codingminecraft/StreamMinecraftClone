@@ -1,12 +1,13 @@
 #include "network/Client.h"
+#include "network/PositionCommandBuffer.h"
+#include "network/Network.h"
 #include "core.h"
 #include "core/Scene.h"
-#include "network/Network.h"
+#include "core/Components.h"
 #include "world/ChunkManager.h"
 #include "world/Chunk.hpp"
 #include "world/BlockMap.h"
 #include "gameplay/PlayerController.h"
-#include "core/Components.h"
 
 #include <enet/enet.h>
 
@@ -22,6 +23,10 @@ namespace Minecraft
 
 		static const char* hostname;
 		static int port;
+
+		static PositionCommandBuffer positionCommandBuffer;
+		static constexpr uint64 lagInMs = 300;
+		static constexpr int maxNumPositionCommands = 3000;
 
 		// Internal functions
 		static void processEvent(NetworkEvent* event, uint8* data);
@@ -74,6 +79,8 @@ namespace Minecraft
 				free();
 				return;
 			}
+
+			positionCommandBuffer.init(maxNumPositionCommands);
 		}
 
 		void update()
@@ -125,6 +132,7 @@ namespace Minecraft
 
 			// Process all the events
 			update();
+			positionCommandBuffer.free();
 
 			enet_host_destroy(client);
 			client = NULL;
@@ -259,20 +267,24 @@ namespace Minecraft
 			{
 			case UserCommandType::UpdatePosition:
 			{
-				glm::vec3 newPosition;
-				Ecs::EntityId entityId;
+				UpdatePositionCommand bufferCommand;
+				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
 				unpack<glm::vec3, Ecs::EntityId>(
-					SizedMemory{ (uint8*)userCommandData, command->sizeOfData },
-					&newPosition,
-					&entityId
+					sizedData,
+					&bufferCommand.position,
+					&bufferCommand.entity
 					);
+				bufferCommand.timestamp = command->timestamp;
+				positionCommandBuffer.insert(bufferCommand);
 
-				// TODO: Add interpolation and buffering here so that the client is not snapping objects into position
-				// every update
-				Ecs::Registry* registry = Scene::getRegistry();
-				if (registry->hasComponent<Transform>(entityId))
+				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
+				// Use a command from at least 100ms ago
+				bool foundPosition;
+				glm::vec3 position = positionCommandBuffer.predict(lagInMs, bufferCommand.entity, &foundPosition);
+				if (foundPosition)
 				{
-					registry->getComponent<Transform>(entityId).position = newPosition;
+					Ecs::Registry* registry = Scene::getRegistry();
+					registry->getComponent<Transform>(bufferCommand.entity).position = position;
 				}
 			}
 			break;

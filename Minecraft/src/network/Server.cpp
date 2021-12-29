@@ -298,6 +298,18 @@ namespace Minecraft
 					&bufferCommand.entity
 					);
 				bufferCommand.timestamp = command->timestamp;
+
+				// TODO: Don't broadcast these back to all the clients every update, it's stupid
+				// instead, buffer the data and send bulk updates and perform interpolation
+				for (int i = 0; i < numConnectedClients; i++)
+				{
+					ENetPeer* peerToSendTo = clients[i];
+					if (peerToSendTo != peer)
+					{
+						Network::sendUserCommand(command->type, sizedData, peerToSendTo);
+					}
+				}
+
 				positionCommandBuffer.insert(bufferCommand);
 
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
@@ -308,17 +320,6 @@ namespace Minecraft
 				{
 					Ecs::Registry* registry = Scene::getRegistry();
 					registry->getComponent<Transform>(bufferCommand.entity).position = position;
-
-					// TODO: Don't broadcast these back to all the clients every update, it's stupid
-					// instead, buffer the data and send bulk updates and perform interpolation
-					for (int i = 0; i < numConnectedClients; i++)
-					{
-						ENetPeer* peerToSendTo = clients[i];
-						if (peerToSendTo != peer)
-						{
-							Network::sendUserCommand(command->type, sizedData, peerToSendTo);
-						}
-					}
 				}
 			}
 			break;
