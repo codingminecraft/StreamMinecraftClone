@@ -19,7 +19,7 @@ namespace Minecraft
 
 		void free();
 
-		constexpr int listeningPort = 73019;
+		constexpr uint16 listeningPort = 7317;
 		extern uint64 serverGameTime;
 	}
 }

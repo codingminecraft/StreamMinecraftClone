@@ -178,7 +178,7 @@ namespace Minecraft
 				ChatMessage newChatMessage;
 				newChatMessage.message = newMessage;
 				newChatMessage.messageLength = fullMsgLength;
-				newChatMessage.timeToFadeout = notificationDisplayTime * 5.0f;
+				newChatMessage.timeToFadeout = notificationDisplayTime * 10.0f;
 
 				if (messageHistoryCount + 1 < messageHistory.size())
 				{
