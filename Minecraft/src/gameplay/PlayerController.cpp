@@ -92,6 +92,11 @@ namespace Minecraft
 			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
 				&& registry.hasComponent<Rigidbody>(playerId) && registry.hasComponent<Inventory>(playerId))
 			{
+				if (registry.hasComponent<PlayerComponent>(playerId) && !registry.getComponent<PlayerComponent>(playerId).isOnline)
+				{
+					return;
+				}
+
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);

@@ -10,6 +10,7 @@
 #include "renderer/Styles.h"
 #include "input/Input.h"
 #include "utils/CMath.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -73,6 +74,11 @@ namespace Minecraft
 
 				for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 				{
+					if (registry.hasComponent<PlayerComponent>(entity) && !registry.getComponent<PlayerComponent>(entity).isOnline)
+					{
+						continue;
+					}
+
 					Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
 					Transform& transform = registry.getComponent<Transform>(entity);
 					BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);

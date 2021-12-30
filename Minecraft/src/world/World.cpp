@@ -32,6 +32,7 @@
 #include "gui/Gui.h"
 #include "gui/MainHud.h"
 #include "network/Network.h"
+#include "network/Client.h"
 #include "gui/ChunkLoadingScreen.h"
 #include "world/TerrainGenerator.h"
 
@@ -112,7 +113,10 @@ namespace Minecraft
 						{
 							playerId = entity;
 							playerComponent.isOnline = true;
-							break;
+						}
+						else
+						{
+							playerComponent.isOnline = false;
 						}
 					}
 					g_logger_assert(playerId != Ecs::nullEntity, "Failed to find a player '%s' from serialized world. Possible save corruption.", localPlayerName);
@@ -253,6 +257,12 @@ namespace Minecraft
 #ifdef _USE_OPTICK
 			OPTICK_EVENT();
 #endif
+			Network::update();
+
+			if (Client::isConnecting())
+			{
+				return;
+			}
 
 			if (isLoading)
 			{
@@ -270,12 +280,10 @@ namespace Minecraft
 				}
 			}
 
-			// TODO: Find a better way to set up players than this. They
-			// should be set at world initialization and not dynamically like this
-			if (playerId == Ecs::nullEntity)
+			if (playerId == Ecs::nullEntity || registry->hasComponent<PlayerComponent>(playerId) && 
+				!registry->getComponent<PlayerComponent>(playerId).isOnline)
 			{
-				playerId = registry->find(TagType::Player);
-				g_logger_warning("Uh oh. We had to resort to a baaaaddd method for finding the player.");
+				return;
 			}
 
 			// TODO: Figure out the best way to keep transform forward, right, up vectors correct
@@ -290,7 +298,6 @@ namespace Minecraft
 			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
 
 			// Update all systems
-			Network::update();
 			KeyHandler::update();
 			Physics::update(*registry);
 			PlayerController::update(*registry);

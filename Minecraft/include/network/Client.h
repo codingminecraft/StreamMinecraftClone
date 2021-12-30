@@ -17,6 +17,8 @@ namespace Minecraft
 
 		void setAddress(const ENetAddress& address);
 
+		bool isConnecting();
+
 		void free();
 
 		extern uint64 clientGameTime;

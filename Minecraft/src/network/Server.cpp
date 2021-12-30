@@ -495,7 +495,7 @@ namespace Minecraft
 				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
 				char* playerName = (char*)clientCommandData;
 
-				g_logger_info("Sending client chunk data.");
+				g_logger_info("Sending client chunk data to player '%s'.", playerName);
 				robin_hood::unordered_node_map<glm::ivec2, Chunk>& chunks = ChunkManager::getAllChunks();
 				Network::sendClient(peer, NetworkEventType::WorldSeed, &World::seed, sizeof(uint32));
 				uint16 numChunks = (uint16)chunks.size();

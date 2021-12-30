@@ -336,7 +336,8 @@ namespace Minecraft
 				int strLength = std::strlen((char*)bufferPtr) + 1;
 				newConnection.playerNames[i] = (char*)g_memory_allocate(sizeof(char) * strLength);
 				std::strcpy(newConnection.playerNames[i], (char*)bufferPtr);
-				*(char*)(newConnection.playerNames[i][strLength - 1]) = '\0';
+				char* strBuffer = (char*)newConnection.playerNames[i];
+				strBuffer[strLength - 1] = '\0';
 				bufferPtr += sizeof(char) * strLength;
 			}
 			g_memory_free(data);

@@ -26,6 +26,7 @@ namespace Minecraft
 		static PositionCommandBuffer positionCommandBuffer;
 		static constexpr uint64 lagInMs = 300;
 		static constexpr int maxNumPositionCommands = 3000;
+		static bool isConnectingVar;
 
 		// The time that this client is drifting from the server in milliseconds
 		static uint64 serverTimeDrift;
@@ -40,6 +41,7 @@ namespace Minecraft
 		{
 			serverTimeDrift = 0;
 			clientGameTime = 0;
+			isConnectingVar = false;
 
 			client = enet_host_create(
 				NULL, // create a client host
@@ -66,6 +68,7 @@ namespace Minecraft
 			ENetEvent event;
 			if (enet_host_service(client, &event, 15000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
 			{
+				isConnectingVar = true;
 				g_logger_info("Successfully connected to '%d':'%d'", address.host, address.port);
 			}
 			else
@@ -115,6 +118,11 @@ namespace Minecraft
 				}
 				}
 			}
+		}
+
+		bool isConnecting()
+		{
+			return isConnectingVar;
 		}
 
 		void sendServer(ENetPacket* packet)
@@ -240,6 +248,7 @@ namespace Minecraft
 				Ecs::EntityId localPlayer = *(Ecs::EntityId*)data;
 				World::setLocalPlayer(localPlayer);
 				PlayerController::setPlayerIfNeeded(true);
+				isConnectingVar = false;
 
 				// Once we get all the initial data, sync up with the server time
 				uint64 myTime = std::chrono::duration_cast<std::chrono::milliseconds>(

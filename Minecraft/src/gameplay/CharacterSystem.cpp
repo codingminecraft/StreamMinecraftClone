@@ -7,6 +7,7 @@
 #include "renderer/Styles.h"
 #include "utils/CMath.h"
 #include "network/Network.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -20,6 +21,11 @@ namespace Minecraft
 		{
 			for (Ecs::EntityId entity : registry.view<Transform, CharacterController, Rigidbody>())
 			{
+				if (registry.hasComponent<PlayerComponent>(entity) && !registry.getComponent<PlayerComponent>(entity).isOnline)
+				{
+					continue;
+				}
+
 				Transform& transform = registry.getComponent<Transform>(entity);
 				CharacterController& controller = registry.getComponent<CharacterController>(entity);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
