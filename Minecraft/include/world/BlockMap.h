@@ -73,7 +73,7 @@ namespace Minecraft
 		inline void setLightLevel(int level)
 		{
 			// Mask out the lower 5 bits
-			lightLevel &= 0x3e0;
+			lightLevel &= ~(0x01f);
 			// Set the lower 5 bits to the new level
 			lightLevel |= (level & 0x1f);
 		}
@@ -81,7 +81,7 @@ namespace Minecraft
 		inline void setSkyLightLevel(int level)
 		{
 			// Mask out the 5-10 bits
-			lightLevel &= 0x01f;
+			lightLevel &= ~(0x3e0);
 			// Set the 5-10 bits to the new level
 			lightLevel |= ((level & 0x1f) << 5);
 		}

@@ -189,9 +189,16 @@ namespace Minecraft
 						g_logger_assert(blockIndex + blockCount <= World::ChunkWidth * World::ChunkDepth * World::ChunkHeight,
 							"Encountered bad data while serializing chunk data.");
 						int maxBlockCount = glm::min((int)blockCount, World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
+						const BlockFormat& blockFormat = BlockMap::getBlock(blockId);
 						for (int blockCounter = 0; blockCounter < maxBlockCount; blockCounter++)
 						{
 							chunkData[blockIndex].id = blockId;
+							chunkData[blockIndex].setLightLevel(0);
+							chunkData[blockIndex].setSkyLightLevel(0);
+							chunkData[blockIndex].setLightColor(glm::ivec3(255, 255, 255));
+							chunkData[blockIndex].setTransparent(blockFormat.isTransparent);
+							chunkData[blockIndex].setIsBlendable(blockFormat.isBlendable);
+							chunkData[blockIndex].setIsLightSource(blockFormat.isLightSource);
 							blockIndex++;
 						}
 					}
@@ -209,7 +216,6 @@ namespace Minecraft
 					ChunkManager::queueClientLoadChunk(chunkData, glm::ivec2(chunkX, chunkZ), state);
 				}
 				g_logger_assert(chunkDataPtr - data == event->dataSize, "Deserialized more or less data than we recieved from the client.");
-				g_logger_info("Done processing chunk data.");
 			}
 			break;
 			case NetworkEventType::PatchChunkNeighbors:
@@ -420,6 +426,20 @@ namespace Minecraft
 				g_logger_info("Client '%s' responding to handshake.", (char*)myName.memory);
 				Network::sendClientCommand(ClientCommandType::ClientLoadInfo, myName);
 				g_memory_free(myName.memory);
+			}
+			break;
+			case ClientCommandType::CalculateLighting:
+			{
+				glm::vec3 lastPlayerPos;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<glm::vec3>(
+					sizedData,
+					&lastPlayerPos
+				);
+
+				glm::ivec2 playerPosChunkCoords = World::toChunkCoords(lastPlayerPos);
+				ChunkManager::setPlayerChunkPos(playerPosChunkCoords);
+				ChunkManager::queueCalculateLighting(playerPosChunkCoords);
 			}
 			break;
 			default:

@@ -568,10 +568,6 @@ namespace Minecraft
 				Network::sendClient(peer, NetworkEventType::ChunkData, chunkDataEvent, totalCompressedSize);
 				g_memory_free(chunkDataEvent);
 
-				g_logger_info("Telling client to patch their dang chunk neighbors.");
-				Network::sendClient(peer, NetworkEventType::PatchChunkNeighbors, nullptr, 0);
-				Network::sendClient(peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
-
 				Ecs::Registry* registry = Scene::getRegistry();
 				Ecs::EntityId currentPlayer = World::getLocalPlayer();
 				Transform& currentPlayerTransform = registry->getComponent<Transform>(currentPlayer);
@@ -600,6 +596,13 @@ namespace Minecraft
 				// Then set the new local player
 				Network::sendClient(peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 				g_memory_free(entityMemory.data);
+
+				g_logger_info("Telling client to patch their dang chunk neighbors and to calculate their lighting.");
+				SizedMemory playerLoadPos = pack<glm::vec3>(currentPlayerTransform.position);
+				Network::sendClientCommand(ClientCommandType::CalculateLighting, playerLoadPos, peer);
+				g_memory_free(playerLoadPos.memory);
+				Network::sendClient(peer, NetworkEventType::PatchChunkNeighbors, nullptr, 0);
+				Network::sendClient(peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
 				enet_host_flush(server);
 			}
 			break;

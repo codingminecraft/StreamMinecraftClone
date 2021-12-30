@@ -263,13 +263,6 @@ namespace Minecraft
 		g_memory_copyMem(command.chunk->data, command.clientChunkData,
 			sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
 		g_memory_free(command.clientChunkData);
-		for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
-		{
-			BlockFormat format = BlockMap::getBlock(command.chunk->data[i].id);
-			command.chunk->data[i].setTransparent(format.isTransparent);
-			command.chunk->data[i].setIsLightSource(format.isLightSource);
-			command.chunk->data[i].setIsBlendable(format.isBlendable);
-		}
 		command.chunk->needsToGenerateDecorations = false;
 		command.chunk->needsToCalculateLighting = true;
 	}

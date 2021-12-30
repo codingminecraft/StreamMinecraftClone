@@ -502,9 +502,6 @@ namespace Minecraft
 
 					// Queue the fill command
 					chunkWorker->queueCommand(cmd);
-					// Queue the calculate lighting command
-					cmd.type = CommandType::CalculateLighting;
-					chunkWorker->queueCommand(cmd);
 					// Queue the tesselate command
 					cmd.type = CommandType::TesselateVertices;
 					chunkWorker->queueCommand(cmd);
@@ -798,6 +795,11 @@ namespace Minecraft
 			}
 		}
 
+		void setPlayerChunkPos(const glm::ivec2& playerChunkPos) 
+		{
+			chunkWorker->setPlayerPosChunkCoords(playerChunkPos);
+		}
+
 		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient)
 		{
 #ifdef _USE_OPTICK
@@ -805,7 +807,7 @@ namespace Minecraft
 #endif
 
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
-			chunkWorker->setPlayerPosChunkCoords(playerPosChunkCoords);
+			setPlayerChunkPos(playerPosChunkCoords);
 			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
 
 			if (isClient)

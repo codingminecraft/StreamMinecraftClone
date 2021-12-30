@@ -64,6 +64,7 @@ namespace Minecraft
 		void patchChunkPointers();
 		void beginWork();
 		void wakeUpCv2();
+		void setPlayerChunkPos(const glm::ivec2& playerChunkPos);
 
 		void queueCommand(FillChunkCommand& command);
 		void queueClientLoadChunk(void* chunkData, const glm::ivec2& chunkCoordinates, ChunkState state);
