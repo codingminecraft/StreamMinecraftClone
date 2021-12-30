@@ -412,7 +412,9 @@ namespace Minecraft
 				myName.memory = (uint8*)g_memory_allocate(myName.size);
 				std::strcpy((char*)myName.memory, World::localPlayerName.c_str());
 				myName.memory[World::localPlayerName.size()] = '\0';
+				g_logger_info("Client '%s' responding to handshake.", (char*)myName.memory);
 				Network::sendClientCommand(ClientCommandType::ClientLoadInfo, myName);
+				g_memory_free(myName.memory);
 			}
 			break;
 			default:

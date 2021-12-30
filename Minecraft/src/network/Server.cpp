@@ -578,6 +578,7 @@ namespace Minecraft
 					{
 						newPlayer = entity;
 						playerComponent.isOnline = true;
+						g_logger_info("Welcome back '%s'", playerComponent.name);
 						break;
 					}
 				}
