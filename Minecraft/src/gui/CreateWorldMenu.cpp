@@ -185,9 +185,18 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 
 			static char worldSaveTitle[128];
-			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128, true))
+			static bool worldSaveTitleFocused = false;
+			if (Gui::input("World Name: ", 0.0025f, worldSaveTitle, 128, &worldSaveTitleFocused, true))
 			{
 				World::savePath = std::string(worldSaveTitle);
+			}
+
+			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
+			static char newPlayerName[128];
+			static bool playerNameFocused = false;
+			if (Gui::input("Player Name: ", 0.0025f, newPlayerName, 128, &playerNameFocused, true))
+			{
+				World::localPlayerName = std::string(newPlayerName);
 			}
 			Gui::endWindow();
 
@@ -197,7 +206,7 @@ namespace Minecraft
 			static TexturedButton button = *GuiElements::defaultButton;
 			Gui::advanceCursor(glm::vec2(0.0f, (0.5f - button.size.y) / 2.0f));
 			button.text = "Create World";
-			if (Gui::textureButton(button))
+			if (Gui::textureButton(button, World::savePath == "" || World::localPlayerName == ""))
 			{
 				g_memory_zeroMem(worldSaveTitle, sizeof(char) * 128);
 				Scene::changeScene(SceneType::SinglePlayerGame);

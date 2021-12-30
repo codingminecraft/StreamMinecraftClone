@@ -74,7 +74,8 @@ namespace Minecraft
 				static std::array<char, 512> buffer = { '\0' };
 				if (!parseText)
 				{
-					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 4);
+					bool isFocused = true;
+					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), &isFocused, false, 4);
 				}
 				else
 				{

@@ -8,6 +8,7 @@ namespace Minecraft
 	struct PlayerComponent
 	{
 		char name[MAX_NAME_LENGTH];
+		bool isOnline;
 
 		inline void setName(const char* inName)
 		{

@@ -51,6 +51,7 @@ namespace Minecraft
 		extern std::atomic<float> seedAsFloat;
 		extern int worldTime;
 		extern float deltaTime;
+		extern std::string localPlayerName;
 
 		extern bool doDaylightCycle;
 	}

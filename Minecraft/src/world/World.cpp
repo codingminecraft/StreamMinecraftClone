@@ -46,6 +46,7 @@ namespace Minecraft
 		int worldTime = 0;
 		bool doDaylightCycle = false;
 		float deltaTime = 0.0f;
+		std::string localPlayerName = "(null)";
 
 		// Members
 		static std::string lastSavePath;
@@ -62,9 +63,6 @@ namespace Minecraft
 		static bool isClient;
 		static bool isLoading;
 		static std::thread asyncInitThread;
-
-		// Tmp
-		static const char* localPlayerName = "LocalPlayer";
 
 		// Internal functions
 		static void asyncInit(glm::vec3 playerPosition, bool isClient);
@@ -109,10 +107,11 @@ namespace Minecraft
 
 					for (auto entity : registry->view<PlayerComponent>())
 					{
-						const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(entity);
-						if (std::strcmp(playerComponent.name, localPlayerName) == 0)
+						PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(entity);
+						if (playerComponent.name == localPlayerName)
 						{
 							playerId = entity;
+							playerComponent.isOnline = true;
 							break;
 						}
 					}
@@ -124,7 +123,7 @@ namespace Minecraft
 				else
 				{
 					// Setup player if this is a new world
-					playerId = createPlayer(localPlayerName, glm::vec3(-145.0f, 289, 55.0f));
+					playerId = createPlayer(localPlayerName.c_str(), glm::vec3(-145.0f, 289, 55.0f));
 					playerTransform = &registry->getComponent<Transform>(playerId);
 				}
 
@@ -475,13 +474,25 @@ namespace Minecraft
 				}
 
 				// Write data
+				// World seed and time
 				fwrite(&seed, sizeof(uint32), 1, fp);
 				fwrite(&worldTime, sizeof(int), 1, fp);
+
+				// Player name
+				uint64 playerNameLength = localPlayerName.size() + 1;
+				fwrite(&playerNameLength, sizeof(uint64), 1, fp);
+				fwrite(localPlayerName.c_str(), sizeof(char) * (playerNameLength - 1), 1, fp);
+				char nullByte = '\0';
+				fwrite(&nullByte, sizeof(char), 1, fp);
+
 				// TODO: This will fail for serialization/deserialization on 64->32 bit systems or vice versa
+				// Entity data
 				RawMemory serializedRegistry = registry->serialize();
 				fwrite(&serializedRegistry.size, sizeof(size_t), 1, fp);
 				fwrite(serializedRegistry.data, serializedRegistry.size, 1, fp);
 				g_memory_free(serializedRegistry.data);
+
+				// Done
 				fclose(fp);
 			}
 			else
@@ -503,9 +514,20 @@ namespace Minecraft
 				}
 
 				// Read data
+				// World seed and time
 				fread(&seed, sizeof(uint32), 1, fp);
 				fread(&worldTime, sizeof(int), 1, fp);
+
+				// Player name
+				uint64 playerNameLength;
+				fread(&playerNameLength, sizeof(uint64), 1, fp);
+				char* tmpMemory = (char*)g_memory_allocate(sizeof(char) * playerNameLength);
+				fread(tmpMemory, sizeof(char) * playerNameLength, 1, fp);
+				localPlayerName = std::string(tmpMemory);
+				g_memory_free(tmpMemory);
+
 				// TODO: This will fail for serialization/deserialization on 64->32 bit systems or vice versa
+				// Entity Data
 				RawMemory registryData = { 0, 0 };
 				fread(&registryData.size, sizeof(size_t), 1, fp);
 				uint8* tmpData = (uint8*)g_memory_allocate(registryData.size);
@@ -513,6 +535,8 @@ namespace Minecraft
 				registryData.data = tmpData;
 				registry->deserialize(registryData);
 				g_memory_free(tmpData);
+
+				// Done
 				fclose(fp);
 
 				return true;

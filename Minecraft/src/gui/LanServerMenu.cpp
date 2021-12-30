@@ -236,7 +236,8 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 
 			static char newPlayerName[128];
-			if (Gui::input("Player Name: ", 0.0025f, newPlayerName, 128, true))
+			static bool playerNameFocused = false;
+			if (Gui::input("Player Name: ", 0.0025f, newPlayerName, 128, &playerNameFocused, true))
 			{
 				//playerName = std::string(worldSaveTitle);
 				selectedPlayerName = -1;

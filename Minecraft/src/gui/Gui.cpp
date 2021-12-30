@@ -126,7 +126,7 @@ namespace Minecraft
 			advanceCursorPastElement(windowState, strSize);
 		}
 
-		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool drawOutline, bool isFocused, int zIndex)
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool* isFocused, bool drawOutline, int zIndex)
 		{
 			// TODO: Add window overrun support (scroll support)
 			WindowState& windowState = getCurrentWindow();
@@ -139,10 +139,18 @@ namespace Minecraft
 			glm::vec2 inputBoxSize = glm::vec2(windowWidthLeft, height);
 			glm::vec2 inputBoxPos = getElementPosition(windowState, inputBoxSize);
 			WidgetState state = mouseInAABB(inputBoxPos, inputBoxSize);
-			static bool focused = false || isFocused;
-			if (state == WidgetState::Hover)
+			if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && state == WidgetState::None)
 			{
-				focused = true;
+				*isFocused = false;
+			}
+
+			if (state == WidgetState::Click)
+			{
+				*isFocused = true;
+				guiStyle.color = "#00000099"_hex;
+			}
+			else if (state == WidgetState::Hover)
+			{
 				guiStyle.color = "#00000099"_hex;
 			}
 			else
@@ -181,7 +189,7 @@ namespace Minecraft
 			}
 
 			bool res = false;
-			if (focused)
+			if (*isFocused)
 			{
 				static const int maxCursorBlink = 50;
 				static int cursorBlinkTick = 0;
