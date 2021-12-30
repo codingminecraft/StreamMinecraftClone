@@ -232,7 +232,7 @@ namespace Minecraft
 			if (Gui::textureButton(defaultButton, Network::isLanServer()))
 			{
 				Network::free();
-				Network::init(true, "127.0.0.1", 8080);
+				Network::init(true);
 			}
 
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));

@@ -67,7 +67,7 @@ namespace Minecraft
 		// Internal functions
 		static void asyncInit(glm::vec3 playerPosition, bool isClient);
 
-		void init(Ecs::Registry& sceneRegistry, const char* hostname, int port)
+		void init(Ecs::Registry& sceneRegistry, bool isLanClient)
 		{
 			isLoading = true;
 			ChunkLoadingScreen::init();
@@ -82,10 +82,10 @@ namespace Minecraft
 
 			lastPlayerLoadPosition = glm::vec2(-145.0f, 55.0f);
 
-			if (strcmp(hostname, "") != 0 && port != 0)
+			if (isLanClient)
 			{
 				isClient = true;
-				Network::init(false, hostname, port);
+				Network::init(false);
 				asyncInitThread = std::thread(asyncInit, glm::vec3(), isClient);
 			}
 			else
@@ -456,6 +456,7 @@ namespace Minecraft
 			tag.type = TagType::Player;
 			PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(player);
 			playerComp.setName(playerName);
+			playerComp.isOnline = true;
 
 			return player;
 		}

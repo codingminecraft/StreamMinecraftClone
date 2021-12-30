@@ -10,6 +10,8 @@
 #include "renderer/Styles.h"
 #include "renderer/Renderer.h"
 #include "network/Server.h"
+#include "network/Network.h"
+#include "network/Client.h"
 
 #include <enet/enet.h>
 
@@ -21,6 +23,26 @@ namespace Minecraft
 		char* serverName;
 		int numPlayers;
 		char** playerNames;
+
+		void free()
+		{
+			if (serverName)
+			{
+				g_memory_free(serverName);
+			}
+
+			if (playerNames)
+			{
+				for (int i = 0; i < numPlayers; i++)
+				{
+					if (playerNames[i])
+					{
+						g_memory_free(playerNames[i]);
+					}
+				}
+				g_memory_free(playerNames);
+			}
+		}
 	};
 
 	namespace LanServerMenu
@@ -32,6 +54,9 @@ namespace Minecraft
 		static int selectedServerIndex;
 		static int selectedPlayerName;
 		static Sprite nullSprite;
+		static int sendBroadcastCount;
+		static int secondCount;
+		static constexpr int maxRetries = 10;
 
 		static ENetSocket scanner;
 		static ENetAddress scannerAddress;
@@ -39,6 +64,8 @@ namespace Minecraft
 		// Internal functions
 		static void showServers();
 		static void showJoinServerScreen();
+		static void checkForValidServers();
+		static void sendBroadcast();
 
 		void init()
 		{
@@ -59,6 +86,11 @@ namespace Minecraft
 			dirtTextureSprite.uvStart = glm::vec2(0.0f, 0.0f);
 			dirtTextureSprite.uvSize = glm::vec2(5.0f, 3.0f);
 
+			if (enet_initialize() != 0)
+			{
+				g_logger_assert(false, "An error occurred while initializing ENet.");
+			}
+
 			// Try to find any servers on LAN
 			// Adapted from http://cxong.github.io/2016/01/how-to-write-a-lan-server
 			scanner = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
@@ -66,38 +98,16 @@ namespace Minecraft
 			enet_socket_set_option(scanner, ENET_SOCKOPT_BROADCAST, 1);
 			scannerAddress.host = ENET_HOST_BROADCAST;
 			scannerAddress.port = Server::listeningPort;
-			// Send a dummy payload; you can make your own (larger) payload
-			// but make sure to update the server code if you do
-			char data = 0xBA;
-			ENetBuffer sendbuf;
-			sendbuf.data = &data;
-			sendbuf.dataLength = 1;
-			enet_socket_send(scanner, &scannerAddress, &sendbuf, 1);
-
-			// Note that enet_socket_receive is blocking;
-			// for a non-blocking version use enet_socketset_select to check before receiving
-			//enet_uint16 server_port;
-			//ENetBuffer recvbuf;
-			//recvbuf.data = &server_port;
-			//recvbuf.dataLength = sizeof(server_port);
-			//enet_socket_receive(scanner, &address, &recvbuf, 1);
-			//// If the message is correct, we should have received sizeof(enet_uint16) worth of data
-			//// Once again, error checking would be nice here, but omitted for brevity
-			//g_logger_assert(recvbuf.dataLength == sizeof(enet_uint16), "Invalid recv buffer on client side.");
-			//address.port = server_port;
-			// Now addr holds the exact host/port to connect to
+			sendBroadcast();
 		}
 
 		void resetState()
 		{
+			sendBroadcastCount = 0;
+			secondCount = 0;
 			for (auto server : servers)
 			{
-				g_memory_free(server.serverName);
-				for (int i = 0; i < server.numPlayers; i++)
-				{
-					g_memory_free(server.playerNames[i]);
-				}
-				g_memory_free(server.playerNames);
+				server.free();
 			}
 			servers.clear();
 
@@ -105,45 +115,20 @@ namespace Minecraft
 			isJoiningAServer = false;
 			selectedServerIndex = -1;
 			selectedPlayerName = -1;
-
-			for (int i = 0; i < 3; i++)
-			{
-				ServerConnectionPoint fake;
-				fake.serverName = (char*)g_memory_allocate(sizeof(char) * 20);
-				std::string serverNameStr = std::string("Server") + std::to_string(i);
-				std::strcpy(fake.serverName, serverNameStr.c_str());
-				fake.serverName[7] = '\0';
-
-				fake.numPlayers = 4;
-				fake.playerNames = (char**)g_memory_allocate(sizeof(char*) * 4);
-				for (int i = 0; i < 4; i++)
-				{
-					fake.playerNames[i] = (char*)g_memory_allocate(sizeof(char) * 20);
-					std::string playerName;
-					switch (i)
-					{
-					case 0:
-						playerName = "Dumbpoop";
-						break;
-					case 1:
-						playerName = "Mike";
-						break;
-					case 2:
-						playerName = "Gabe";
-						break;
-					case 3:
-						playerName = "NiBud";
-						break;
-					}
-					std::strcpy(fake.playerNames[i], playerName.c_str());
-					fake.playerNames[i][playerName.length()] = '\0';
-				}
-				servers.push_back(fake);
-			}
 		}
 
 		void update()
 		{
+			sendBroadcastCount++;
+			// Send a ping once a second for 15 seconds
+			if (sendBroadcastCount >= 30 && secondCount < maxRetries)
+			{
+				sendBroadcast();
+				sendBroadcastCount = 0;
+				secondCount++;
+			}
+			checkForValidServers();
+
 			static Style dirtStyle = Styles::defaultStyle;
 			dirtStyle.color = "#232323ff"_hex;
 			dirtTextureSprite.uvSize = glm::vec2(12.0f, 4.0f);
@@ -179,10 +164,37 @@ namespace Minecraft
 			// But first, shut down the scanner because we're done with it
 			enet_socket_shutdown(scanner, ENET_SOCKET_SHUTDOWN_READ_WRITE);
 			enet_socket_destroy(scanner);
+			enet_deinitialize();
 		}
 
 		static void showServers()
 		{
+			// Display connecting text if we're trying to connect
+			if (servers.size() == 0 && secondCount < maxRetries)
+			{
+				std::string connectingText = "Connecting";
+				static int numDots = 1;
+				static int dotCounter = 0;
+				dotCounter = (dotCounter + 1) % 30;
+				if (dotCounter == 0)
+				{
+					numDots = (numDots + 1) % 3;
+				}
+				for (int i = 0; i <= numDots; i++)
+				{
+					connectingText += ".";
+				}
+
+				const Font* defaultFont = GuiElements::defaultButton->font;
+				Renderer::drawString(connectingText, *defaultFont, glm::vec2(-0.5f, 0.0f), 0.0025f, Styles::defaultStyle, 2);
+			}
+			else if (servers.size() == 0 && secondCount >= maxRetries)
+			{
+				std::string connectionFailedMessage = "Could not find any servers on LAN";
+				const Font* defaultFont = GuiElements::defaultButton->font;
+				Renderer::drawString(connectionFailedMessage, *defaultFont, glm::vec2(-1.3f, 0.0f), 0.0025f, Styles::defaultStyle, 2);
+			}
+
 			// Window 1 holds all of the save files
 			Gui::beginWindow(glm::vec2(-3.0f, 1.0f), glm::vec2(6.0f, 2.0f));
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
@@ -239,7 +251,7 @@ namespace Minecraft
 			static bool playerNameFocused = false;
 			if (Gui::input("Player Name: ", 0.0025f, newPlayerName, 128, &playerNameFocused, true))
 			{
-				//playerName = std::string(worldSaveTitle);
+				World::localPlayerName = std::string(newPlayerName);
 				selectedPlayerName = -1;
 			}
 
@@ -255,6 +267,7 @@ namespace Minecraft
 				if (Gui::selectableText(button.text, button.size, selectedPlayerName == i))
 				{
 					selectedPlayerName = i;
+					World::localPlayerName = std::string(button.text);
 					g_memory_zeroMem(newPlayerName, sizeof(char) * 128);
 				}
 				Gui::advanceCursor(glm::vec2(0.0f, 0.05f));
@@ -270,10 +283,91 @@ namespace Minecraft
 			if (Gui::textureButton(button, selectedPlayerName == -1 && newPlayerName[0] == '\0'))
 			{
 				g_memory_zeroMem(newPlayerName, sizeof(char) * 128);
-				//Scene::changeScene(SceneType::SinglePlayerGame);
+				Client::setAddress(servers[selectedServerIndex].address);
+				Scene::changeScene(SceneType::LocalLanGame);
 			}
 
 			Gui::endWindow();
+		}
+
+		static void checkForValidServers()
+		{
+			ENetSocketSet set;
+			ENET_SOCKETSET_EMPTY(set);
+			ENET_SOCKETSET_ADD(set, scanner);
+			if (enet_socketset_select(scanner, &set, NULL, 0) <= 0) return;
+
+			uint32 maxDataSize = 256 * sizeof(uint8);
+			uint8* data = (uint8*)g_memory_allocate(maxDataSize);
+			ENetBuffer receiveBuffer;
+			receiveBuffer.data = data;
+			receiveBuffer.dataLength = maxDataSize;
+
+			ENetAddress newAddress;
+			if (enet_socket_receive(scanner, &newAddress, &receiveBuffer, 1) <= 0) return;
+
+			uint32 dataSize = *(uint32*)data;
+			if (dataSize > 256)
+			{
+				g_logger_error("Sanity check failed. We somehow recieved corrupted data when listening on the socket.");
+				return;
+			}
+
+			// If the message is correct, we should have received sizeof(enet_uint16) worth of data
+			// Once again, error checking would be nice here, but omitted for brevity
+
+			// Deserialize all the data
+			ServerConnectionPoint newConnection;
+			uint8* bufferPtr = data;
+			bufferPtr += sizeof(uint32);
+			newAddress.port = *(uint16*)bufferPtr;
+			bufferPtr += sizeof(uint16);
+			int serverNameLength = std::strlen((char*)bufferPtr) + 1;
+			newConnection.serverName = (char*)g_memory_allocate(sizeof(char) * serverNameLength);
+			std::strcpy(newConnection.serverName, (char*)bufferPtr);
+			newConnection.serverName[serverNameLength - 1] = '\0';
+			bufferPtr += sizeof(char) * serverNameLength;
+			newConnection.numPlayers = *(int*)bufferPtr;
+			bufferPtr += sizeof(int);
+			newConnection.playerNames = (char**)g_memory_allocate(sizeof(char**) * newConnection.numPlayers);
+
+			for (int i = 0; i < newConnection.numPlayers; i++)
+			{
+				int strLength = std::strlen((char*)bufferPtr) + 1;
+				newConnection.playerNames[i] = (char*)g_memory_allocate(sizeof(char) * strLength);
+				std::strcpy(newConnection.playerNames[i], (char*)bufferPtr);
+				*(char*)(newConnection.playerNames[i][strLength - 1]) = '\0';
+				bufferPtr += sizeof(char) * strLength;
+			}
+			g_memory_free(data);
+
+			// Now addr holds the exact host / port to connect to
+			newConnection.address = newAddress;
+			bool isNewConnection = true;
+			for (auto& connection : servers)
+			{
+				// If we find this server already in our list, this is not a new connection
+				if (std::strcmp(connection.serverName, newConnection.serverName) == 0)
+				{
+					isNewConnection = false;
+					newConnection.free();
+				}
+			}
+
+			if (isNewConnection)
+			{
+				servers.push_back(newConnection);
+			}
+		}
+
+		static void sendBroadcast()
+		{
+			// CAFED00D is the magic number
+			char data[4] = { 0xCA, 0xFE, 0XD0, 0x0D };
+			ENetBuffer sendbuf;
+			sendbuf.data = &data;
+			sendbuf.dataLength = 4;
+			enet_socket_send(scanner, &scannerAddress, &sendbuf, 1);
 		}
 	}
 }

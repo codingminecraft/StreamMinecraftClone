@@ -9,7 +9,7 @@ namespace Minecraft
 {
 	namespace Server
 	{
-		void init(const char* hostname, int port);
+		void init();
 
 		void update();
 

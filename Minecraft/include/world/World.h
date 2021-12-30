@@ -11,7 +11,7 @@ namespace Minecraft
 
 	namespace World
 	{
-		void init(Ecs::Registry& registry, const char* hostname = "", int port = 0);
+		void init(Ecs::Registry& registry, bool isLanClient = false);
 		void free(bool shouldSerialize = true);
 		void reloadShaders();
 		void regenerateWorld();

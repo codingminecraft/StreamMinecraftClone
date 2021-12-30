@@ -21,7 +21,7 @@ namespace Minecraft
 		// Internal functions
 		static NetworkPacket createPacket(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
 
-		void init(bool inIsServer, const char* hostname, int port)
+		void init(bool inIsServer)
 		{
 			g_logger_assert(!isInitialized, "Cannot initailze the network code twice.");
 			isServer = inIsServer;
@@ -29,17 +29,16 @@ namespace Minecraft
 			if (enet_initialize() != 0)
 			{
 				g_logger_assert(false,
-					"An error occurred while initializing ENet.\nTODO: This doesn't effect single-player mode, "
-					"add in a gameplay mode that doesn't require ENet.");
+					"An error occurred while initializing ENet.");
 			}
 
 			if (isServer)
 			{
-				Server::init(hostname, port);
+				Server::init();
 			}
 			else
 			{
-				Client::init(hostname, port);
+				Client::init();
 			}
 
 			isInitialized = true;

@@ -396,7 +396,7 @@ namespace Minecraft
 				World::init(*registry);
 				break;
 			case SceneType::LocalLanGame:
-				World::init(*registry, "127.0.0.1", 8080);
+				World::init(*registry, true);
 				break;
 			case SceneType::MultiplayerGame:
 				g_logger_warning("Multiplayer games not supported yet.");

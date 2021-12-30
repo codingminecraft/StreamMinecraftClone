@@ -30,6 +30,8 @@ namespace Minecraft
 		RemoveBlock,
 		Chat,
 		ServerTime,
+		Handshake,
+		ClientLoadInfo
 	};
 
 	struct NetworkEvent
@@ -60,7 +62,7 @@ namespace Minecraft
 
 	namespace Network
 	{
-		void init(bool isServer, const char* hostname, int port);
+		void init(bool isServer);
 
 		// TODO: Move this into it's own thread worker and process all network
 		// stuff on a dedicated thread
