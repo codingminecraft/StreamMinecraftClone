@@ -592,7 +592,7 @@ namespace Minecraft
 				RawMemory entityMemory = registry->serialize();
 				Network::broadcast(NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
 				// Then set the new local player
-				Network::broadcast(NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
+				Network::sendClient(peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 				g_memory_free(entityMemory.data);
 				enet_host_flush(server);
 			}
