@@ -20,7 +20,7 @@ namespace Minecraft
 
 	enum class UserCommandType : uint8
 	{
-		UpdatePosition,
+		UpdateTransform,
 	};
 
 	enum class ClientCommandType : uint8

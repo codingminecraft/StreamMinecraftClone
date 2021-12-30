@@ -1,5 +1,6 @@
 #include "gameplay/CharacterSystem.h"
 #include "gameplay/CharacterController.h"
+#include "gameplay/PlayerController.h"
 #include "core/Components.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
@@ -7,7 +8,7 @@
 #include "renderer/Styles.h"
 #include "utils/CMath.h"
 #include "network/Network.h"
-#include "gameplay/PlayerController.h"
+#include "world/World.h"
 
 namespace Minecraft
 {
@@ -29,6 +30,7 @@ namespace Minecraft
 				Transform& transform = registry.getComponent<Transform>(entity);
 				CharacterController& controller = registry.getComponent<CharacterController>(entity);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
+				controller.lockedToCamera = entity == World::getLocalPlayer();
 
 				float speed = controller.controllerBaseSpeed;
 				if (controller.isRunning)

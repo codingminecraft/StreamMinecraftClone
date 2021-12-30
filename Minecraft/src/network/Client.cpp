@@ -1,5 +1,5 @@
 #include "network/Client.h"
-#include "network/PositionCommandBuffer.h"
+#include "network/TransformCommandBuffer.h"
 #include "network/Network.h"
 #include "network/Server.h"
 #include "core.h"
@@ -23,9 +23,9 @@ namespace Minecraft
 		static ENetHost* client;
 		static ENetPeer* peer;
 
-		static PositionCommandBuffer positionCommandBuffer;
+		static TransformCommandBuffer transformCommandBuffer;
 		static constexpr uint64 lagInMs = 300;
-		static constexpr int maxNumPositionCommands = 3000;
+		static constexpr int maxNumTransformCommands = 3000;
 		static bool isConnectingVar;
 
 		// The time that this client is drifting from the server in milliseconds
@@ -80,7 +80,7 @@ namespace Minecraft
 				return;
 			}
 
-			positionCommandBuffer.init(maxNumPositionCommands);
+			transformCommandBuffer.init(maxNumTransformCommands);
 		}
 
 		void update()
@@ -137,7 +137,7 @@ namespace Minecraft
 
 			// Process all the events
 			update();
-			positionCommandBuffer.free();
+			transformCommandBuffer.free();
 
 			enet_host_destroy(client);
 			client = NULL;
@@ -253,7 +253,7 @@ namespace Minecraft
 				// Once we get all the initial data, sync up with the server time
 				uint64 myTime = std::chrono::duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now().time_since_epoch()
-				).count();
+					).count();
 				SizedMemory memory = pack<uint64, uint64, uint64>(myTime, 0, 0);
 				Network::sendClientCommand(ClientCommandType::ServerTime, memory);
 				g_memory_free(memory.memory);
@@ -285,26 +285,31 @@ namespace Minecraft
 		{
 			switch (command->type)
 			{
-			case UserCommandType::UpdatePosition:
+			case UserCommandType::UpdateTransform:
 			{
-				UpdatePositionCommand bufferCommand;
+				UpdateTransformCommand bufferCommand;
 				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
-				unpack<glm::vec3, Ecs::EntityId>(
+				unpack<glm::vec3, glm::vec3, Ecs::EntityId>(
 					sizedData,
 					&bufferCommand.position,
+					&bufferCommand.orientation,
 					&bufferCommand.entity
 					);
 				bufferCommand.timestamp = command->timestamp;
-				positionCommandBuffer.insert(bufferCommand);
+				transformCommandBuffer.insert(bufferCommand);
 
-				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
-				// Use a command from at least 100ms ago
+				// Use a command from at least 300ms ago
 				bool foundPosition;
-				glm::vec3 position = positionCommandBuffer.predict(lagInMs, bufferCommand.entity, &foundPosition);
-				if (foundPosition)
+				glm::vec3 position, orientation;
+				if (transformCommandBuffer.predict(lagInMs, bufferCommand.entity, &position, &orientation))
 				{
 					Ecs::Registry* registry = Scene::getRegistry();
-					registry->getComponent<Transform>(bufferCommand.entity).position = position;
+					if (registry->hasComponent<Transform>(bufferCommand.entity))
+					{
+						Transform& transform = registry->getComponent<Transform>(bufferCommand.entity);
+						transform.position = position;
+						transform.orientation = orientation;
+					}
 				}
 			}
 			break;
@@ -394,12 +399,12 @@ namespace Minecraft
 					&myTimePacketSent,
 					&serverTime,
 					&serverGameTime
-				);
+					);
 
 				// Server time drift is approximately half the ping time
 				uint64 myTimeNow = std::chrono::duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now().time_since_epoch()
-				).count();
+					).count();
 				serverTimeDrift = (myTimeNow - myTimePacketSent) / 2;
 				clientGameTime = serverGameTime - serverTimeDrift;
 				g_logger_info("Client time drift is %u", serverTimeDrift);

@@ -5,26 +5,27 @@
 
 namespace Minecraft
 {
-	struct UpdatePositionCommand
+	struct UpdateTransformCommand
 	{
 		uint64 timestamp;
 		Ecs::EntityId entity;
 		glm::vec3 position;
+		glm::vec3 orientation;
 	};
 
-	struct PositionCommandBuffer
+	struct TransformCommandBuffer
 	{
-		UpdatePositionCommand* buffer;
+		UpdateTransformCommand* buffer;
 		int size;
 		int maxSize;
 
 		void init(int maxNumPositionCommands);
 		void free();
 
-		void insert(const UpdatePositionCommand& command);
-		glm::vec3 predict(uint64 lagCompensation, Ecs::EntityId entity, bool* predictionSuccess);
+		void insert(const UpdateTransformCommand& command);
+		bool predict(uint64 lagCompensation, Ecs::EntityId entity, glm::vec3* position, glm::vec3* orientation);
 
-		inline UpdatePositionCommand& operator[](int index)
+		inline UpdateTransformCommand& operator[](int index)
 		{
 #ifdef _DEBUG
 			g_logger_assert(index >= 0 && index < size, "Invalid index in command buffer '%d' out of '%d'", index, size);

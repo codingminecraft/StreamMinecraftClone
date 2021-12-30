@@ -196,9 +196,9 @@ namespace Minecraft
 
 				MainHud::update(inventory);
 
-				SizedMemory data = pack<glm::vec3, Ecs::EntityId>(transform.position, playerId);
-				Network::sendUserCommand(UserCommandType::UpdatePosition, data);
-				g_memory_free(data.memory);
+				SizedMemory transformData = pack<glm::vec3, glm::vec3, Ecs::EntityId>(transform.position, transform.orientation, playerId);
+				Network::sendUserCommand(UserCommandType::UpdateTransform, transformData);
+				g_memory_free(transformData.memory);
 			}
 		}
 
@@ -209,28 +209,17 @@ namespace Minecraft
 				registry->getComponent<Tag>(playerId).type != TagType::Player)
 			{
 				playerId = World::getLocalPlayer();
-				if (gameMode == GameMode::Survival)
+				if (registry->hasComponent<CharacterController>(playerId) && registry->hasComponent<Rigidbody>(playerId))
 				{
-					if (registry->hasComponent<CharacterController>(playerId) && registry->hasComponent<Rigidbody>(playerId))
-					{
-						CharacterController& controller = registry->getComponent<CharacterController>(playerId);
-						Rigidbody& rb = registry->getComponent<Rigidbody>(playerId);
-						controller.controllerBaseSpeed = 4.4f;
-						controller.controllerRunSpeed = 6.2f;
-						rb.useGravity = true;
-						controller.lockedToCamera = true;
-						PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
-						g_logger_info("Player controller found player: '%s'", playerComp.name);
-
-						for (auto entity : registry->view<CharacterController>())
-						{
-							CharacterController& otherController = registry->getComponent<CharacterController>(entity);
-							if (&otherController != &controller)
-							{
-								otherController.lockedToCamera = false;
-							}
-						}
-					}
+					CharacterController& controller = registry->getComponent<CharacterController>(playerId);
+					Rigidbody& rb = registry->getComponent<Rigidbody>(playerId);
+					controller.controllerBaseSpeed = 4.4f;
+					controller.controllerRunSpeed = 6.2f;
+					rb.useGravity = true;
+					controller.lockedToCamera = true;
+					PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
+					gameMode = GameMode::Survival;
+					g_logger_info("Player controller found player: '%s'", playerComp.name);
 				}
 			}
 		}

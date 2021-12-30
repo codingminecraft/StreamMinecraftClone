@@ -1,5 +1,5 @@
 #include "network/Server.h"
-#include "network/PositionCommandBuffer.h"
+#include "network/TransformCommandBuffer.h"
 #include "core.h"
 #include "core/Scene.h"
 #include "core/Components.h"
@@ -46,9 +46,9 @@ namespace Minecraft
 		// static void processServerCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
 
 		// Internal buffers
-		static PositionCommandBuffer positionCommandBuffer;
+		static TransformCommandBuffer transformCommandBuffer;
 		static constexpr uint64 lagInMs = 300;
-		static constexpr int maxNumPositionCommands = 3000;
+		static constexpr int maxNumTransformCommands = 3000;
 
 		void init()
 		{
@@ -83,7 +83,7 @@ namespace Minecraft
 				return;
 			}
 
-			positionCommandBuffer.init(maxNumPositionCommands);
+			transformCommandBuffer.init(maxNumTransformCommands);
 		}
 
 		void update()
@@ -173,7 +173,7 @@ namespace Minecraft
 			enet_socket_shutdown(listenSocket, ENET_SOCKET_SHUTDOWN_READ_WRITE);
 			enet_socket_destroy(listenSocket);
 			enet_host_destroy(server);
-			positionCommandBuffer.free();
+			transformCommandBuffer.free();
 		}
 
 		static void checkForClientBroadcasts()
@@ -309,13 +309,14 @@ namespace Minecraft
 		{
 			switch (command->type)
 			{
-			case UserCommandType::UpdatePosition:
+			case UserCommandType::UpdateTransform:
 			{
-				UpdatePositionCommand bufferCommand;
+				UpdateTransformCommand bufferCommand;
 				SizedMemory sizedData = SizedMemory{ (uint8*)userCommandData, command->sizeOfData };
-				unpack<glm::vec3, Ecs::EntityId>(
+				unpack<glm::vec3, glm::vec3, Ecs::EntityId>(
 					sizedData,
 					&bufferCommand.position,
+					&bufferCommand.orientation,
 					&bufferCommand.entity
 					);
 				bufferCommand.timestamp = command->timestamp;
@@ -331,16 +332,21 @@ namespace Minecraft
 					}
 				}
 
-				positionCommandBuffer.insert(bufferCommand);
+				transformCommandBuffer.insert(bufferCommand);
 
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// Use a command from at least 100ms ago
 				bool foundPosition;
-				glm::vec3 position = positionCommandBuffer.predict(lagInMs, bufferCommand.entity, &foundPosition);
-				if (foundPosition)
+				glm::vec3 position, orientation;
+				if (transformCommandBuffer.predict(lagInMs, bufferCommand.entity, &position, &orientation))
 				{
 					Ecs::Registry* registry = Scene::getRegistry();
-					registry->getComponent<Transform>(bufferCommand.entity).position = position;
+					if (registry->hasComponent<Transform>(bufferCommand.entity))
+					{
+						Transform& transform = registry->getComponent<Transform>(bufferCommand.entity);
+						transform.position = position;
+						transform.orientation = orientation;
+					}
 				}
 			}
 			break;
@@ -479,7 +485,7 @@ namespace Minecraft
 
 				uint64 myTime = std::chrono::duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now().time_since_epoch()
-				).count();
+					).count();
 				SizedMemory responseMessage = pack<uint64, uint64, uint64>(clientTime, myTime, serverGameTime);
 				Network::sendClientCommand(ClientCommandType::ServerTime, responseMessage, peer);
 				g_memory_free(responseMessage.memory);
