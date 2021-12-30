@@ -567,7 +567,7 @@ namespace Minecraft
 				Network::sendClient(peer, NetworkEventType::NotifyChunkWorker, nullptr, 0);
 
 				Ecs::Registry* registry = Scene::getRegistry();
-				Ecs::EntityId currentPlayer = registry->find(TagType::Player);
+				Ecs::EntityId currentPlayer = World::getLocalPlayer();
 				Transform& currentPlayerTransform = registry->getComponent<Transform>(currentPlayer);
 				// Check if we need a new player or if the player has joined before
 				Ecs::EntityId newPlayer = Ecs::nullEntity;
@@ -577,7 +577,6 @@ namespace Minecraft
 					if (std::strcmp(playerComponent.name, playerName) == 0)
 					{
 						newPlayer = entity;
-						playerComponent.isOnline = true;
 						g_logger_info("Welcome back '%s'", playerComponent.name);
 						break;
 					}
@@ -588,6 +587,7 @@ namespace Minecraft
 					g_logger_info("Welcome '%s'. First time joining this world.", playerName);
 				}
 				registry->getComponent<CharacterController>(newPlayer).lockedToCamera = false;
+				registry->getComponent<PlayerComponent>(newPlayer).isOnline = true;
 				// Synchronize the ECS
 				RawMemory entityMemory = registry->serialize();
 				Network::broadcast(NetworkEventType::EntityData, entityMemory.data, entityMemory.size);
