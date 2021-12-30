@@ -95,7 +95,7 @@ namespace Minecraft
 			port = address.port;
 
 			//enet_address_set_host(&address, hostname);
-			address.port = port;
+			//address.port = port;
 
 			// Create a peer that is connected to the server
 			peer = enet_host_connect(client, &address, 2, 0);

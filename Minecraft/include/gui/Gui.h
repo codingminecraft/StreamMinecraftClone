@@ -55,6 +55,7 @@ namespace Minecraft
 		bool button(const Button& button);
 		bool textureButton(const TexturedButton& button, bool isDisabled = false);
 		bool worldSaveItem(const char* worldDataPath, const glm::vec2& size, const Sprite& icon, bool isSelected);
+		bool selectableText(const char* text, const glm::vec2& size, bool isSelected);
 		
 		bool slider(const Slider& slider, float* value);
 

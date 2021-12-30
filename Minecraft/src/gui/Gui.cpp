@@ -385,6 +385,48 @@ namespace Minecraft
 			return res;
 		}
 
+		bool selectableText(const char* text, const glm::vec2& size, bool isSelected)
+		{
+			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, size))
+			{
+				return false;
+			}
+
+			guiStyle.color = "#ffffff"_hex;
+
+			bool res = false;
+			glm::vec2 buttonPosition = getElementPosition(windowState, size);
+			WidgetState state = mouseInAABB(buttonPosition, size);
+			if (state == WidgetState::Click)
+			{
+				res = true;
+			}
+
+			g_logger_assert(text != nullptr, "Invalid world data path. Cannot be null.");
+			g_logger_assert(defaultFont != nullptr, "Invalid default font. Cannot be null.");
+			glm::vec2 strSize = defaultFont->getSize(text, defaultTextScale);
+			glm::vec2 textPos = buttonPosition + glm::vec2(elementPadding.x, (strSize.y * 0.5f));
+			std::string sanitizedWorldDataPath = std::string(text);
+			float maxSize = size.x - defaultFont->getSize("...", defaultTextScale).x - (elementPadding.x * 2.0f);
+			if (strSize.x >= maxSize)
+			{
+				sanitizedWorldDataPath = defaultFont->getStringThatFitsIn(sanitizedWorldDataPath, defaultTextScale, maxSize) + "...";
+			}
+			Renderer::drawString(sanitizedWorldDataPath, *defaultFont, textPos, defaultTextScale, guiStyle);
+
+
+			if (isSelected)
+			{
+				static Style lineStyle = Styles::defaultStyle;
+				lineStyle.strokeWidth = 0.01f;
+				Renderer::drawSquare2D(buttonPosition, size, lineStyle);
+			}
+
+			advanceCursorPastElement(windowState, size);
+			return res;
+		}
+
 		bool slider(const Slider& slider, float* value)
 		{
 			WindowState& windowState = getCurrentWindow();

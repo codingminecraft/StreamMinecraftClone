@@ -2,6 +2,7 @@
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
 #include "gui/CreateWorldMenu.h"
+#include "gui/LanServerMenu.h"
 #include "renderer/Texture.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
@@ -20,6 +21,7 @@ namespace Minecraft
 		static Sprite title;
 		static glm::vec2 titleSize;
 		static bool isCreatingWorld;
+		static bool isJoiningLanServer;
 
 		static Cubemap menuSkybox;
 		static glm::mat4 projectionMatrix;
@@ -30,8 +32,7 @@ namespace Minecraft
 
 		void init()
 		{
-			World::setSavePath("");
-			isCreatingWorld = false;
+			resetState();
 
 			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 
@@ -50,6 +51,7 @@ namespace Minecraft
 			viewRotation = 0.0f;
 
 			CreateWorldMenu::init();
+			LanServerMenu::init();
 			g_logger_info("Initialized main menu scene.");
 		}
 
@@ -61,7 +63,15 @@ namespace Minecraft
 
 		void update()
 		{
-			if (!isCreatingWorld)
+			if (isCreatingWorld)
+			{
+				CreateWorldMenu::update();
+			}
+			else if (isJoiningLanServer)
+			{
+				LanServerMenu::update();
+			}
+			else 
 			{
 				projectionMatrix = glm::perspective(
 					45.0f,
@@ -69,7 +79,7 @@ namespace Minecraft
 					0.1f,
 					2000.0f
 				);
-				
+
 				viewMatrix = glm::rotate(glm::radians(viewRotation), viewAxis);
 				menuSkybox.render(cubemapShader, projectionMatrix, viewMatrix);
 				viewRotation = viewRotation - (3.0f * Application::deltaTime);
@@ -97,7 +107,8 @@ namespace Minecraft
 				button.text = "Join LAN Server";
 				if (Gui::textureButton(button))
 				{
-					Scene::changeScene(SceneType::LocalLanGame);
+					isJoiningLanServer = true;
+					//Scene::changeScene(SceneType::LocalLanGame);
 				}
 
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
@@ -109,10 +120,6 @@ namespace Minecraft
 				}
 				Gui::endWindow();
 			}
-			else
-			{
-				CreateWorldMenu::update();
-			}
 		}
 
 		void free()
@@ -121,6 +128,16 @@ namespace Minecraft
 			cubemapShader.destroy();
 
 			CreateWorldMenu::free();
+			LanServerMenu::free();
+		}
+
+		void resetState()
+		{
+			World::setSavePath("");
+			isCreatingWorld = false;
+			isJoiningLanServer = false;
+
+			LanServerMenu::resetState();
 		}
 	}
 }
