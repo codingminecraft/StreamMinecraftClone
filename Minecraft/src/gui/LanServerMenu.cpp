@@ -363,7 +363,7 @@ namespace Minecraft
 		static void sendBroadcast()
 		{
 			// CAFED00D is the magic number
-			char data[4] = { 0xCA, 0xFE, 0XD0, 0x0D };
+			char data[4] = { (char)0xCA, (char)0xFE, (char)0XD0, (char)0x0D };
 			ENetBuffer sendbuf;
 			sendbuf.data = &data;
 			sendbuf.dataLength = 4;
