@@ -732,7 +732,7 @@ namespace Minecraft
 				const GLenum blendableDrawBuffer[3] = { GL_NONE, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 				glDrawBuffers(3, blendableDrawBuffer);
 
-				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f };
+				const float zeroFillerVec[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 				glClearBufferfv(GL_COLOR, 1, &zeroFillerVec[0]);
 				const float oneFillerVec[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
 				glClearBufferfv(GL_COLOR, 2, &oneFillerVec[0]);
@@ -765,33 +765,36 @@ namespace Minecraft
 				blendableCommandBuffer->softReset();
 
 				// Reset render state
-				glEnable(GL_CULL_FACE);
-				glDepthMask(GL_TRUE);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 				const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
 				glDrawBuffers(3, mainDrawBuffer);
 
-				// Blend the opaque and blended stuff together now...
-				// Set the render state for compositing our transparent and opaque buffers
-				glDepthFunc(GL_ALWAYS);
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-				// Draw the screen quad
-				Framebuffer& mainFramebuffer = Application::getMainFramebuffer();
-				compositeShader.bind();
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
-				compositeShader.uploadInt("accumulationTexture", 0);
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
-				compositeShader.uploadInt("revealTexture", 1);
-
-				glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
-				glDrawArrays(GL_TRIANGLES, 0, 6);
-
+				glEnable(GL_CULL_FACE);
+				glEnable(GL_DEPTH_TEST);
 				glDepthFunc(GL_LESS);
+				glDepthMask(GL_TRUE);
+				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+				glDisable(GL_BLEND);
+
+				//// Blend the opaque and blended stuff together now...
+				//// Set the render state for compositing our transparent and opaque buffers
+				//glDepthFunc(GL_ALWAYS);
+				//glEnable(GL_BLEND);
+				//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				//// Draw the screen quad
+				//Framebuffer& mainFramebuffer = Application::getMainFramebuffer();
+				//compositeShader.bind();
+				//glActiveTexture(GL_TEXTURE0);
+				//glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
+				//compositeShader.uploadInt("accumulationTexture", 0);
+				//glActiveTexture(GL_TEXTURE1);
+				//glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
+				//compositeShader.uploadInt("revealTexture", 1);
+
+				//glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
+				//glDrawArrays(GL_TRIANGLES, 0, 6);
+
+				//glDepthFunc(GL_LESS);
 			}
 		}
 

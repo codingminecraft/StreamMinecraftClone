@@ -22,7 +22,7 @@ namespace Minecraft
 	{
 		// Internal variables		
 		static std::vector<Batch<RenderVertex2D>> batches2D;
-		static Batch<RenderVertexLine> batch3DLines;
+		static std::vector<Batch<RenderVertexLine>> batch3DLines;
 		static Batch<RenderVertex3D> batch3DRegular;
 		static Batch<VoxelVertex> batch3DVoxels;
 
@@ -38,6 +38,8 @@ namespace Minecraft
 		// Internal functions
 		static Batch<RenderVertex2D>& getBatch2D(int zIndex, const Texture& texture, bool useTexture, bool isFont);
 		static Batch<RenderVertex2D>& createBatch2D(int zIndex, bool isFont);
+		static Batch<RenderVertexLine>& getBatchLine3D();
+		static Batch<RenderVertexLine>& createBatchLine3D();
 		static void GLAPIENTRY messageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 		static void drawTexturedTriangle2D(const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const Texture* texture, const Style& style, int zIndex, bool isFont = false);
 		static void drawTexturedTriangle3D(const glm::vec4& p0, const glm::vec4& p1, const glm::vec4& p2, const glm::vec2& uv0, const glm::vec2& uv1, const glm::vec2& uv2, const glm::vec3& normal, const Texture* texture);
@@ -46,7 +48,6 @@ namespace Minecraft
 		{
 			registry = &sceneRegistry;
 			camera = nullptr;
-			batch3DLines.numVertices = 0;
 
 			// Load OpenGL functions using Glad
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -75,16 +76,6 @@ namespace Minecraft
 			regular3DShader.compile("assets/shaders/RegularShader3D.glsl");
 			batch3DVoxelsShader.compile("assets/shaders/VoxelShader.glsl");
 
-			batch3DLines.init(
-				{
-					{0, 3, AttributeType::Float, offsetof(RenderVertexLine, start)},
-					{1, 3, AttributeType::Float, offsetof(RenderVertexLine, end)},
-					{2, 1, AttributeType::Float, offsetof(RenderVertexLine, isStart)},
-					{3, 1, AttributeType::Float, offsetof(RenderVertexLine, direction)},
-					{4, 1, AttributeType::Float, offsetof(RenderVertexLine, strokeWidth)},
-					{5, 4, AttributeType::Float, offsetof(RenderVertexLine, color)}
-				}
-			);
 			batch3DRegular.init(
 				{
 					{0, 3, AttributeType::Float, offsetof(RenderVertex3D, position)},
@@ -104,11 +95,14 @@ namespace Minecraft
 
 		void free()
 		{
-			for (Batch<RenderVertex2D> batch2D : batches2D)
+			for (Batch<RenderVertex2D>& batch2D : batches2D)
 			{
 				batch2D.free();
 			}
-			batch3DLines.free();
+			for (Batch<RenderVertexLine>& batch3DLine : batch3DLines)
+			{
+				batch3DLine.free();
+			}
 			batch3DRegular.free();
 			batch3DVoxels.free();
 
@@ -121,8 +115,8 @@ namespace Minecraft
 		void render()
 		{
 			flushBatches3D();
-			flushBatches2D();
 			flushVoxelBatches();
+			flush3DScreenspaceLines();
 		}
 
 		void reloadShaders()
@@ -177,21 +171,11 @@ namespace Minecraft
 
 		void flushBatches3D()
 		{
-			if (batch3DLines.numVertices <= 0)
+			// If there's no camera, we can't render 3D objects
+			if (!camera || registry->entities.size() == 0)
 			{
 				return;
 			}
-
-			glDisable(GL_CULL_FACE);
-
-			line3DShader.bind();
-			line3DShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
-			line3DShader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
-			line3DShader.uploadFloat("uAspectRatio", Application::getWindow().getAspectRatio());
-
-			batch3DLines.flush();
-
-			glEnable(GL_CULL_FACE);
 
 			regular3DShader.bind();
 			regular3DShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
@@ -207,12 +191,37 @@ namespace Minecraft
 
 			batch3DRegular.flush();
 
-			DebugStats::numDrawCalls += 2;
+			DebugStats::numDrawCalls++;
+		}
+
+		void flush3DScreenspaceLines()
+		{
+			// If there's no camera, we can't render 3D objects
+			if (!camera || registry->entities.size() == 0)
+			{
+				return;
+			}
+
+			glDisable(GL_CULL_FACE);
+
+			line3DShader.bind();
+			line3DShader.uploadMat4("uProjection", camera->calculateProjectionMatrix(*registry));
+			line3DShader.uploadMat4("uView", camera->calculateViewMatrix(*registry));
+			line3DShader.uploadFloat("uAspectRatio", Application::getWindow().getAspectRatio());
+
+			for (Batch<RenderVertexLine>& batch3DLine : batch3DLines)
+			{
+				batch3DLine.flush();
+				DebugStats::numDrawCalls++;
+			}
+
+			glEnable(GL_CULL_FACE);
 		}
 
 		void flushVoxelBatches()
 		{
-			if (batch3DVoxels.numVertices <= 0)
+			// If there's no camera, we can't render 3D objects
+			if (!camera || registry->entities.size() == 0)
 			{
 				return;
 			}
@@ -443,10 +452,8 @@ namespace Minecraft
 
 		void drawLine(const glm::vec3& start, const glm::vec3& end, const Style& style)
 		{
-			if (batch3DLines.numVertices + 6 >= _Batch::maxBatchSize)
-			{
-				flushBatches3D();
-			}
+			Batch<RenderVertexLine>& batch3DLine = getBatchLine3D();
+			g_logger_assert(batch3DLine.numVertices + 6 <= _Batch::maxBatchSize, "Somehow we exceeded 3D Line batch limit.");
 
 			// First triangle
 			RenderVertexLine v;
@@ -456,7 +463,7 @@ namespace Minecraft
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 
 			v.isStart = 1.0f;
 			v.start = start;
@@ -464,7 +471,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -472,7 +479,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 
 			// Second triangle
 			v.isStart = 1.0f;
@@ -481,7 +488,7 @@ namespace Minecraft
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -489,7 +496,7 @@ namespace Minecraft
 			v.direction = 1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 
 			v.isStart = 0.0f;
 			v.start = start;
@@ -497,7 +504,7 @@ namespace Minecraft
 			v.direction = -1.0f;
 			v.color = style.color;
 			v.strokeWidth = style.strokeWidth;
-			batch3DLines.addVertex(v);
+			batch3DLine.addVertex(v);
 		}
 
 		void drawBox(const glm::vec3& center, const glm::vec3& size, const Style& style)
@@ -643,10 +650,7 @@ namespace Minecraft
 			bool isFont)
 		{
 			Batch<RenderVertex2D>& batch2D = getBatch2D(zIndex, *texture, true, isFont);
-			if (batch2D.numVertices + 3 > _Batch::maxBatchSize)
-			{
-				batch2D = createBatch2D(zIndex, isFont);
-			}
+			g_logger_assert(batch2D.numVertices + 3 <= _Batch::maxBatchSize, "Somehow we exceeded 2D Line batch limit.");
 
 			uint32 texSlot = batch2D.getTextureSlot(texture->graphicsId, isFont);
 
@@ -747,6 +751,40 @@ namespace Minecraft
 			// Since we added stuff to the vector and everything recursively call this function
 			// so that we get the appropriate reference
 			return getBatch2D(zIndex, {}, false, isFont);
+		}
+
+		static Batch<RenderVertexLine>& getBatchLine3D()
+		{
+			for (Batch<RenderVertexLine>& batch3D : batch3DLines)
+			{
+				if (batch3D.numVertices + 6 < _Batch::maxBatchSize)
+				{
+					return batch3D;
+				}
+			}
+
+			return createBatchLine3D();
+		}
+
+		static Batch<RenderVertexLine>& createBatchLine3D()
+		{
+			// No batch3DLines found, create a new one and sort the batches
+			Batch<RenderVertexLine> newBatch;
+			newBatch.init(
+				{
+					{0, 3, AttributeType::Float, offsetof(RenderVertexLine, start)},
+					{1, 3, AttributeType::Float, offsetof(RenderVertexLine, end)},
+					{2, 1, AttributeType::Float, offsetof(RenderVertexLine, isStart)},
+					{3, 1, AttributeType::Float, offsetof(RenderVertexLine, direction)},
+					{4, 1, AttributeType::Float, offsetof(RenderVertexLine, strokeWidth)},
+					{5, 4, AttributeType::Float, offsetof(RenderVertexLine, color)}
+				}
+			);
+			batch3DLines.push_back(newBatch);
+
+			// Since we added stuff to the vector and everything recursively call this function
+			// so that we get the appropriate reference
+			return getBatchLine3D();
 		}
 	}
 }

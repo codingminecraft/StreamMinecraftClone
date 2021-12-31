@@ -31,6 +31,7 @@ namespace Minecraft
 		static std::string screenshotName = "";
 
 		static Shader screenShader;
+		static Shader compositeShader;
 		static GlobalThreadPool* globalThreadPool;
 
 		// Internal functions
@@ -110,6 +111,7 @@ namespace Minecraft
 
 			// Initialize rendering state for blitting the main framebuffer to the screen
 			screenShader.compile("assets/shaders/MainFramebuffer.glsl");
+			compositeShader.compile("assets/shaders/CompositeShader.glsl");
 		}
 
 		void run()
@@ -144,7 +146,6 @@ namespace Minecraft
 						glViewport(0, 0, getWindow().width, getWindow().height);
 					}
 
-					// TODO: You're trying to debug the black screen because of the glClear framebuffer thing
 					mainFramebuffer.bind();
 					const GLenum mainDrawBuffer[3] = { GL_COLOR_ATTACHMENT0, GL_NONE, GL_NONE };
 					glDrawBuffers(3, mainDrawBuffer);
@@ -153,6 +154,27 @@ namespace Minecraft
 					float one = 1;
 					glClearBufferfv(GL_DEPTH, 0, &one);
 					Scene::update();
+
+					// Blend the opaque and blended stuff together now...
+					// Set the render state for compositing our transparent and opaque buffers
+					glDepthFunc(GL_ALWAYS);
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+					// Draw the screen quad
+					//Framebuffer& mainFramebuffer = Application::getMainFramebuffer();
+					//compositeShader.bind();
+					//glActiveTexture(GL_TEXTURE0);
+			 		//glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(1).graphicsId);
+					//compositeShader.uploadInt("accumulationTexture", 0);
+					//glActiveTexture(GL_TEXTURE1);
+					//glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorAttachment(2).graphicsId);
+					//compositeShader.uploadInt("revealTexture", 1);
+
+					//glBindVertexArray(Vertices::fullScreenSpaceRectangleVao);
+					//glDrawArrays(GL_TRIANGLES, 0, 6);
+
+					//glDepthFunc(GL_LESS);
 
 					// Unbind all framebuffers and render the composited image
 					glDisable(GL_DEPTH_TEST);
@@ -172,6 +194,9 @@ namespace Minecraft
 					glDrawArrays(GL_TRIANGLES, 0, 6);
 
 					glEnable(GL_DEPTH_TEST);
+
+					// Render screenspace lines and GUI stuff on top of everything else
+					Renderer::flushBatches2D();
 				}
 
 				window.swapBuffers();
@@ -229,6 +254,7 @@ namespace Minecraft
 		{
 			// Free our assets
 			screenShader.destroy();
+			compositeShader.destroy();
 			Sprites::freeAllSpritesheets();
 			Fonts::unloadAllFonts();
 			mainFramebuffer.destroy();

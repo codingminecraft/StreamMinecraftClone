@@ -23,6 +23,7 @@ void main()
 	// Into clip space
 	vec3 pos = aIsStart == 1.0 ? aStart : aEnd;
 	vec4 currentProjected = projView * vec4(pos, 1.0);
+
 	vec4 endProjected = projView * vec4(aEnd, 1.0);
 	vec4 startProjected = projView * vec4(aStart, 1.0);
 
@@ -62,5 +63,5 @@ in vec2 fDistanceToCenter;
 void main()
 {
 	// TODO: Check if this anti-aliasing really helps
-	FragColor = vec4(fColor.rgb, fColor.a - fColor.a * length(fDistanceToCenter));
+	FragColor = vec4(fColor.rgb, 1.0);
 }

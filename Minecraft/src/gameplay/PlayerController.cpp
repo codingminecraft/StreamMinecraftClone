@@ -303,6 +303,9 @@ namespace Minecraft
 				controller.viewAxis.y = Input::deltaMouseY;
 				controller.isRunning = Input::isKeyPressed(GLFW_KEY_LEFT_CONTROL);
 
+				// TODO: Remove me
+				Renderer::drawBox(transform.position + transform.forward * 2.0f, glm::vec3(1.0f), Styles::defaultStyle);
+
 				controller.movementAxis.x =
 					Input::isKeyPressed(GLFW_KEY_W)
 					? 1.0f

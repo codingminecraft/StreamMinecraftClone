@@ -163,6 +163,7 @@ namespace Minecraft
 				break;
 			}
 
+			// Rebind color attachment 0 since we may have unbound it for the chunk rendering
 			Renderer::render();
 
 			queueMainEvent(GEventType::FrameTick, nullptr, 0, false);
