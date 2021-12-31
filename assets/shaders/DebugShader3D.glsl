@@ -61,6 +61,5 @@ in vec2 fDistanceToCenter;
 
 void main()
 {
-	// TODO: Check if this anti-aliasing really helps
 	FragColor = vec4(fColor.rgb, fColor.a - fColor.a * length(fDistanceToCenter));
 }

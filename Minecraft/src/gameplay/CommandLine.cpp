@@ -354,6 +354,9 @@ namespace Minecraft
 			}
 
 			World::worldTime = time;
+			SizedMemory timeData = pack<int>(time);
+			Network::sendClientCommand(ClientCommandType::SetTime, timeData);
+			g_memory_free(timeData.memory);
 		}
 
 		static bool parseBoolean(const char* str, int strLength, bool* result)

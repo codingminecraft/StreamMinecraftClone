@@ -442,6 +442,18 @@ namespace Minecraft
 				ChunkManager::queueCalculateLighting(playerPosChunkCoords);
 			}
 			break;
+			case ClientCommandType::SetTime:
+			{
+				int time;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<int>(
+					sizedData,
+					&time
+					);
+
+				World::worldTime = time;
+			}
+			break;
 			default:
 			{
 				g_logger_error("<Client> Unknown client command '%s'.", magic_enum::enum_name(command->type).data());

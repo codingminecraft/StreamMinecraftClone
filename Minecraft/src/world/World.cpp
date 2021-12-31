@@ -57,6 +57,7 @@ namespace Minecraft
 		static Shader transparentShader;
 		static Shader cubemapShader;
 		static Cubemap skybox;
+		static Cubemap nightSkybox;
 		static Ecs::EntityId playerId;
 		static robin_hood::unordered_set<glm::ivec2> loadedChunkPositions;
 		static Ecs::Registry* registry;
@@ -155,6 +156,13 @@ namespace Minecraft
 				"assets/images/sky/dayRight.png",
 				"assets/images/sky/dayFront.png",
 				"assets/images/sky/dayBack.png");
+			nightSkybox = Cubemap::generateCubemap(
+				"assets/images/sky/nightTop.png",
+				"assets/images/sky/nightBottom.png",
+				"assets/images/sky/nightLeft.png",
+				"assets/images/sky/nightRight.png",
+				"assets/images/sky/nightFront.png",
+				"assets/images/sky/nightBack.png");
 
 			Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			PlayerController::init();
@@ -168,7 +176,7 @@ namespace Minecraft
 			cubemapShader.destroy();
 			opaqueShader.compile("assets/shaders/OpaqueShader.glsl");
 			transparentShader.compile("assets/shaders/TransparentShader.glsl");
-			cubemapShader.compile("assets/shaders/Cubemap.glsl");
+			cubemapShader.compile("assets/shaders/SkyboxShader.glsl");
 		}
 
 		void regenerateWorld()
@@ -234,6 +242,7 @@ namespace Minecraft
 			opaqueShader.destroy();
 			transparentShader.destroy();
 			skybox.destroy();
+			nightSkybox.destroy();
 			cubemapShader.destroy();
 
 			if (shouldSerialize)
@@ -280,7 +289,7 @@ namespace Minecraft
 				}
 			}
 
-			if (playerId == Ecs::nullEntity || registry->hasComponent<PlayerComponent>(playerId) && 
+			if (playerId == Ecs::nullEntity || registry->hasComponent<PlayerComponent>(playerId) &&
 				!registry->getComponent<PlayerComponent>(playerId).isOnline)
 			{
 				return;
@@ -295,7 +304,56 @@ namespace Minecraft
 			cameraFrustum.update(projectionMatrix * viewMatrix);
 
 			// Render cubemap
-			skybox.render(cubemapShader, projectionMatrix, viewMatrix);
+			if (worldTime >= 800 && worldTime <= 1800)
+			{
+				cubemapShader.bind();
+				cubemapShader.uploadInt("uOutSkybox", 0);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.graphicsId);
+				cubemapShader.uploadInt("uInSkybox", 1);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, nightSkybox.graphicsId);
+				float blendValue;
+				if (worldTime > 600 && worldTime <= 1000)
+				{
+					blendValue = (1000.0f - worldTime) / 400.0f;
+				}
+				else if (worldTime > 1600 && worldTime < 2000)
+				{
+					blendValue = (2000.0f - worldTime) / 400.0f;
+				}
+				else
+				{
+					blendValue = 0.0f;
+				}
+				cubemapShader.uploadFloat("uBlendValue", 1.0f - blendValue);
+				skybox.render(cubemapShader, projectionMatrix, viewMatrix, false);
+			}
+			else
+			{
+				cubemapShader.bind();
+				cubemapShader.uploadInt("uOutSkybox", 0);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.graphicsId);
+				cubemapShader.uploadInt("uInSkybox", 1);
+				glActiveTexture(GL_TEXTURE1);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, nightSkybox.graphicsId);
+				float blendValue;
+				if (worldTime > 600 && worldTime <= 1000)
+				{
+					blendValue = (1000.0f - worldTime) / 400.0f;
+				}
+				else if (worldTime > 1600 && worldTime < 2000)
+				{
+					blendValue = (2000.0f - worldTime) / 400.0f;
+				}
+				else
+				{
+					blendValue = 1.0f;
+				}
+				cubemapShader.uploadFloat("uBlendValue", 1.0f - blendValue);
+				skybox.render(cubemapShader, projectionMatrix, viewMatrix, false);
+			}
 
 			// Update all systems
 			KeyHandler::update();
