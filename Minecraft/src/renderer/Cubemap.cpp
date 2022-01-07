@@ -48,17 +48,24 @@ namespace Minecraft
 		 1.0f, -1.0f,  1.0f
 	};
 
-	void Cubemap::render(const Shader& shader, const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix) const
+	void Cubemap::render(const Shader& shader, const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, bool uploadTexture) const
 	{
 		glDepthMask(GL_FALSE);
 		shader.bind();
 		shader.uploadMat4("uProjection", projectionMatrix);
 		shader.uploadMat4("uView", glm::mat4(glm::mat3(viewMatrix)));
-		shader.uploadInt("uSkybox", 0);
+
+		if (uploadTexture)
+		{
+			shader.uploadInt("uSkybox", 0);
+		}
 
 		glBindVertexArray(vao);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, graphicsId);
+		if (uploadTexture)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, graphicsId);
+		}
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glDepthMask(GL_TRUE);
 	}
@@ -81,11 +88,11 @@ namespace Minecraft
 	}
 
 	Cubemap Cubemap::generateCubemap(
-		const std::string& top, 
-		const std::string& bottom, 
-		const std::string& left, 
-		const std::string& right, 
-		const std::string& front, 
+		const std::string& top,
+		const std::string& bottom,
+		const std::string& left,
+		const std::string& right,
+		const std::string& front,
 		const std::string& back)
 	{
 		Cubemap res;
@@ -137,7 +144,7 @@ namespace Minecraft
 
 		glGenVertexArrays(1, &res.vao);
 		glBindVertexArray(res.vao);
-		
+
 		glGenBuffers(1, &res.vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, res.vbo);
 

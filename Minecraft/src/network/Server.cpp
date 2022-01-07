@@ -44,6 +44,7 @@ namespace Minecraft
 		static void processClientCommand(ClientCommand* command, void* userCommandData, ENetPeer* peer);
 		// TODO: Should there be server commands? If so, what's the difference from a ClientCommand?
 		// static void processServerCommand(UserCommand* command, void* userCommandData, ENetPeer* peer);
+		static void sendToEveryoneExcept(const ClientCommand* command, const SizedMemory& sizedData, const ENetPeer* peer);
 
 		// Internal buffers
 		static TransformCommandBuffer transformCommandBuffer;
@@ -403,18 +404,7 @@ namespace Minecraft
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
 				ChunkManager::setBlock(worldPosition, block);
-
-				for (int i = 0; i < numConnectedClients; i++)
-				{
-					ENetPeer* peerToSendTo = clients[i];
-					if (peerToSendTo != peer)
-					{
-						// This is a 2-way event, because the server must verify this action is not cheating
-						// So we want to send it back to everyone including the client that issued the command
-						ENetPeer* peerToSendTo = clients[i];
-						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
-					}
-				}
+				sendToEveryoneExcept(command, sizedData, peer);
 			}
 			break;
 			case ClientCommandType::RemoveBlock:
@@ -429,18 +419,7 @@ namespace Minecraft
 				// TODO: Do cheat checking, make sure the entity hasn't moved farther than it should in one update
 				// TODO: Add buffering here. Buffer the commands so you can perform interpolation of updates client side
 				ChunkManager::removeBlock(worldPosition);
-
-				for (int i = 0; i < numConnectedClients; i++)
-				{
-					ENetPeer* peerToSendTo = clients[i];
-					if (peerToSendTo != peer)
-					{
-						// This is a 2-way event, because the server must verify this action is not cheating
-						// So we want to send it back to everyone including the client that issued the command
-						ENetPeer* peerToSendTo = clients[i];
-						Network::sendClientCommand(command->type, sizedData, peerToSendTo);
-					}
-				}
+				sendToEveryoneExcept(command, sizedData, peer);
 			}
 			break;
 			case ClientCommandType::Chat:
@@ -457,18 +436,7 @@ namespace Minecraft
 				{
 					const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(player);
 					MainHud::generalMessage(player, message);
-
-					for (int i = 0; i < numConnectedClients; i++)
-					{
-						ENetPeer* peerToSendTo = clients[i];
-						if (peerToSendTo != peer)
-						{
-							// This is a 2-way event, because the server must verify this action is not cheating
-							// So we want to send it back to everyone including the client that issued the command
-							ENetPeer* peerToSendTo = clients[i];
-							Network::sendClientCommand(command->type, sizedData, peerToSendTo);
-						}
-					}
+					sendToEveryoneExcept(command, sizedData, peer);
 				}
 			}
 			break;
@@ -597,6 +565,10 @@ namespace Minecraft
 				Network::sendClient(peer, NetworkEventType::LocalPlayer, &newPlayer, sizeof(Ecs::EntityId));
 				g_memory_free(entityMemory.data);
 
+				SizedMemory timeData = pack<int>(World::worldTime);
+				Network::sendClientCommand(ClientCommandType::SetTime, timeData, peer);
+				g_memory_free(timeData.memory);
+
 				g_logger_info("Telling client to patch their dang chunk neighbors and to calculate their lighting.");
 				SizedMemory playerLoadPos = pack<glm::vec3>(currentPlayerTransform.position);
 				Network::sendClientCommand(ClientCommandType::CalculateLighting, playerLoadPos, peer);
@@ -606,9 +578,37 @@ namespace Minecraft
 				enet_host_flush(server);
 			}
 			break;
+			case ClientCommandType::SetTime:
+			{
+				int time;
+				SizedMemory sizedData = SizedMemory{ (uint8*)clientCommandData, command->sizeOfData };
+				unpack<int>(
+					sizedData,
+					&time
+				);
+
+				World::worldTime = time;
+				sendToEveryoneExcept(command, sizedData, peer);
+			}
+			break;
 			default:
 				g_logger_error("<Server> Unknown client command '%s'.", magic_enum::enum_name(command->type).data());
 				break;
+			}
+		}
+
+		static void sendToEveryoneExcept(const ClientCommand* command, const SizedMemory& sizedData, const ENetPeer* peer)
+		{
+			for (int i = 0; i < numConnectedClients; i++)
+			{
+				ENetPeer* peerToSendTo = clients[i];
+				if (peerToSendTo != peer)
+				{
+					// This is a 2-way event, because the server must verify this action is not cheating
+					// So we want to send it back to everyone including the client that issued the command
+					ENetPeer* peerToSendTo = clients[i];
+					Network::sendClientCommand(command->type, sizedData, peerToSendTo);
+				}
 			}
 		}
 	}

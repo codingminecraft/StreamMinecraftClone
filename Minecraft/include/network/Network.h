@@ -32,7 +32,8 @@ namespace Minecraft
 		ServerTime,
 		Handshake,
 		ClientLoadInfo,
-		CalculateLighting
+		CalculateLighting,
+		SetTime,
 	};
 
 	struct NetworkEvent
