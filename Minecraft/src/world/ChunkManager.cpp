@@ -148,7 +148,6 @@ namespace Minecraft
 
 		// Internal variables
 		static std::mutex chunkMtx;
-		static uint32 processorCount = 0;
 		static robin_hood::unordered_node_map<glm::ivec2, Chunk> chunks = {};
 
 		static uint32 chunkPosInstancedBuffer;
@@ -170,7 +169,6 @@ namespace Minecraft
 		{
 			// A chunk uses 55,000 vertices on average, so a sub-chunk can be estimated to use about 
 			// 4,500 vertices on average. That's the default vertex bucket size
-			processorCount = 1;// std::thread::hardware_concurrency();
 
 			// Initialize the singletons
 			chunkWorker = new ChunkThreadWorker();
@@ -317,9 +315,32 @@ namespace Minecraft
 			}
 		}
 
+		void serializeSynchronous() 
+		{
+			for (robin_hood::pair<const glm::ivec2, Chunk>& chunkIter : chunks)
+			{
+				Chunk& chunk = chunkIter.second;
+				Block* blockData = chunk.data;
+				if (chunk.state != ChunkState::Saving && blockData &&
+					chunk.state != ChunkState::Unloaded &&
+					chunk.state != ChunkState::Unloading)
+				{
+					ChunkState oldState = chunk.state;
+					chunk.state = ChunkState::Saving;
+					ChunkPrivate::serialize(World::chunkSavePath, chunk);
+					chunk.state = oldState;
+				}
+			}
+		}
+
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks()
 		{
 			return chunks;
+		}
+
+		void queueCommand(FillChunkCommand& command) 
+		{
+			chunkWorker->queueCommand(command);
 		}
 
 		void queueCreateChunk(const glm::ivec2& chunkCoordinates)
@@ -480,9 +501,6 @@ namespace Minecraft
 					cmd.clientChunkData = chunkData;
 
 					// Queue the fill command
-					chunkWorker->queueCommand(cmd);
-					// Queue the calculate lighting command
-					cmd.type = CommandType::CalculateLighting;
 					chunkWorker->queueCommand(cmd);
 					// Queue the tesselate command
 					cmd.type = CommandType::TesselateVertices;
@@ -777,6 +795,11 @@ namespace Minecraft
 			}
 		}
 
+		void setPlayerChunkPos(const glm::ivec2& playerChunkPos) 
+		{
+			chunkWorker->setPlayerPosChunkCoords(playerChunkPos);
+		}
+
 		void checkChunkRadius(const glm::vec3& playerPosition, bool isClient)
 		{
 #ifdef _USE_OPTICK
@@ -784,7 +807,7 @@ namespace Minecraft
 #endif
 
 			glm::ivec2 playerPosChunkCoords = World::toChunkCoords(playerPosition);
-			chunkWorker->setPlayerPosChunkCoords(playerPosChunkCoords);
+			setPlayerChunkPos(playerPosChunkCoords);
 			static glm::ivec2 lastPlayerPosChunkCoords = playerPosChunkCoords;
 
 			if (isClient)

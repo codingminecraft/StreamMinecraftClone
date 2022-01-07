@@ -2,6 +2,7 @@
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
 #include "gui/CreateWorldMenu.h"
+#include "gui/LanServerMenu.h"
 #include "renderer/Texture.h"
 #include "renderer/Font.h"
 #include "renderer/Renderer.h"
@@ -11,6 +12,7 @@
 #include "core/Application.h"
 #include "core/Window.h"
 #include "core/Scene.h"
+#include "world/World.h"
 
 namespace Minecraft
 {
@@ -19,6 +21,7 @@ namespace Minecraft
 		static Sprite title;
 		static glm::vec2 titleSize;
 		static bool isCreatingWorld;
+		static bool isJoiningLanServer;
 
 		static Cubemap menuSkybox;
 		static glm::mat4 projectionMatrix;
@@ -29,7 +32,7 @@ namespace Minecraft
 
 		void init()
 		{
-			isCreatingWorld = false;
+			resetState();
 
 			const robin_hood::unordered_map<std::string, Sprite>& menuSprites = Sprites::getSpritesheet("assets/images/hudSpritesheet.yaml");
 
@@ -48,6 +51,7 @@ namespace Minecraft
 			viewRotation = 0.0f;
 
 			CreateWorldMenu::init();
+			LanServerMenu::init();
 			g_logger_info("Initialized main menu scene.");
 		}
 
@@ -57,9 +61,17 @@ namespace Minecraft
 			cubemapShader.compile("assets/shaders/Cubemap.glsl");
 		}
 
-		void update(float dt)
+		void update()
 		{
-			if (!isCreatingWorld)
+			if (isCreatingWorld)
+			{
+				CreateWorldMenu::update();
+			}
+			else if (isJoiningLanServer)
+			{
+				LanServerMenu::update();
+			}
+			else 
 			{
 				projectionMatrix = glm::perspective(
 					45.0f,
@@ -67,10 +79,10 @@ namespace Minecraft
 					0.1f,
 					2000.0f
 				);
-				
+
 				viewMatrix = glm::rotate(glm::radians(viewRotation), viewAxis);
 				menuSkybox.render(cubemapShader, projectionMatrix, viewMatrix);
-				viewRotation = viewRotation - (3.0f * dt);
+				viewRotation = viewRotation - (3.0f * Application::deltaTime);
 				if (viewRotation < 0)
 				{
 					viewRotation = 360.0f + viewRotation;
@@ -93,11 +105,10 @@ namespace Minecraft
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
 				Gui::centerNextElement();
 				button.text = "Join LAN Server";
-				// TODO: Reenable me once multiplayer is working good
-				//if (Gui::textureButton(button))
-				if (Gui::textureButton(button, true))
+				if (Gui::textureButton(button))
 				{
-					Scene::changeScene(SceneType::LocalLanGame);
+					isJoiningLanServer = true;
+					//Scene::changeScene(SceneType::LocalLanGame);
 				}
 
 				Gui::advanceCursor(glm::vec2(0.0f, 0.15f));
@@ -109,10 +120,6 @@ namespace Minecraft
 				}
 				Gui::endWindow();
 			}
-			else
-			{
-				CreateWorldMenu::update(dt);
-			}
 		}
 
 		void free()
@@ -121,6 +128,16 @@ namespace Minecraft
 			cubemapShader.destroy();
 
 			CreateWorldMenu::free();
+			LanServerMenu::free();
+		}
+
+		void resetState()
+		{
+			World::setSavePath("");
+			isCreatingWorld = false;
+			isJoiningLanServer = false;
+
+			LanServerMenu::resetState();
 		}
 	}
 }

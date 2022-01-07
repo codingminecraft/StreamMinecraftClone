@@ -20,7 +20,7 @@ namespace Minecraft
 			defaultButton->clickSprite = menuSprites.at(std::string("buttonClick"));
 			defaultButton->font = Fonts::loadFont("assets/fonts/Minecraft.ttf", 16_px);
 			defaultButton->size = glm::vec2(2.5f, 0.2f);
-			defaultButton->textScale = 0.0025f;
+			defaultButton->textScale = 0.0022f;
 
 			g_logger_info("Initialized basic GUI elements.");
 		}

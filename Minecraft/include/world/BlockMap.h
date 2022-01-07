@@ -29,36 +29,41 @@ namespace Minecraft
 
 		inline bool isTransparent() const
 		{
-			return (compressedData & 0b1);
+			return (compressedData & (1 << 0));
 		}
 
 		inline void setTransparent(bool transparent)
 		{
-			compressedData |= transparent ? 0b1 : 0;
+			// Clear the bit
+			compressedData &= ~(1 << 0);
+			// Set the bit if needed
+			compressedData |= transparent ? (1 << 0) : 0;
 		}
 
 		inline bool isBlendable() const
 		{
-			return (compressedData & 0b10);
+			return (compressedData & (1 << 1));
 		}
 
 		inline void setIsBlendable(bool isBlendable)
 		{
-			compressedData |= isBlendable ? 0b10 : 0;
+			// Clear the bit
+			compressedData &= ~(1 << 1);
+			// Set the bit if needed
+			compressedData |= isBlendable ? (1 << 1) : 0;
 		}
 
-		// TODO: This doesn't work for some reason
 		inline void setIsLightSource(bool isLightSource)
 		{
-			compressedData |= isLightSource ? 0b100 : 0;
+			// Clear the bit 
+			compressedData &= ~(1 << 2);
+			compressedData |= isLightSource ? (1 << 2) : 0;
 		}
 
 		inline bool isLightSource() const
 		{
-			return (compressedData & 0b100);
+			return (compressedData & (1 << 2));
 		}
-
-		//bool isLightSource() const;
 
 		inline bool isLightPassable() const 
 		{
@@ -68,7 +73,7 @@ namespace Minecraft
 		inline void setLightLevel(int level)
 		{
 			// Mask out the lower 5 bits
-			lightLevel &= 0x3e0;
+			lightLevel &= ~(0x01f);
 			// Set the lower 5 bits to the new level
 			lightLevel |= (level & 0x1f);
 		}
@@ -76,7 +81,7 @@ namespace Minecraft
 		inline void setSkyLightLevel(int level)
 		{
 			// Mask out the 5-10 bits
-			lightLevel &= 0x01f;
+			lightLevel &= ~(0x3e0);
 			// Set the 5-10 bits to the new level
 			lightLevel |= ((level & 0x1f) << 5);
 		}

@@ -18,7 +18,7 @@ namespace Minecraft
 	{
 		void init();
 
-		void update(Ecs::Registry& registry, float dt);
+		void update(Ecs::Registry& registry);
 
 		RaycastStaticResult raycastStatic(const glm::vec3& origin, const glm::vec3& normalDirection, float maxDistance, bool draw = false);
 

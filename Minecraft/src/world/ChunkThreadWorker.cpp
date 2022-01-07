@@ -50,8 +50,11 @@ namespace Minecraft
 	}
 
 	ChunkThreadWorker::ChunkThreadWorker()
-		: cv(), mtx(), queueMtx(), doWork(true)
+		: cv(), cv2(), mtx(), queueMtx(), doWork(true)
 	{
+		std::lock_guard<std::mutex> barrierLock(barrierMtx);
+		barrierSyncCounter = 0;
+		barrierSyncPoint = 0;
 		workerThread = std::thread(&ChunkThreadWorker::threadWorker, this);
 	}
 
@@ -62,6 +65,7 @@ namespace Minecraft
 			doWork = false;
 		}
 		cv.notify_all();
+		cv2.notify_all();
 
 		workerThread.join();
 	}
@@ -170,7 +174,9 @@ namespace Minecraft
 #ifdef _USE_OPTICK
 					OPTICK_EVENT("RecalculateLighting");
 #endif
-					Application::getGlobalThreadPool().queueTask(recalculateLighting, "RecalculateLighting", command, sizeof(FillChunkCommand), Priority::High, freeChunkCmd);
+					// SYNCHRONOUS
+					recalculateLighting(command, sizeof(FillChunkCommand));
+					freeChunkCmd(command, sizeof(FillChunkCommand));
 					break;
 				}
 				case CommandType::TesselateVertices:
@@ -241,6 +247,7 @@ namespace Minecraft
 		{
 		case CommandType::CalculateLighting:
 		case CommandType::GenerateDecorations:
+		case CommandType::RecalculateLighting:
 			return true;
 		}
 
@@ -256,13 +263,6 @@ namespace Minecraft
 		g_memory_copyMem(command.chunk->data, command.clientChunkData,
 			sizeof(Block) * World::ChunkWidth * World::ChunkDepth * World::ChunkHeight);
 		g_memory_free(command.clientChunkData);
-		for (int i = 0; i < World::ChunkWidth * World::ChunkDepth * World::ChunkHeight; i++)
-		{
-			BlockFormat format = BlockMap::getBlock(command.chunk->data[i].id);
-			command.chunk->data[i].setTransparent(format.isTransparent);
-			command.chunk->data[i].setIsLightSource(format.isLightSource);
-			command.chunk->data[i].setIsBlendable(format.isBlendable);
-		}
 		command.chunk->needsToGenerateDecorations = false;
 		command.chunk->needsToCalculateLighting = true;
 	}
@@ -314,11 +314,22 @@ namespace Minecraft
 		ChunkPrivate::calculateLightingUpdate(command.chunk, command.chunk->chunkCoords, command.blockThatUpdated, command.removedLightSource, chunksToRetesselate);
 		for (Chunk* chunk : chunksToRetesselate)
 		{
-			// TODO: I should probably do all this from within the thread...
-			ChunkManager::queueRetesselateChunk(chunk->chunkCoords, chunk);
-			//command.chunk = chunk;
-			//command.type = CommandType::TesselateVertices;
-			//queueCommand(command);
+			FillChunkCommand cmd;
+			cmd.type = CommandType::TesselateVertices;
+			cmd.subChunks = command.subChunks;
+			cmd.chunk = chunk;
+			cmd.isRetesselating = true;
+
+			// Update the sub-chunks that are about to be deleted
+			for (int i = 0; i < (int)command.subChunks->size(); i++)
+			{
+				if ((*command.subChunks)[i]->chunkCoordinates == chunk->chunkCoords && (*command.subChunks)[i]->state == SubChunkState::Uploaded)
+				{
+					(*command.subChunks)[i]->state = SubChunkState::RetesselateVertices;
+				}
+			}
+
+			ChunkManager::queueCommand(cmd);
 		}
 	}
 

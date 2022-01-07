@@ -9,7 +9,10 @@
 #include "core/Application.h"
 #include "core/Scene.h"
 #include "core/Window.h"
+#include "core/File.h"
+#include "core/Components.h"
 #include "gameplay/PlayerController.h"
+#include "gameplay/CharacterController.h"
 #include "world/ChunkManager.h"
 #include "network/Network.h"
 
@@ -32,6 +35,9 @@ namespace Minecraft
 		StopNetwork,
 		ReloadShaders,
 		RegenerateWorld,
+		BeginRecording,
+		StopRecording,
+		PlayRecording,
 		Length
 	};
 
@@ -51,8 +57,9 @@ namespace Minecraft
 		static inline bool isCharIgnoreCase(char letter, char isThisChar) { return (tolower(letter) == tolower(isThisChar)); }
 		static bool parseBoolean(const char* str, int strLength, bool* result);
 		static bool isInteger(const char* str, int strLength);
+		static Ecs::EntityId parsePlayer(const char* str, int strLength);
 
-		void update(float dt, bool parseText)
+		void update(bool parseText)
 		{
 			Font* font = Fonts::getFont("assets/fonts/Minecraft.ttf", 16_px);
 			if (font)
@@ -67,7 +74,8 @@ namespace Minecraft
 				static std::array<char, 512> buffer = { '\0' };
 				if (!parseText)
 				{
-					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), false, true, 4);
+					bool isFocused = true;
+					Gui::input("", 0.0015f, buffer.data(), (int)buffer.size(), &isFocused, false, 4);
 				}
 				else
 				{
@@ -78,11 +86,19 @@ namespace Minecraft
 					else
 					{
 						// TODO: Display the message to chat
-						size_t messageLength = strlen(buffer.data()) + 1;
-						if (Network::isNetworkEnabled())
-						{
-							Network::broadcast(NetworkEventType::Chat, buffer.data(), messageLength);
-						}
+						Ecs::EntityId localPlayer = World::getLocalPlayer();
+						size_t chatMessageLength = strlen(buffer.data()) + 1;
+						size_t sizeOfCommand = sizeof(Ecs::EntityId) + (sizeof(char) * chatMessageLength);
+						SizedMemory memory = SizedMemory{ (uint8*)g_memory_allocate(sizeOfCommand), sizeOfCommand };
+						uint8* data = memory.memory;
+						std::strcpy((char*)data, &buffer[0]);
+						data[chatMessageLength - 1] = '\0';
+						uint8* entityIdDst = data + (chatMessageLength * sizeof(char));
+						*(Ecs::EntityId*)entityIdDst = localPlayer;
+						Network::sendClientCommand(ClientCommandType::Chat, memory);
+						g_memory_free(memory.memory);
+
+						MainHud::generalMessage(localPlayer, &buffer[0]);
 					}
 
 					g_memory_zeroMem(buffer.data(), 512 * sizeof(char));
@@ -94,7 +110,7 @@ namespace Minecraft
 
 		static void parseCommand(const char* command, int length)
 		{
-			if (command[0] == '\0') 
+			if (command[0] == '\0')
 			{
 				return;
 			}
@@ -134,9 +150,9 @@ namespace Minecraft
 
 						// Find the start of the first argument by skipping whitespace
 						int startArgIndex = commandTypeLength + 1;
-						for (int i = startArgIndex; i < length; i++) 
+						for (int i = startArgIndex; i < length; i++)
 						{
-							if ((command[i] != ' ' && command[i] != '\t') || command[i] == '\0') 
+							if ((command[i] != ' ' && command[i] != '\t') || command[i] == '\0')
 							{
 								arg.string = &command[i];
 								startArgIndex = i;
@@ -153,9 +169,9 @@ namespace Minecraft
 								if (i < length - 1)
 								{
 									// Skip whitespace
-									for (int j = i + 1; j < length; j++) 
+									for (int j = i + 1; j < length; j++)
 									{
-										if ((command[j] != ' ' && command[j] != '\t') || command[j] == '\0') 
+										if ((command[j] != ' ' && command[j] != '\t') || command[j] == '\0')
 										{
 											arg.string = &command[j];
 											i = j - 1;
@@ -206,6 +222,39 @@ namespace Minecraft
 			case CommandLineType::RegenerateWorld:
 				World::regenerateWorld();
 				break;
+			case CommandLineType::BeginRecording:
+			{
+				Scene::playFromEventFile = false;
+				Scene::serializeEvents = true;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				// ----- Serialize initial world state
+				World::pushSavePath(demoDir);
+				World::serialize();
+				ChunkManager::serializeSynchronous();
+				World::popSavePath();
+
+				Scene::queueMainEvent(GEventType::SetDeltaTime, &Application::deltaTime, sizeof(float), false);
+				Scene::queueMainEventMoustInitial(Input::mouseX, Input::mouseY, Input::lastMouseX, Input::lastMouseY);
+				Scene::queueMainEvent(GEventType::FrameTick);
+				// -----
+				g_logger_info("Recording demo to '%s'", (demoDir + "/replay.bin").c_str());
+			}
+			break;
+			case CommandLineType::StopRecording:
+			{
+				Scene::serializeEvents = false;
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				g_logger_info("Saved recorded demo at '%s'", (demoDir + "/replay.bin").c_str());
+			}
+			break;
+			case CommandLineType::PlayRecording:
+			{
+				// Load the replay state
+				std::string demoDir = World::getWorldReplayDirPath(World::savePath);
+				Scene::changeScene(SceneType::Replay);
+				g_logger_info("Playing demo at '%s'", demoDir.c_str());
+			}
+			break;
 			default:
 				g_logger_warning("Unknown command line type: %s", magic_enum::enum_name(type).data());
 				break;
@@ -214,29 +263,49 @@ namespace Minecraft
 
 		static void executeGivePlayer(CommandStringView* args, int argsLength)
 		{
-			if (argsLength != 1 && argsLength != 2)
+			if (argsLength != 2 && argsLength != 3)
 			{
-				g_logger_warning("GivePlayer expects 1 or 2 arguments.");
+				g_logger_warning("give expects 2 or 3 arguments. Syntax is '/give @[playerUsername] [blockName] <blockCount>'");
 				return;
 			}
 
-			const std::string blockName = std::string(args[0].string, args[0].string + args[0].length);
+			Ecs::EntityId player = parsePlayer(args[0].string, args[0].length);
+			if (player == Ecs::nullEntity)
+			{
+				g_logger_warning("Cannot give block to player '%s' because that player does not exist.", args[1].string);
+				return;
+			}
+
+			const std::string blockName = std::string(args[1].string, args[1].string + args[1].length);
 			int blockId = BlockMap::getBlockId(blockName);
 
 			int blockCount = 1;
-			if (argsLength == 2)
+			if (argsLength == 3)
 			{
-				if (!isInteger(args[1].string, args[1].length))
+				if (!isInteger(args[2].string, args[2].length))
 				{
-					g_logger_warning("GivePlayer expects an integer as the second argument, the block count.");
+					g_logger_warning("give expects an integer as the third argument, the block count.");
 					return;
 				}
-				blockCount = atoi(args[1].string);
+				blockCount = atoi(args[2].string);
 			}
 
 			if (blockId)
 			{
-				World::givePlayerBlock(blockId, blockCount);
+				if (!Network::isNetworkEnabled())
+				{
+					World::givePlayerBlock(player, blockId, blockCount);
+				}
+				else
+				{
+					if (Network::isLanServer())
+					{
+						World::givePlayerBlock(player, blockId, blockCount);
+					}
+					SizedMemory data = pack<int, int, Ecs::EntityId>(blockId, blockCount, player);
+					Network::sendClientCommand(ClientCommandType::Give, data);
+					g_memory_free(data.memory);
+				}
 			}
 			else
 			{
@@ -285,6 +354,9 @@ namespace Minecraft
 			}
 
 			World::worldTime = time;
+			SizedMemory timeData = pack<int>(time);
+			Network::sendClientCommand(ClientCommandType::SetTime, timeData);
+			g_memory_free(timeData.memory);
 		}
 
 		static bool parseBoolean(const char* str, int strLength, bool* result)
@@ -327,6 +399,54 @@ namespace Minecraft
 			}
 
 			return false;
+		}
+
+		static Ecs::EntityId parsePlayer(const char* str, int strLength)
+		{
+			if (strLength <= 0)
+			{
+				return Ecs::nullEntity;
+			}
+
+			if (str[0] != '@')
+			{
+				return Ecs::nullEntity;
+			}
+
+			// First check if the user type @me
+			if (strLength >= 3)
+			{
+				if (str[0] == '@' && isCharIgnoreCase(str[1], 'm'), isCharIgnoreCase(str[2], 'e'))
+				{
+					return World::getLocalPlayer();
+				}
+			}
+
+			// Otherwise, check if they typed any of the player usernames available
+			Ecs::Registry* registry = Scene::getRegistry();
+			for (auto entity : registry->view<PlayerComponent>())
+			{
+				const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(entity);
+				int playerNameLength = (int)std::strlen(playerComponent.name);
+				bool isPlayer = true;
+				for (int i = 0; i < playerNameLength; i++)
+				{
+					// If we're out of range of our string identifier, or we don't have the same character
+					// This is not the correct string
+					if ((i + 1) >= strLength || !isCharIgnoreCase(str[i + 1], playerComponent.name[i]))
+					{
+						isPlayer = false;
+						break;
+					}
+				}
+
+				if (isPlayer)
+				{
+					return entity;
+				}
+			}
+
+			return Ecs::nullEntity;
 		}
 
 		static bool isInteger(const char* str, int strLength)

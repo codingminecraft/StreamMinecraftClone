@@ -1,12 +1,11 @@
-#ifndef MINECRAFT_MAIN_MENU_H
-#define MINECRAFT_MAIN_MENU_H
+#ifndef MINECRAFT_LAN_SERVER_MENU_H
+#define MINECRAFT_LAN_SERVER_MENU_H
 
 namespace Minecraft
 {
-	namespace MainMenu
+	namespace LanServerMenu
 	{
 		void init();
-		void reloadShaders();
 		void resetState();
 
 		void update();

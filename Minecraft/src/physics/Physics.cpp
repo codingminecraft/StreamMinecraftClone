@@ -2,6 +2,7 @@
 #include "physics/PhysicsComponents.h"
 #include "core/Components.h"
 #include "core/Ecs.h"
+#include "core/Application.h"
 #include "world/World.h"
 #include "world/BlockMap.h"
 #include "world/ChunkManager.h"
@@ -9,6 +10,7 @@
 #include "renderer/Styles.h"
 #include "input/Input.h"
 #include "utils/CMath.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
@@ -54,14 +56,14 @@ namespace Minecraft
 		{
 		}
 
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 #ifdef _USE_OPTICK
 			OPTICK_EVENT();
 #endif
 
 			static float accumulatedDeltaTime = 0.0f;
-			accumulatedDeltaTime += dt;
+			accumulatedDeltaTime += World::deltaTime;
 
 			// Never update the physics more than twice per frame. This means we will get skipped physics
 			// frames, but that's probably more ideal then lagging forever
@@ -72,6 +74,11 @@ namespace Minecraft
 
 				for (Ecs::EntityId entity : registry.view<Transform, Rigidbody, BoxCollider>())
 				{
+					if (registry.hasComponent<PlayerComponent>(entity) && !registry.getComponent<PlayerComponent>(entity).isOnline)
+					{
+						continue;
+					}
+
 					Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
 					Transform& transform = registry.getComponent<Transform>(entity);
 					BoxCollider& boxCollider = registry.getComponent<BoxCollider>(entity);
@@ -92,7 +99,7 @@ namespace Minecraft
 
 					resolveStaticCollision(entity, rb, transform, boxCollider);
 
-					if (registry.getComponent<Tag>(entity).type != TagType::Player)
+					if (entity != World::getLocalPlayer())
 					{
 						Style redStyle = Styles::defaultStyle;
 						redStyle.color = "#FF0000"_hex;

@@ -1005,11 +1005,11 @@ namespace Minecraft
 			}
 		}
 
-		void serialize(const std::string& worldSavePath, const Chunk& chunk)
+		void serialize(const std::string& pathToSaveTo, const Chunk& chunk)
 		{
 			if ((Network::isNetworkEnabled() && Network::isLanServer()) || (!Network::isNetworkEnabled()))
 			{
-				std::string filepath = getFormattedFilepath(chunk.chunkCoords, worldSavePath);
+				std::string filepath = getFormattedFilepath(chunk.chunkCoords, pathToSaveTo);
 				FILE* fp = fopen(filepath.c_str(), "wb");
 				if (!fp)
 				{
@@ -1023,7 +1023,7 @@ namespace Minecraft
 			}
 			else
 			{
-				g_logger_warning("Cannot serialize chunk over the network yet... I mean I can, I just don't feel like adding it in this part of the code.");
+				//g_logger_warning("Cannot serialize chunk over the network yet... I mean I can, I just don't feel like adding it in this part of the code.");
 			}
 		}
 

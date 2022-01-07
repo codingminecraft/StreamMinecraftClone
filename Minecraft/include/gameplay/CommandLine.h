@@ -8,7 +8,7 @@ namespace Minecraft
 	{
 		extern bool isActive;
 
-		void update(float dt, bool parseText);
+		void update(bool parseText);
 	}
 }
 

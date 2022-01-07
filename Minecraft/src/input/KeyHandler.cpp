@@ -10,7 +10,7 @@ namespace Minecraft
 {
 	namespace KeyHandler
 	{
-		void update(float dt)
+		void update()
 		{
 			static bool showDebugStats = false;
 			if (showDebugStats)
@@ -22,7 +22,7 @@ namespace Minecraft
 			static bool enterWasPressed = false;
 			if (showCommandLine || enterWasPressed)
 			{
-				CommandLine::update(dt, enterWasPressed);
+				CommandLine::update(enterWasPressed);
 				enterWasPressed = false;
 			}
 

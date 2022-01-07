@@ -126,7 +126,7 @@ namespace Minecraft
 			advanceCursorPastElement(windowState, strSize);
 		}
 
-		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool drawOutline, bool isFocused, int zIndex)
+		bool input(const char* text, float scale, char* inputBuffer, int inputBufferLength, bool* isFocused, bool drawOutline, int zIndex)
 		{
 			// TODO: Add window overrun support (scroll support)
 			WindowState& windowState = getCurrentWindow();
@@ -139,10 +139,18 @@ namespace Minecraft
 			glm::vec2 inputBoxSize = glm::vec2(windowWidthLeft, height);
 			glm::vec2 inputBoxPos = getElementPosition(windowState, inputBoxSize);
 			WidgetState state = mouseInAABB(inputBoxPos, inputBoxSize);
-			static bool focused = false || isFocused;
-			if (state == WidgetState::Hover)
+			if (Input::isMousePressed(GLFW_MOUSE_BUTTON_LEFT) && state == WidgetState::None)
 			{
-				focused = true;
+				*isFocused = false;
+			}
+
+			if (state == WidgetState::Click)
+			{
+				*isFocused = true;
+				guiStyle.color = "#00000099"_hex;
+			}
+			else if (state == WidgetState::Hover)
+			{
 				guiStyle.color = "#00000099"_hex;
 			}
 			else
@@ -181,7 +189,7 @@ namespace Minecraft
 			}
 
 			bool res = false;
-			if (focused)
+			if (*isFocused)
 			{
 				static const int maxCursorBlink = 50;
 				static int cursorBlinkTick = 0;
@@ -243,10 +251,9 @@ namespace Minecraft
 				else
 				{
 					backspacePressedLastFrame = false;
+					backspaceDelayTimeLeft = -1.0f;
 				}
 				backspaceDelayTimeLeft -= Application::deltaTime;
-
-
 			}
 
 			Gui::advanceCursorPastElement(windowState, inputBoxSize);
@@ -368,6 +375,48 @@ namespace Minecraft
 			glm::vec2 textPos = imagePos + imageSize + glm::vec2(elementPadding.x, -(size.y - (strSize.y * 0.5f)));
 			std::string sanitizedWorldDataPath = std::string(worldDataPath);
 			float maxSize = size.x - defaultFont->getSize("...", defaultTextScale).x - imageSize.x - (elementPadding.x * 2.0f);
+			if (strSize.x >= maxSize)
+			{
+				sanitizedWorldDataPath = defaultFont->getStringThatFitsIn(sanitizedWorldDataPath, defaultTextScale, maxSize) + "...";
+			}
+			Renderer::drawString(sanitizedWorldDataPath, *defaultFont, textPos, defaultTextScale, guiStyle);
+
+
+			if (isSelected)
+			{
+				static Style lineStyle = Styles::defaultStyle;
+				lineStyle.strokeWidth = 0.01f;
+				Renderer::drawSquare2D(buttonPosition, size, lineStyle);
+			}
+
+			advanceCursorPastElement(windowState, size);
+			return res;
+		}
+
+		bool selectableText(const char* text, const glm::vec2& size, bool isSelected)
+		{
+			WindowState& windowState = getCurrentWindow();
+			if (elementExceedsWindowHeight(windowState, size))
+			{
+				return false;
+			}
+
+			guiStyle.color = "#ffffff"_hex;
+
+			bool res = false;
+			glm::vec2 buttonPosition = getElementPosition(windowState, size);
+			WidgetState state = mouseInAABB(buttonPosition, size);
+			if (state == WidgetState::Click)
+			{
+				res = true;
+			}
+
+			g_logger_assert(text != nullptr, "Invalid world data path. Cannot be null.");
+			g_logger_assert(defaultFont != nullptr, "Invalid default font. Cannot be null.");
+			glm::vec2 strSize = defaultFont->getSize(text, defaultTextScale);
+			glm::vec2 textPos = buttonPosition + glm::vec2(elementPadding.x, (strSize.y * 0.5f));
+			std::string sanitizedWorldDataPath = std::string(text);
+			float maxSize = size.x - defaultFont->getSize("...", defaultTextScale).x - (elementPadding.x * 2.0f);
 			if (strSize.x >= maxSize)
 			{
 				sanitizedWorldDataPath = defaultFont->getStringThatFitsIn(sanitizedWorldDataPath, defaultTextScale, maxSize) + "...";

@@ -8,12 +8,32 @@ namespace Minecraft
 {
 	enum class NetworkEventType : uint8
 	{
-		Chat,
 		ChunkData,
 		PatchChunkNeighbors,
 		NotifyChunkWorker,
 		WorldSeed,
-		EntityData
+		EntityData,
+		LocalPlayer,
+		UserCommand,
+		ClientCommand,
+	};
+
+	enum class UserCommandType : uint8
+	{
+		UpdateTransform,
+	};
+
+	enum class ClientCommandType : uint8
+	{
+		Give,
+		SetBlock,
+		RemoveBlock,
+		Chat,
+		ServerTime,
+		Handshake,
+		ClientLoadInfo,
+		CalculateLighting,
+		SetTime,
 	};
 
 	struct NetworkEvent
@@ -28,20 +48,41 @@ namespace Minecraft
 		uint8* data;
 	};
 
+	struct UserCommand
+	{
+		UserCommandType type;
+		uint64 timestamp;
+		size_t sizeOfData;
+	};
+
+	struct ClientCommand
+	{
+		ClientCommandType type;
+		uint64 timestamp;
+		size_t sizeOfData;
+	};
+
 	namespace Network
 	{
-		void init(bool isServer, const char* hostname, int port);
+		void init(bool isServer);
 
 		// TODO: Move this into it's own thread worker and process all network
 		// stuff on a dedicated thread
-		void update(float dt);
+		void update();
 
-		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
-		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes);
-		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes);
+		// TODO: Replace these with sized memory types and test
+		void sendServer(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+		void sendClient(ENetPeer* peer, NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+		void broadcast(NetworkEventType eventType, void* data, size_t dataSizeInBytes, bool isReliable = true);
+
+		// User/Client/Server Commands
+		void sendUserCommand(UserCommandType type, const SizedMemory& data, ENetPeer* peer = nullptr);
+		void sendClientCommand(ClientCommandType type, const SizedMemory& data, ENetPeer* peer = nullptr);
 
 		bool isLanServer();
 		bool isNetworkEnabled();
+
+		uint64 now();
 
 		void free();
 

@@ -1,5 +1,6 @@
 #include "core.h"
 #include "core/Scene.h"
+#include "core/Application.h"
 #include "gui/MainHud.h"
 #include "gui/Gui.h"
 #include "gui/GuiElements.h"
@@ -8,8 +9,10 @@
 #include "renderer/Styles.h"
 #include "renderer/Font.h"
 #include "world/BlockMap.h"
+#include "world/World.h"
 #include "input/Input.h"
 #include "gameplay/Inventory.h"
+#include "gameplay/PlayerController.h"
 #include "utils/CMath.h"
 #include "network/Network.h"
 
@@ -55,10 +58,21 @@ namespace Minecraft
 		static float timeToNotificationFadeout;
 		static const float notificationDisplayTime = 1.0f;
 
+		struct ChatMessage
+		{
+			char* message;
+			uint32 messageLength;
+			float timeToFadeout;
+		};
+
+		static std::array<ChatMessage, 50> messageHistory;
+		static int messageHistoryCount;
+
 		// Internal functions
 		static void initSlotPositions();
 		static void updatePauseScreen();
-		static void updateNotificationMessage(float dt);
+		static void updateNotificationMessage();
+		static void updateChatMessages();
 		static void updateCraftingScreen(Inventory& inventory);
 		static void drawHotbar(const Inventory& inventory);
 		static void drawItemInSlot(InventorySlot block, const glm::vec2& slotPosition, const glm::vec2& slotSize, float itemSize, bool isMouseItem);
@@ -71,6 +85,7 @@ namespace Minecraft
 			notificationMessage = nullptr;
 			notificationMessageLength = 0;
 			timeToNotificationFadeout = 0;
+			messageHistoryCount = 0;
 
 			viewingCraftScreen = false;
 			isPaused = false;
@@ -89,7 +104,7 @@ namespace Minecraft
 			initSlotPositions();
 		}
 
-		void update(float dt, Inventory& inventory)
+		void update(Inventory& inventory)
 		{
 			if (blockCursorSprite && !viewingCraftScreen)
 			{
@@ -129,8 +144,9 @@ namespace Minecraft
 
 			if (notificationMessage)
 			{
-				updateNotificationMessage(dt);
+				updateNotificationMessage();
 			}
+			updateChatMessages();
 		}
 
 		void notify(const std::string& message)
@@ -147,6 +163,38 @@ namespace Minecraft
 			timeToNotificationFadeout = notificationDisplayTime;
 		}
 
+		void generalMessage(Ecs::EntityId playerSpeaking, const char* message)
+		{
+			Ecs::Registry* registry = Scene::getRegistry();
+			if (registry->hasComponent<PlayerComponent>(playerSpeaking))
+			{
+				const PlayerComponent& playerComponent = registry->getComponent<PlayerComponent>(playerSpeaking);
+				std::string fullMsg = "<" + std::string(playerComponent.name) + ">: " + message;
+				int fullMsgLength = fullMsg.length();
+
+				char* newMessage = (char*)g_memory_allocate(sizeof(char) * (fullMsgLength + 1));
+				std::strcpy(newMessage, fullMsg.c_str());
+				newMessage[fullMsgLength] = '\0';
+				ChatMessage newChatMessage;
+				newChatMessage.message = newMessage;
+				newChatMessage.messageLength = fullMsgLength;
+				newChatMessage.timeToFadeout = notificationDisplayTime * 10.0f;
+
+				if (messageHistoryCount + 1 < messageHistory.size())
+				{
+					std::memmove(messageHistory.data() + 1, messageHistory.data(), messageHistoryCount * sizeof(ChatMessage));
+				}
+				else
+				{
+					g_memory_free(messageHistory[messageHistoryCount - 1].message);
+					messageHistoryCount--;
+					std::memmove(messageHistory.data() + 1, messageHistory.data(), (messageHistoryCount - 1) * sizeof(ChatMessage));
+				}
+				messageHistory[0] = newChatMessage;
+				messageHistoryCount++;
+			}
+		}
+
 		void free()
 		{
 			blockCursorSprite = nullptr;
@@ -157,6 +205,12 @@ namespace Minecraft
 			{
 				g_memory_free(notificationMessage);
 			}
+
+			for (int i = 0; i < messageHistoryCount; i++)
+			{
+				g_memory_free(messageHistory[i].message);
+			}
+			messageHistoryCount = 0;
 		}
 
 		static void updatePauseScreen()
@@ -175,12 +229,10 @@ namespace Minecraft
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
 			Gui::centerNextElement();
 			defaultButton.text = "Start LAN Server";
-			// TODO: Re-enable me once multiplayer is working good
-			//if (Gui::textureButton(defaultButton, Network::isLanServer()))
-			if (Gui::textureButton(defaultButton, true))
+			if (Gui::textureButton(defaultButton, Network::isLanServer()))
 			{
 				Network::free();
-				Network::init(true, "127.0.0.1", 8080);
+				Network::init(true);
 			}
 
 			Gui::advanceCursor(glm::vec2(0.0f, 0.1f));
@@ -194,7 +246,7 @@ namespace Minecraft
 			Gui::endWindow();
 		}
 
-		static void updateNotificationMessage(float dt)
+		static void updateNotificationMessage()
 		{
 			if (timeToNotificationFadeout >= 0)
 			{
@@ -212,7 +264,32 @@ namespace Minecraft
 				Renderer::drawString(messageStr, *defaultFont, glm::vec2(xPos, yPos), fontScale, notificationStyle, 1);
 			}
 
-			timeToNotificationFadeout -= dt;
+			timeToNotificationFadeout -= World::deltaTime;
+		}
+
+		static void updateChatMessages()
+		{
+			float yPos = hotbarYPos + inventorySlotSize.y + 0.1f;
+			float xPos = -2.99f;
+			for (int i = 0; i < messageHistoryCount; i++)
+			{
+				if (messageHistory[i].timeToFadeout >= 0)
+				{
+					float fadeOutStart = notificationDisplayTime * 0.5f;
+					float alphaLevel = messageHistory[i].timeToFadeout >= (notificationDisplayTime - fadeOutStart)
+						? 1.0f
+						: messageHistory[i].timeToFadeout / (notificationDisplayTime - fadeOutStart);
+					float fontScale = 0.0015f;
+					const std::string messageStr = std::string(messageHistory[i].message);
+					glm::vec2 messageStrSize = defaultFont->getSize(messageStr, fontScale);
+					static Style notificationStyle = Styles::defaultStyle;
+					notificationStyle.color.a = alphaLevel;
+					Renderer::drawString(messageStr, *defaultFont, glm::vec2(xPos, yPos), fontScale, notificationStyle, 1);
+					yPos += messageStrSize.y + 0.02f;
+				}
+
+				messageHistory[i].timeToFadeout -= World::deltaTime;
+			}
 		}
 
 		static void drawHotbar(const Inventory& inventory)

@@ -1,15 +1,21 @@
 #include "core.h"
 #include "core/TransformSystem.h"
 #include "core/Components.h"
+#include "gameplay/PlayerController.h"
 
 namespace Minecraft
 {
 	namespace TransformSystem
 	{
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 			for (Ecs::EntityId entity : registry.view<Transform>())
 			{
+				if (registry.hasComponent<PlayerComponent>(entity) && !registry.getComponent<PlayerComponent>(entity).isOnline)
+				{
+					continue;
+				}
+
 				Transform& transform = registry.getComponent<Transform>(entity);
 				glm::vec3 direction;
 				direction.x = cos(glm::radians(transform.orientation.y)) * cos(glm::radians(transform.orientation.x));

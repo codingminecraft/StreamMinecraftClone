@@ -7,7 +7,7 @@ namespace Minecraft
 	{
 		void init();
 
-		void update(float dt, float percentLoaded);
+		void update(float percentLoaded);
 
 		void free();
 	}

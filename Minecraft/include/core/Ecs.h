@@ -414,7 +414,6 @@ namespace Minecraft
 			{
 				if (!validEntity(id))
 				{
-					g_logger_error("Cannot check if invalid entity %d has a component.", Internal::getEntityIndex(id));
 					return false;
 				}
 

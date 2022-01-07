@@ -20,6 +20,7 @@
 #include "core/Application.h"
 #include "core/Scene.h"
 #include "core/Window.h"
+#include "network/Network.h"
 
 #include "utils/Constants.h"
 
@@ -62,10 +63,10 @@ namespace Minecraft
 		static const TextureFormat* bottomSprite;
 
 		// Internal functions
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
-		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
-		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb);
-		static void updateInventory(float dt, Inventory& inventory);
+		static void updateSurvival(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
+		static void updateCreative(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory);
+		static void updateSpectator(Transform& transform, CharacterController& controller, Rigidbody& rb);
+		static void updateInventory(Inventory& inventory);
 
 		static Model stick;
 
@@ -84,27 +85,18 @@ namespace Minecraft
 			stick = Vertices::getItemModel("stick");
 		}
 
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
-			if (playerId == Ecs::nullEntity || registry.getComponent<Tag>(playerId).type != TagType::Player)
-			{
-				playerId = registry.find(TagType::Player);
-				if (gameMode == GameMode::Survival)
-				{
-					if (registry.hasComponent<CharacterController>(playerId) && registry.hasComponent<Rigidbody>(playerId))
-					{
-						CharacterController& controller = registry.getComponent<CharacterController>(playerId);
-						Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
-						controller.controllerBaseSpeed = 4.4f;
-						controller.controllerRunSpeed = 6.2f;
-						rb.useGravity = true;
-					}
-				}
-			}
+			setPlayerIfNeeded();
 
 			if (playerId != Ecs::nullEntity && registry.hasComponent<Transform>(playerId) && registry.hasComponent<CharacterController>(playerId)
 				&& registry.hasComponent<Rigidbody>(playerId) && registry.hasComponent<Inventory>(playerId))
 			{
+				if (registry.hasComponent<PlayerComponent>(playerId) && !registry.getComponent<PlayerComponent>(playerId).isOnline)
+				{
+					return;
+				}
+
 				Transform& transform = registry.getComponent<Transform>(playerId);
 				CharacterController& controller = registry.getComponent<CharacterController>(playerId);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(playerId);
@@ -163,13 +155,13 @@ namespace Minecraft
 				switch (gameMode)
 				{
 				case GameMode::Survival:
-					updateSurvival(dt, transform, controller, rb, inventory);
+					updateSurvival(transform, controller, rb, inventory);
 					break;
 				case GameMode::Creative:
-					updateCreative(dt, transform, controller, rb, inventory);
+					updateCreative(transform, controller, rb, inventory);
 					break;
 				case GameMode::Spectator:
-					updateSpectator(dt, transform, controller, rb);
+					updateSpectator(transform, controller, rb);
 					break;
 				default:
 					break;
@@ -185,6 +177,7 @@ namespace Minecraft
 					else if (MainHud::viewingCraftScreen)
 					{
 						MainHud::viewingCraftScreen = false;
+						Application::getWindow().setCursorMode(CursorMode::Locked);
 					}
 					else if (!MainHud::isPaused)
 					{
@@ -201,13 +194,39 @@ namespace Minecraft
 				DebugStats::playerPos = transform.position;
 				DebugStats::playerOrientation = transform.orientation;
 
-				MainHud::update(dt, inventory);
+				MainHud::update(inventory);
+
+				SizedMemory transformData = pack<glm::vec3, glm::vec3, Ecs::EntityId>(transform.position, transform.orientation, playerId);
+				Network::sendUserCommand(UserCommandType::UpdateTransform, transformData);
+				g_memory_free(transformData.memory);
 			}
 		}
 
-		static void updateSurvival(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		void setPlayerIfNeeded(bool forceOverride)
 		{
-			blockPlaceDebounce -= dt;
+			Ecs::Registry* registry = Scene::getRegistry();
+			if (forceOverride || playerId == Ecs::nullEntity || !registry->hasComponent<Tag>(playerId) ||
+				registry->getComponent<Tag>(playerId).type != TagType::Player)
+			{
+				playerId = World::getLocalPlayer();
+				if (registry->hasComponent<CharacterController>(playerId) && registry->hasComponent<Rigidbody>(playerId))
+				{
+					CharacterController& controller = registry->getComponent<CharacterController>(playerId);
+					Rigidbody& rb = registry->getComponent<Rigidbody>(playerId);
+					controller.controllerBaseSpeed = 4.4f;
+					controller.controllerRunSpeed = 6.2f;
+					rb.useGravity = true;
+					controller.lockedToCamera = true;
+					PlayerComponent& playerComp = registry->getComponent<PlayerComponent>(playerId);
+					gameMode = GameMode::Survival;
+					g_logger_info("Player controller found player: '%s'", playerComp.name);
+				}
+			}
+		}
+
+		static void updateSurvival(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		{
+			blockPlaceDebounce -= World::deltaTime;
 
 			//Renderer::draw3DModel(transform.position + (glm::vec3(0.0f, 0.0f, 1.0f) * -1.0f * 2.7f), glm::vec3(1.0f), 0.0f, stick.vertices, stick.verticesLength);
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
@@ -226,9 +245,9 @@ namespace Minecraft
 					static glm::vec3 verticalOffset = glm::vec3(0.0f);
 					static float speedDir = 0.05f;
 					static int changeDirTick = 0;
-					verticalOffset.y += speedDir * dt;
+					verticalOffset.y += speedDir * World::deltaTime;
 					//Renderer::drawTexturedCube(res.point + (res.hitNormal * 0.1f) + verticalOffset, glm::vec3(0.2f, 0.2f, 0.2f), *sideSprite, *topSprite, *bottomSprite, rotation);
-					rotation = rotation + 30.0f * dt;
+					rotation = rotation + 30.0f * World::deltaTime;
 					changeDirTick++;
 					if (changeDirTick > 30)
 					{
@@ -251,6 +270,13 @@ namespace Minecraft
 						{
 							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 							ChunkManager::setBlock(worldPos, newBlock);
+							// If the network is enabled also send this across the network
+							if (Network::isNetworkEnabled())
+							{
+								SizedMemory sizedMemory = pack<glm::vec3, Block>(worldPos, newBlock);
+								Network::sendClientCommand(ClientCommandType::SetBlock, sizedMemory);
+								g_memory_free(sizedMemory.memory);
+							}
 							blockPlaceDebounce = blockPlaceDebounceTime;
 						}
 					}
@@ -258,6 +284,13 @@ namespace Minecraft
 					{
 						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
 						ChunkManager::removeBlock(worldPos);
+						// If the network is enabled also send this across the network
+						if (Network::isNetworkEnabled())
+						{
+							SizedMemory sizedMemory = pack<glm::vec3>(worldPos);
+							Network::sendClientCommand(ClientCommandType::RemoveBlock, sizedMemory);
+							g_memory_free(sizedMemory.memory);
+						}
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
 				}
@@ -291,7 +324,7 @@ namespace Minecraft
 					}
 				}
 
-				updateInventory(dt, inventory);
+				updateInventory(inventory);
 			}
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
@@ -312,12 +345,12 @@ namespace Minecraft
 			}
 		}
 
-		static void updateCreative(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
+		static void updateCreative(Transform& transform, CharacterController& controller, Rigidbody& rb, Inventory& inventory)
 		{
 			static float doubleJumpDebounce = 0.0f;
 			const float doubleJumpDebounceTime = 0.5f;
-			blockPlaceDebounce -= dt;
-			doubleJumpDebounce -= dt;
+			blockPlaceDebounce -= World::deltaTime;
+			doubleJumpDebounce -= World::deltaTime;
 
 			if (!MainHud::viewingCraftScreen && !CommandLine::isActive && !MainHud::isPaused)
 			{
@@ -341,6 +374,13 @@ namespace Minecraft
 						{
 							glm::vec3 worldPos = res.point + (res.hitNormal * 0.1f);
 							ChunkManager::setBlock(worldPos, newBlock);
+							// If the network is enabled also send this across the network
+							if (Network::isNetworkEnabled())
+							{
+								SizedMemory sizedMemory = pack<glm::vec3, Block>(worldPos, newBlock);
+								Network::sendClientCommand(ClientCommandType::SetBlock, sizedMemory);
+								g_memory_free(sizedMemory.memory);
+							}
 							blockPlaceDebounce = blockPlaceDebounceTime;
 						}
 					}
@@ -348,6 +388,13 @@ namespace Minecraft
 					{
 						glm::vec3 worldPos = res.point - (res.hitNormal * 0.1f);
 						ChunkManager::removeBlock(worldPos);
+						// If the network is enabled also send this across the network
+						if (Network::isNetworkEnabled())
+						{
+							SizedMemory sizedMemory = pack<glm::vec3>(worldPos);
+							Network::sendClientCommand(ClientCommandType::RemoveBlock, sizedMemory);
+							g_memory_free(sizedMemory.memory);
+						}
 						blockPlaceDebounce = blockPlaceDebounceTime;
 					}
 				}
@@ -421,7 +468,7 @@ namespace Minecraft
 					}
 				}
 
-				updateInventory(dt, inventory);
+				updateInventory(inventory);
 			}
 
 			if (Input::keyBeginPress(GLFW_KEY_F4))
@@ -430,11 +477,11 @@ namespace Minecraft
 				{
 					controller.controllerBaseSpeed *= 2.0f;
 					controller.controllerRunSpeed *= 2.0f;
-					rb.isSensor = true;
 					rb.useGravity = false;
 					rb.zeroForces();
 					controller.inMiddleOfJump = false;
 				}
+				rb.isSensor = true;
 				gameMode = GameMode::Spectator;
 				MainHud::hotbarVisible = false;
 				MainHud::notify("Game Mode Spectator");
@@ -450,7 +497,7 @@ namespace Minecraft
 			}
 		}
 
-		static void updateSpectator(float dt, Transform& transform, CharacterController& controller, Rigidbody& rb)
+		static void updateSpectator(Transform& transform, CharacterController& controller, Rigidbody& rb)
 		{
 			controller.viewAxis.x = Input::deltaMouseX;
 			controller.viewAxis.y = Input::deltaMouseY;
@@ -487,7 +534,7 @@ namespace Minecraft
 			}
 		}
 
-		static void updateInventory(float dt, Inventory& inventory)
+		static void updateInventory(Inventory& inventory)
 		{
 			for (int i = 0; i < Player::numHotbarSlots; i++)
 			{

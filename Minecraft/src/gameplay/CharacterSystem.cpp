@@ -1,11 +1,14 @@
 #include "gameplay/CharacterSystem.h"
 #include "gameplay/CharacterController.h"
+#include "gameplay/PlayerController.h"
 #include "core/Components.h"
 #include "physics/PhysicsComponents.h"
 #include "physics/Physics.h"
 #include "renderer/Renderer.h"
 #include "renderer/Styles.h"
 #include "utils/CMath.h"
+#include "network/Network.h"
+#include "world/World.h"
 
 namespace Minecraft
 {
@@ -15,13 +18,19 @@ namespace Minecraft
 		static Ecs::EntityId cameraEntity = Ecs::nullEntity;
 		static glm::vec2 smoothMouse = glm::vec2();
 
-		void update(Ecs::Registry& registry, float dt)
+		void update(Ecs::Registry& registry)
 		{
 			for (Ecs::EntityId entity : registry.view<Transform, CharacterController, Rigidbody>())
 			{
+				if (registry.hasComponent<PlayerComponent>(entity) && !registry.getComponent<PlayerComponent>(entity).isOnline)
+				{
+					continue;
+				}
+
 				Transform& transform = registry.getComponent<Transform>(entity);
 				CharacterController& controller = registry.getComponent<CharacterController>(entity);
 				Rigidbody& rb = registry.getComponent<Rigidbody>(entity);
+				controller.lockedToCamera = entity == World::getLocalPlayer();
 
 				float speed = controller.controllerBaseSpeed;
 				if (controller.isRunning)

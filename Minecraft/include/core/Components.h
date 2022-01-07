@@ -9,9 +9,6 @@ namespace Minecraft
 		None,
 		Player,
 		Camera,
-
-		// TODO: Temporary remove this
-		RandomEntity,
 	};
 
 	struct Tag

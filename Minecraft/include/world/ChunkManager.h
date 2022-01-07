@@ -10,6 +10,7 @@ namespace Minecraft
 	struct Block;
 	class Frustum;
 	struct Chunk;
+	struct FillChunkCommand;
 	enum class ChunkState : uint8;
 
 	enum class SubChunkState : uint8
@@ -48,6 +49,7 @@ namespace Minecraft
 		void init();
 		void free();
 		void serialize();
+		void serializeSynchronous();
 
 		robin_hood::unordered_node_map<glm::ivec2, Chunk>& getAllChunks();
 
@@ -62,7 +64,9 @@ namespace Minecraft
 		void patchChunkPointers();
 		void beginWork();
 		void wakeUpCv2();
+		void setPlayerChunkPos(const glm::ivec2& playerChunkPos);
 
+		void queueCommand(FillChunkCommand& command);
 		void queueClientLoadChunk(void* chunkData, const glm::ivec2& chunkCoordinates, ChunkState state);
 		void queueGenerateDecorations(const glm::ivec2& lastPlayerLoadChunkPos);
 		void queueCalculateLighting(const glm::ivec2& lastPlayerPosInChunkCoords);

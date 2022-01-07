@@ -1,4 +1,5 @@
 #include "input/Input.h"
+#include "core/Scene.h"
 
 namespace Minecraft
 {
@@ -8,6 +9,8 @@ namespace Minecraft
 		float mouseScreenY = 0;
 		float mouseX = 0;
 		float mouseY = 0;
+		float lastMouseX = 0;
+		float lastMouseY = 0;
 		float deltaMouseX = 0;
 		float deltaMouseY = 0;
 		float mouseScrollX = 0;
@@ -19,8 +22,6 @@ namespace Minecraft
 
 		uint32 lastCharPressedData = '\0';
 
-		static float mLastMouseX = 0;
-		static float mLastMouseY = 0;
 		static bool mFirstMouse = true;
 		static glm::vec2 windowSize = glm::vec2();
 		static glm::mat4 inverseProjectionMatrix = glm::mat4();
@@ -37,42 +38,41 @@ namespace Minecraft
 
 		void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 		{
-			g_logger_assert(button >= 0 && button < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
-			if (action == GLFW_PRESS)
-			{
-				mousePressed[button] = true;
-				mouseBeginPressData[button] = true;
-			}
-			else if (action == GLFW_RELEASE)
-			{
-				mousePressed[button] = false;
-				mouseBeginPressData[button] = false;
-			}
+			Scene::queueMainEventMouseButton(button, action);
 		}
 
 		void mouseCallback(GLFWwindow* window, double xpos, double ypos)
 		{
-			mouseX = (float)xpos;
-			mouseY = (float)ypos;
-			if (mFirstMouse)
-			{
-				mLastMouseX = (float)xpos;
-				mLastMouseY = (float)ypos;
-				mFirstMouse = false;
-			}
-
-			deltaMouseX = (float)xpos - mLastMouseX;
-			deltaMouseY = mLastMouseY - (float)ypos;
-			mLastMouseX = (float)xpos;
-			mLastMouseY = (float)ypos;
-
-			glm::vec4 tmp = glm::vec4((mouseX / windowSize.x) * 2.0f - 1.0f, -((mouseY / windowSize.y) * 2.0f - 1.0f), 0, 1.0f);
-			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;
-			mouseScreenX = projectedScreen.x;
-			mouseScreenY = projectedScreen.y;
+			Scene::queueMainEventMouse((float)xpos, (float)ypos);
 		}
 
 		void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+		{
+			Scene::queueMainEventKey(key, action);
+		}
+
+		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+		{
+			Scene::queueMainEventMouseScroll((float)xoffset, (float)yoffset);
+		}
+
+		void charCallback(GLFWwindow* window, unsigned int codepoint)
+		{
+			Scene::queueMainEventChar(codepoint);
+		}
+
+		void endFrame()
+		{
+			deltaMouseX = 0;
+			deltaMouseY = 0;
+			lastCharPressedData = '\0';
+			mouseScrollX = 0;
+			mouseScrollY = 0;
+			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
+			g_memory_zeroMem(mouseBeginPressData, sizeof(mouseBeginPressData));
+		}
+
+		void processKeyEvent(int key, int action)
 		{
 			if (key < 0 || key > GLFW_KEY_LAST)
 			{
@@ -91,26 +91,52 @@ namespace Minecraft
 			}
 		}
 
-		void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+		void processMouseEvent(float xpos, float ypos)
 		{
-			mouseScrollX = (float)xoffset;
-			mouseScrollY = (float)yoffset;
+			mouseX = xpos;
+			mouseY = ypos;
+			if (mFirstMouse)
+			{
+				lastMouseX = xpos;
+				lastMouseY = ypos;
+				mFirstMouse = false;
+			}
+
+			deltaMouseX = xpos - lastMouseX;
+			deltaMouseY = lastMouseY - ypos;
+			lastMouseX = xpos;
+			lastMouseY = ypos;
+
+			glm::vec4 tmp = glm::vec4((mouseX / windowSize.x) * 2.0f - 1.0f, -((mouseY / windowSize.y) * 2.0f - 1.0f), 0, 1.0f);
+			glm::vec4 projectedScreen = inverseProjectionMatrix * tmp;
+			mouseScreenX = projectedScreen.x;
+			mouseScreenY = projectedScreen.y;
 		}
 
-		void charCallback(GLFWwindow* window, unsigned int codepoint)
+		void processMouseButton(int button, int action)
+		{
+			g_logger_assert(button >= 0 && button < GLFW_MOUSE_BUTTON_LAST, "Invalid mouse button.");
+			if (action == GLFW_PRESS)
+			{
+				mousePressed[button] = true;
+				mouseBeginPressData[button] = true;
+			}
+			else if (action == GLFW_RELEASE)
+			{
+				mousePressed[button] = false;
+				mouseBeginPressData[button] = false;
+			}
+		}
+
+		void processMouseScroll(float xoffset, float yoffset)
+		{
+			mouseScrollX = xoffset;
+			mouseScrollY = yoffset;
+		}
+
+		void processChar(unsigned int codepoint)
 		{
 			lastCharPressedData = codepoint;
-		}
-
-		void endFrame()
-		{
-			deltaMouseX = 0;
-			deltaMouseY = 0;
-			lastCharPressedData = '\0';
-			mouseScrollX = 0;
-			mouseScrollY = 0;
-			g_memory_zeroMem(keyBeginPressData, sizeof(keyBeginPressData));
-			g_memory_zeroMem(mouseBeginPressData, sizeof(mouseBeginPressData));
 		}
 
 		bool isKeyPressed(int key)
